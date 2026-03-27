@@ -3,7 +3,7 @@
   "version": "0.1.1",
   "description": "A small TypeScript library for orchestrating expressive robot screen faces on HTML5 canvas.",
   "author": "Paul Berry",
-  "homepage": "https://pinubot.com",
+  "homepage": "https://www.pinubot.com",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/pauljohnberry/pinu-bot.git"

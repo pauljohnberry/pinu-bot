@@ -1,6 +1,6 @@
 # pinu-bot
 
-[GitHub](https://github.com/pauljohnberry/pinu-bot) · [Docs](https://pinubot.com) · [Issues](https://github.com/pauljohnberry/pinu-bot/issues)
+[GitHub](https://github.com/pauljohnberry/pinu-bot) · [Docs](https://www.pinubot.com) · [Issues](https://github.com/pauljohnberry/pinu-bot/issues)
 
 `pinu-bot` is a framework-agnostic TypeScript library for expressive robot display faces on HTML5 canvas. It focuses on orchestrating animated emotions, overlays, and display-state transitions instead of drawing static avatars.
 
