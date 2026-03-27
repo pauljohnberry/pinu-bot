@@ -5,6 +5,14 @@
       "destination": "/demo/index.html"
     },
     {
+      "source": "/showcase",
+      "destination": "/showcase/index.html"
+    },
+    {
+      "source": "/showcase/",
+      "destination": "/showcase/index.html"
+    },
+    {
       "source": "/stress.html",
       "destination": "/demo/stress.html"
     }

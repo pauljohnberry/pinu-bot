@@ -19,6 +19,10 @@ const resolveCandidates = (pathname) => {
     return [join(root, "demo/index.html")];
   }
 
+  if (pathname === "/showcase" || pathname === "/showcase/") {
+    return [join(root, "showcase/index.html")];
+  }
+
   const cleaned = normalize(pathname.replace(/^\/+/, ""));
   if (cleaned.startsWith("demo/") || cleaned.startsWith("dist/") || cleaned.startsWith("test/")) {
     return [join(root, cleaned)];

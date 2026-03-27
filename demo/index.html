@@ -143,6 +143,7 @@
         position: sticky;
         top: 14px;
         z-index: 1;
+        justify-self: center;
         width: min(820px, 100%);
         margin-inline: auto;
         padding: 18px;
@@ -351,7 +352,7 @@
         }
 
         .stage {
-          width: 100%;
+          width: min(760px, 100%);
           top: 8px;
           padding: 12px;
           border-radius: 22px;
@@ -370,6 +371,12 @@
           grid-template-columns: 1fr;
         }
       }
+
+      @media (max-width: 640px) {
+        .stage {
+          width: 100%;
+        }
+      }
     </style>
   </head>
   <body>
@@ -379,6 +386,8 @@
         <p>expressive robot display runtime for modern web apps</p>
         <div class="meta">
           <span class="badge" id="package-version">v0.1.1</span>
+          <a href="https://www.npmjs.com/package/pinu-bot" target="_blank" rel="noreferrer">npm</a>
+          <a href="/showcase">Showcase</a>
           <a id="repo-link" href="https://github.com/pauljohnberry/pinu-bot" target="_blank" rel="noreferrer">GitHub</a>
           <a
             class="star-link"
@@ -439,7 +448,6 @@
                 <option value="exclamation">symbol exclamation</option>
                 <option value="ellipsis">symbol ellipsis</option>
                 <option value="heart">symbol heart</option>
-                <option value="dead">symbol dead</option>
                 <option value="offline">symbol offline</option>
                 <option value="loading">symbol loading</option>
                 <option value="warning">symbol warning</option>
@@ -547,6 +555,10 @@ bun add pinu-bot</pre>
                   <span class="subtle">Create a face runtime bound to a canvas.</span>
                 </div>
                 <div class="api-item">
+                  <code>options.transparentBackground = true</code>
+                  <span class="subtle">Leave the canvas background transparent so your app's own background shows through.</span>
+                </div>
+                <div class="api-item">
                   <code>face.emote(name, options?)</code>
                   <span class="subtle">Animate to a named emotion.</span>
                 </div>
@@ -597,6 +609,7 @@ bun add pinu-bot</pre>
                 <div class="api-item">
                   <code>face.setMode(...) / face.showSymbol(...) / face.showFace()</code>
                   <span class="subtle">Swap between face and symbol display modes.</span>
+                  <span class="subtle">Symbols: <code>question</code>, <code>exclamation</code>, <code>ellipsis</code>, <code>heart</code>, <code>offline</code>, <code>loading</code>, <code>warning</code>.</span>
                 </div>
                 <div class="api-item">
                   <code>face.eyes() / face.leftEye() / face.rightEye() / face.mouth() / face.nose()</code>
@@ -1155,8 +1168,12 @@ bun add pinu-bot</pre>
           syncCodeSample();
           return;
         }
-        face.setMode("symbol");
-        currentActionCode = `face.showSymbol("${symbolSelect.value}");`;
+        const selectedSymbol = symbolSelect.value || "question";
+        if (!symbolSelect.value) {
+          symbolSelect.value = selectedSymbol;
+        }
+        face.showSymbol(selectedSymbol);
+        currentActionCode = `face.showSymbol("${selectedSymbol}");`;
         syncSymbolControl();
         syncCodeSample();
       });

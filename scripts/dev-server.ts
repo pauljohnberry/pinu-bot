@@ -16,6 +16,10 @@ const resolveCandidates = (pathname: string): string[] => {
     return ["demo/index.html"];
   }
 
+  if (pathname === "/showcase" || pathname === "/showcase/") {
+    return ["showcase/index.html"];
+  }
+
   const relativePath = pathname.startsWith("/") ? pathname.slice(1) : pathname;
   if (
     relativePath.startsWith("demo/") ||

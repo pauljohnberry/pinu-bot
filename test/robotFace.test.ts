@@ -3,6 +3,15 @@ import { BUILTIN_FACE_THEMES, BUILTIN_STYLES, createRobotFace } from "../src/ind
 
 type RafCallback = (time: number) => void;
 
+type FillRectCall = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  fillStyle: string;
+  globalAlpha: number;
+};
+
 class FakeContext2D {
   fillStyle = "";
   strokeStyle = "";
@@ -13,6 +22,7 @@ class FakeContext2D {
   shadowBlur = 0;
   globalAlpha = 1;
   operations: string[] = [];
+  fillRectCalls: FillRectCall[] = [];
 
   beginPath(): void {
     this.operations.push("beginPath");
@@ -42,8 +52,16 @@ class FakeContext2D {
     this.operations.push("quadraticCurveTo");
   }
 
-  fillRect(): void {
+  fillRect(x: number, y: number, width: number, height: number): void {
     this.operations.push("fillRect");
+    this.fillRectCalls.push({
+      x,
+      y,
+      width,
+      height,
+      fillStyle: this.fillStyle,
+      globalAlpha: this.globalAlpha,
+    });
   }
 
   clearRect(): void {
@@ -80,6 +98,11 @@ class FakeContext2D {
 
   setTransform(): void {
     this.operations.push("setTransform");
+  }
+
+  reset(): void {
+    this.operations = [];
+    this.fillRectCalls = [];
   }
 }
 
@@ -213,6 +236,56 @@ describe("createRobotFace", () => {
 
     expect(canvas.context.operations.length).toBeGreaterThan(0);
     expect(canvas.context.operations.includes("rect")).toBe(true);
+  });
+
+  test("supports transparentBackground and configure toggling", () => {
+    const canvas = new FakeCanvas();
+    const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
+      autoStart: false,
+      transparentBackground: true,
+      backgroundFx: "off",
+      features: {
+        panel: false,
+        scanlines: false,
+      },
+    });
+
+    face.render();
+    expect(
+      canvas.context.fillRectCalls.some(
+        (call) =>
+          call.x === 0 &&
+          call.y === 0 &&
+          call.width === canvas.width &&
+          call.height === canvas.height,
+      ),
+    ).toBe(false);
+
+    canvas.context.reset();
+    face.configure({ transparentBackground: false, backgroundFx: "off" });
+    face.render();
+    expect(
+      canvas.context.fillRectCalls.some(
+        (call) =>
+          call.x === 0 &&
+          call.y === 0 &&
+          call.width === canvas.width &&
+          call.height === canvas.height,
+      ),
+    ).toBe(true);
+
+    canvas.context.reset();
+    face.configure({ transparentBackground: true, backgroundFx: "off" });
+    face.render();
+    expect(
+      canvas.context.fillRectCalls.some(
+        (call) =>
+          call.x === 0 &&
+          call.y === 0 &&
+          call.width === canvas.width &&
+          call.height === canvas.height,
+      ),
+    ).toBe(false);
   });
 
   test("starts, advances animation frames, and stops cleanly", () => {

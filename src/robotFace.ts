@@ -76,13 +76,15 @@ const roundedRect = (
   height: number,
   radius: number,
 ): void => {
-  const r = Math.min(radius, width * 0.5, height * 0.5);
+  const safeWidth = Math.max(0, width);
+  const safeHeight = Math.max(0, height);
+  const r = Math.max(0, Math.min(radius, safeWidth * 0.5, safeHeight * 0.5));
   ctx.beginPath();
   ctx.moveTo(x + r, y);
-  ctx.arcTo(x + width, y, x + width, y + height, r);
-  ctx.arcTo(x + width, y + height, x, y + height, r);
-  ctx.arcTo(x, y + height, x, y, r);
-  ctx.arcTo(x, y, x + width, y, r);
+  ctx.arcTo(x + safeWidth, y, x + safeWidth, y + safeHeight, r);
+  ctx.arcTo(x + safeWidth, y + safeHeight, x, y + safeHeight, r);
+  ctx.arcTo(x, y + safeHeight, x, y, r);
+  ctx.arcTo(x, y, x + safeWidth, y, r);
   ctx.closePath();
 };
 
@@ -277,6 +279,84 @@ const EMOTION_SYMBOLS: Partial<Record<keyof typeof EMOTIONS, SymbolName>> = {
   glitch: "warning",
   surprised: "exclamation",
 };
+
+const PIXEL_SYMBOL_PATTERNS: Record<Exclude<SymbolName, "loading">, string[]> = {
+  question: [
+    "00111100",
+    "01100110",
+    "00000110",
+    "00001100",
+    "00011000",
+    "00000000",
+    "00011000",
+    "00000000",
+  ],
+  exclamation: [
+    "0000001100",
+    "0010001100",
+    "0010001100",
+    "0010001100",
+    "0010001100",
+    "0010001100",
+    "0000000000",
+    "0000000000",
+    "0010001100",
+    "0000000000",
+  ],
+  ellipsis: [
+    "0000000000",
+    "0000000000",
+    "0000000000",
+    "0000000000",
+    "0000000000",
+    "1100110011",
+    "1100110011",
+    "0000000000",
+  ],
+  heart: [
+    "01100110",
+    "11111111",
+    "11111111",
+    "11111111",
+    "01111110",
+    "00111100",
+    "00011000",
+    "00000000",
+  ],
+  offline: [
+    "0000000011111100",
+    "0000000000001100",
+    "0000000000011000",
+    "0000000000110000",
+    "0000000001100000",
+    "0000000011111100",
+    "0000000000000000",
+    "0000011110000000",
+    "0000000110000000",
+    "0000001100000000",
+    "0000011110000000",
+    "0000000000000000",
+    "0011100000000000",
+    "0000100000000000",
+    "0001000000000000",
+    "0011100000000000",
+  ],
+  warning: [
+    "000001100000",
+    "000011110000",
+    "000110011000",
+    "000110011000",
+    "001110011100",
+    "001110011100",
+    "011110011110",
+    "011111111110",
+    "111110011111",
+    "111111111111",
+    "111111111111",
+  ],
+};
+
+const PIXEL_LOADING_BAR = ["111", "111", "111", "111", "000", "000"] as const;
 
 const resolveBackgroundFx = (
   config: BackgroundFxMode | BackgroundFxConfig | undefined,
@@ -493,6 +573,7 @@ class RobotFaceRenderer implements RobotFace {
   private mode: DisplayMode;
   private symbolName: SymbolName | null;
   private backgroundFx: ResolvedBackgroundFx;
+  private transparentBackground = false;
   private running = false;
   private rafId = 0;
   private lastTime = 0;
@@ -587,6 +668,7 @@ class RobotFaceRenderer implements RobotFace {
     if (options.backgroundFx) {
       this.backgroundFx = resolveBackgroundFx(options.backgroundFx);
     }
+    this.transparentBackground = options.transparentBackground ?? false;
     this.dpr =
       options.pixelRatio ?? (typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1);
     this.autoBlinkInMs = this.randomBlinkDelay(EMOTIONS.neutral);
@@ -764,6 +846,9 @@ class RobotFaceRenderer implements RobotFace {
     }
     if (config.backgroundFx) {
       this.backgroundFx = resolveBackgroundFx(config.backgroundFx);
+    }
+    if (config.transparentBackground !== undefined) {
+      this.transparentBackground = config.transparentBackground;
     }
     if (config.pixelRatio) {
       this.dpr = Math.max(1, config.pixelRatio);
@@ -1205,8 +1290,10 @@ class RobotFaceRenderer implements RobotFace {
     const innerPadding = Math.min(width, height) * style.panelInnerPadding;
 
     ctx.clearRect(0, 0, width, height);
-    ctx.fillStyle = this.theme.background;
-    ctx.fillRect(0, 0, width, height);
+    if (!this.transparentBackground) {
+      ctx.fillStyle = this.theme.background;
+      ctx.fillRect(0, 0, width, height);
+    }
 
     if (this.features.panel) {
       roundedRect(ctx, panelX, panelY, panelWidth, panelHeight, panelRadius);
@@ -1471,17 +1558,21 @@ class RobotFaceRenderer implements RobotFace {
     this.drawEyeShell(eyeShape, -eyeWidth * 0.5, -eyeHeight * 0.5, eyeWidth, eyeHeight, radius);
     ctx.fill();
 
-    ctx.globalAlpha *= 0.35;
-    this.drawEyeShell(
-      eyeShape,
-      -eyeWidth * 0.5 + strokeWidth,
-      -eyeHeight * 0.5 + strokeWidth,
-      eyeWidth - strokeWidth * 2,
-      eyeHeight - strokeWidth * 2,
-      Math.max(2, radius - strokeWidth),
-    );
-    ctx.fillStyle = this.theme.accent;
-    ctx.fill();
+    const innerEyeWidth = eyeWidth - strokeWidth * 2;
+    const innerEyeHeight = eyeHeight - strokeWidth * 2;
+    if (innerEyeWidth > 0 && innerEyeHeight > 0) {
+      ctx.globalAlpha *= 0.35;
+      this.drawEyeShell(
+        eyeShape,
+        -eyeWidth * 0.5 + strokeWidth,
+        -eyeHeight * 0.5 + strokeWidth,
+        innerEyeWidth,
+        innerEyeHeight,
+        Math.max(2, radius - strokeWidth),
+      );
+      ctx.fillStyle = this.theme.accent;
+      ctx.fill();
+    }
 
     if (this.features.pupils && this.eyeShapeSupportsPupil(eyeShape)) {
       ctx.save();
@@ -1877,26 +1968,23 @@ class RobotFaceRenderer implements RobotFace {
     return ease("smooth", (progress - 0.82) / 0.18);
   }
 
-  private drawHeartGlyph(centerX: number, centerY: number, size: number): void {
+  private drawPixelGlyph(
+    pattern: readonly string[],
+    centerX: number,
+    centerY: number,
+    size: number,
+  ): void {
     const ctx = this.ctx;
-    const pattern = [
-      "01100110",
-      "11111111",
-      "11111111",
-      "11111111",
-      "01111110",
-      "00111100",
-      "00011000",
-      "00000000",
-    ];
     const firstRow = pattern[0] ?? "00000000";
-    const cell = size / firstRow.length;
-    const originX = centerX - firstRow.length * cell * 0.5;
-    const originY = centerY - pattern.length * cell * 0.5;
+    const columns = firstRow.length || 8;
+    const rows = pattern.length || 8;
+    const cell = size / columns;
+    const originX = centerX - columns * cell * 0.5;
+    const originY = centerY - rows * cell * 0.5;
 
-    for (let row = 0; row < pattern.length; row += 1) {
+    for (let row = 0; row < rows; row += 1) {
       const line = pattern[row] ?? "";
-      for (let col = 0; col < line.length; col += 1) {
+      for (let col = 0; col < columns; col += 1) {
         if (line[col] !== "1") {
           continue;
         }
@@ -1904,6 +1992,10 @@ class RobotFaceRenderer implements RobotFace {
         ctx.fillRect(originX + col * cell, originY + row * cell, cell, cell);
       }
     }
+  }
+
+  private drawHeartGlyph(centerX: number, centerY: number, size: number): void {
+    this.drawPixelGlyph(PIXEL_SYMBOL_PATTERNS.heart, centerX, centerY, size);
   }
 
   private drawLoveTransitionOverlay(width: number, height: number, pose: FacePose): void {
@@ -1971,106 +2063,29 @@ class RobotFaceRenderer implements RobotFace {
     const brightness = clamp(pose.global.glow, 0.6, 1.6);
 
     ctx.globalAlpha *= brightness;
-    ctx.lineWidth = Math.max(3, scale * 0.018);
-
-    if (symbol === "question") {
-      ctx.beginPath();
-      ctx.moveTo(-scale * 0.1, y - scale * 0.16);
-      ctx.quadraticCurveTo(scale * 0.12, y - scale * 0.3, scale * 0.16, y - scale * 0.08);
-      ctx.quadraticCurveTo(scale * 0.18, y + scale * 0.04, scale * 0.02, y + scale * 0.1);
-      ctx.lineTo(scale * 0.02, y + scale * 0.18);
-      ctx.stroke();
-      roundedRect(ctx, -scale * 0.03, y + scale * 0.28, scale * 0.06, scale * 0.06, scale * 0.02);
-      ctx.fill();
-      return;
-    }
-
-    if (symbol === "exclamation") {
-      roundedRect(ctx, -scale * 0.035, y - scale * 0.24, scale * 0.07, scale * 0.32, scale * 0.025);
-      ctx.fill();
-      roundedRect(ctx, -scale * 0.03, y + scale * 0.18, scale * 0.06, scale * 0.06, scale * 0.02);
-      ctx.fill();
-      return;
-    }
-
-    if (symbol === "ellipsis") {
-      for (let i = -1; i <= 1; i += 1) {
-        roundedRect(
-          ctx,
-          i * scale * 0.12 - scale * 0.03,
-          y + scale * 0.08,
-          scale * 0.06,
-          scale * 0.06,
-          scale * 0.02,
-        );
-        ctx.fill();
-      }
-      return;
-    }
-
-    if (symbol === "heart") {
-      this.drawHeartGlyph(0, y, scale * 0.3);
-      return;
-    }
-
-    if (symbol === "dead") {
-      const eyeOffsetX = scale * 0.16;
-      const eyeY = y - scale * 0.1;
-      const eyeSize = scale * 0.07;
-      ctx.beginPath();
-      ctx.moveTo(-eyeOffsetX - eyeSize, eyeY - eyeSize);
-      ctx.lineTo(-eyeOffsetX + eyeSize, eyeY + eyeSize);
-      ctx.moveTo(-eyeOffsetX + eyeSize, eyeY - eyeSize);
-      ctx.lineTo(-eyeOffsetX - eyeSize, eyeY + eyeSize);
-      ctx.moveTo(eyeOffsetX - eyeSize, eyeY - eyeSize);
-      ctx.lineTo(eyeOffsetX + eyeSize, eyeY + eyeSize);
-      ctx.moveTo(eyeOffsetX + eyeSize, eyeY - eyeSize);
-      ctx.lineTo(eyeOffsetX - eyeSize, eyeY + eyeSize);
-      ctx.moveTo(-scale * 0.16, y + scale * 0.22);
-      ctx.lineTo(scale * 0.16, y + scale * 0.22);
-      ctx.stroke();
-      return;
-    }
-
-    if (symbol === "offline") {
-      roundedRect(ctx, -scale * 0.2, y - scale * 0.03, scale * 0.4, scale * 0.06, scale * 0.02);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.moveTo(-scale * 0.24, y - scale * 0.18);
-      ctx.lineTo(scale * 0.24, y + scale * 0.18);
-      ctx.stroke();
-      return;
-    }
 
     if (symbol === "loading") {
       const active = Math.floor((this.elapsed / 180) % 3);
-      for (let i = 0; i < 3; i += 1) {
+      for (let index = 0; index < 3; index += 1) {
         ctx.save();
-        ctx.globalAlpha *= i === active ? 1 : 0.35;
-        roundedRect(
-          ctx,
-          (i - 1) * scale * 0.12 - scale * 0.03,
-          y + scale * 0.06,
-          scale * 0.06,
-          scale * 0.16,
-          scale * 0.02,
+        ctx.globalAlpha *= index === active ? 1 : 0.28;
+        this.drawPixelGlyph(
+          PIXEL_LOADING_BAR,
+          (index - 1) * scale * 0.13,
+          y + scale * 0.02,
+          scale * 0.09,
         );
-        ctx.fill();
         ctx.restore();
       }
       return;
     }
 
-    ctx.beginPath();
-    ctx.moveTo(0, y - scale * 0.22);
-    ctx.lineTo(scale * 0.22, y + scale * 0.18);
-    ctx.lineTo(-scale * 0.22, y + scale * 0.18);
-    ctx.closePath();
-    ctx.stroke();
-    roundedRect(ctx, -scale * 0.025, y - scale * 0.02, scale * 0.05, scale * 0.12, scale * 0.015);
-    ctx.fill();
-    roundedRect(ctx, -scale * 0.025, y + scale * 0.13, scale * 0.05, scale * 0.05, scale * 0.015);
-    ctx.fill();
+    this.drawPixelGlyph(
+      PIXEL_SYMBOL_PATTERNS[symbol] ?? PIXEL_SYMBOL_PATTERNS.warning,
+      0,
+      y,
+      scale * 0.3,
+    );
   }
 
   private drawScanlines(
