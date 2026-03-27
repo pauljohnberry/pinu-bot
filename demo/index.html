@@ -1074,7 +1074,7 @@ bun add pinu-bot</pre>
         window.setTimeout(() => element.classList.remove("is-pressed"), 150);
       };
 
-      document.querySelectorAll("button, label").forEach((element) => {
+      document.querySelectorAll("button").forEach((element) => {
         element.addEventListener("pointerdown", () => flashPress(element));
       });
 
