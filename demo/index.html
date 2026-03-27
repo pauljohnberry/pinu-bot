@@ -10,6 +10,17 @@
     />
     <meta name="robots" content="index,follow,max-image-preview:large" />
     <meta name="theme-color" content="#081116" />
+    <meta name="application-name" content="pinu bot" />
+    <meta name="apple-mobile-web-app-title" content="pinu bot" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="msapplication-TileColor" content="#081116" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-32x32.png" sizes="32x32" type="image/png" />
+    <link rel="icon" href="/favicon-16x16.png" sizes="16x16" type="image/png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#0a0d10" />
     <link rel="canonical" href="https://www.pinubot.com/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="pinu bot" />
@@ -48,6 +59,12 @@
         background:
           radial-gradient(circle at top, rgba(49, 102, 117, 0.4), transparent 42%),
           linear-gradient(180deg, #081116 0%, #040709 100%);
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
       }
 
       body {
@@ -241,6 +258,48 @@
         color: #e6f7fb;
         padding: 10px 14px;
         font: inherit;
+        font-size: 16px;
+        transition:
+          transform 120ms ease,
+          background-color 140ms ease,
+          border-color 140ms ease,
+          box-shadow 140ms ease;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      button:hover,
+      select:hover,
+      label:hover {
+        border-color: rgba(127, 244, 255, 0.28);
+        background: rgba(127, 244, 255, 0.09);
+      }
+
+      button:active,
+      select:active,
+      label:active,
+      button.is-pressed {
+        transform: translateY(1px) scale(0.985);
+        border-color: rgba(127, 244, 255, 0.42);
+        background: rgba(127, 244, 255, 0.16);
+        box-shadow: 0 0 0 1px rgba(127, 244, 255, 0.08), 0 10px 24px rgba(0, 0, 0, 0.18);
+      }
+
+      select {
+        appearance: none;
+        -webkit-appearance: none;
+        background-image:
+          linear-gradient(45deg, transparent 50%, rgba(230, 247, 251, 0.9) 50%),
+          linear-gradient(135deg, rgba(230, 247, 251, 0.9) 50%, transparent 50%);
+        background-position:
+          calc(100% - 18px) calc(50% - 3px),
+          calc(100% - 12px) calc(50% - 3px);
+        background-size: 6px 6px, 6px 6px;
+        background-repeat: no-repeat;
+        padding-right: 34px;
       }
 
       label {
@@ -283,9 +342,28 @@
       }
 
       @media (max-width: 960px) {
+        body {
+          padding: 16px 14px 18px;
+        }
+
+        .shell {
+          gap: 16px;
+        }
+
         .stage {
-          position: static;
           width: 100%;
+          top: 8px;
+          padding: 12px;
+          border-radius: 22px;
+        }
+
+        canvas {
+          border-radius: 18px;
+        }
+
+        .panel {
+          padding: 16px;
+          border-radius: 20px;
         }
 
         .docs-grid {
@@ -481,8 +559,8 @@ bun add pinu-bot</pre>
                   <span class="subtle">Move gaze using normalized coordinates.</span>
                 </div>
                 <div class="api-item">
-                  <code>face.lookLeft(amount) / face.lookUp(amount)</code>
-                  <span class="subtle">Directional gaze helpers for quick expressions.</span>
+                  <code>face.lookLeft(amount?) / face.lookRight(amount?) / face.lookUp(amount?) / face.lookDown(amount?)</code>
+                  <span class="subtle">Directional gaze helpers for quick expressions and glances.</span>
                 </div>
                 <div class="api-item">
                   <code>face.smile(amount, { open }) / face.frown(amount, { open })</code>
@@ -505,12 +583,16 @@ bun add pinu-bot</pre>
                   <span class="subtle">Play cinematic display transitions.</span>
                 </div>
                 <div class="api-item">
-                  <code>face.setTheme(...) / face.setStyle(...) / face.setBackgroundFx(...)</code>
-                  <span class="subtle">Switch visual themes, style presets, and mood lighting.</span>
+                  <code>face.setTheme(nameOrDefinition) / face.setFaceTheme(nameOrDefinition)</code>
+                  <span class="subtle">Switch visual palettes or apply bundled character presets.</span>
                 </div>
                 <div class="api-item">
-                  <code>face.setParts(...) / face.setFaceTheme(...)</code>
-                  <span class="subtle">Configure shape language and presets.</span>
+                  <code>face.setStyle(nameOrDefinition) / face.setBackgroundFx(...)</code>
+                  <span class="subtle">Change shell styling and screen lighting behavior.</span>
+                </div>
+                <div class="api-item">
+                  <code>face.setParts({ eyeShape, eyeWidthScale, eyeHeightScale, noseShape, mouthShape, browShape, scanlineThickness, scanlineSpacing })</code>
+                  <span class="subtle">Configure shape language and screen texture in one call.</span>
                 </div>
                 <div class="api-item">
                   <code>face.setMode(...) / face.showSymbol(...) / face.showFace()</code>
@@ -986,6 +1068,15 @@ bun add pinu-bot</pre>
         });
         syncCodeSample();
       };
+
+      const flashPress = (element) => {
+        element.classList.add("is-pressed");
+        window.setTimeout(() => element.classList.remove("is-pressed"), 150);
+      };
+
+      document.querySelectorAll("button").forEach((element) => {
+        element.addEventListener("pointerdown", () => flashPress(element));
+      });
 
       document.querySelectorAll("[data-emote]").forEach((button) => {
         button.addEventListener("click", () => {
