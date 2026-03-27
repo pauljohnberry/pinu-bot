@@ -63,5 +63,5 @@ git push origin v0.1.0
 - The release workflow assumes `npm publish --provenance --access public`.
 - Visual regression depends on Playwright Chromium being available in CI.
 - The current demo site is suitable as the first public docs surface.
-- the current release workflow already uses Node 24, which satisfies npm's current OIDC requirement
+- The current release workflow already uses Node 24, which satisfies npm's current OIDC requirement
 - Repository: <https://github.com/pauljohnberry/pinu-bot>
