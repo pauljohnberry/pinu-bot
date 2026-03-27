@@ -11,7 +11,7 @@ const contentTypes = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
-  ".map": "application/json; charset=utf-8"
+  ".map": "application/json; charset=utf-8",
 };
 
 const resolveCandidates = (pathname) => {
@@ -42,7 +42,10 @@ const server = createServer(async (request, response) => {
     }
 
     response.setHeader("cache-control", "no-store");
-    response.setHeader("content-type", contentTypes[extname(filePath)] || "application/octet-stream");
+    response.setHeader(
+      "content-type",
+      contentTypes[extname(filePath)] || "application/octet-stream",
+    );
     createReadStream(filePath).pipe(response);
     return;
   }

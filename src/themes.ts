@@ -8,7 +8,7 @@ export const THEMES: Record<ThemeName, ThemeDefinition> = {
     foreground: "#ffbf66",
     glow: "rgba(255, 181, 91, 0.65)",
     accent: "#ffd9a0",
-    ghost: "rgba(255, 205, 130, 0.16)"
+    ghost: "rgba(255, 205, 130, 0.16)",
   },
   cyan: {
     background: "#061116",
@@ -17,7 +17,7 @@ export const THEMES: Record<ThemeName, ThemeDefinition> = {
     foreground: "#8cf2ff",
     glow: "rgba(111, 239, 255, 0.65)",
     accent: "#d8fbff",
-    ghost: "rgba(140, 242, 255, 0.16)"
+    ghost: "rgba(140, 242, 255, 0.16)",
   },
   "green-crt": {
     background: "#061006",
@@ -26,7 +26,7 @@ export const THEMES: Record<ThemeName, ThemeDefinition> = {
     foreground: "#99ff9c",
     glow: "rgba(111, 255, 145, 0.62)",
     accent: "#dbffe0",
-    ghost: "rgba(153, 255, 156, 0.16)"
+    ghost: "rgba(153, 255, 156, 0.16)",
   },
   white: {
     background: "#101214",
@@ -35,7 +35,7 @@ export const THEMES: Record<ThemeName, ThemeDefinition> = {
     foreground: "#f5fbff",
     glow: "rgba(245, 251, 255, 0.55)",
     accent: "#ffffff",
-    ghost: "rgba(245, 251, 255, 0.12)"
+    ghost: "rgba(245, 251, 255, 0.12)",
   },
   "red-alert": {
     background: "#180506",
@@ -44,7 +44,7 @@ export const THEMES: Record<ThemeName, ThemeDefinition> = {
     foreground: "#ff8880",
     glow: "rgba(255, 101, 92, 0.64)",
     accent: "#ffd1ce",
-    ghost: "rgba(255, 136, 128, 0.14)"
+    ghost: "rgba(255, 136, 128, 0.14)",
   },
   "ice-blue": {
     background: "#07131c",
@@ -53,7 +53,7 @@ export const THEMES: Record<ThemeName, ThemeDefinition> = {
     foreground: "#b8f3ff",
     glow: "rgba(153, 232, 255, 0.62)",
     accent: "#effcff",
-    ghost: "rgba(184, 243, 255, 0.14)"
+    ghost: "rgba(184, 243, 255, 0.14)",
   },
   sunset: {
     background: "#170a09",
@@ -62,7 +62,7 @@ export const THEMES: Record<ThemeName, ThemeDefinition> = {
     foreground: "#ffb07c",
     glow: "rgba(255, 138, 92, 0.62)",
     accent: "#ffe2c8",
-    ghost: "rgba(255, 176, 124, 0.15)"
+    ghost: "rgba(255, 176, 124, 0.15)",
   },
   violet: {
     background: "#110a1a",
@@ -71,6 +71,6 @@ export const THEMES: Record<ThemeName, ThemeDefinition> = {
     foreground: "#cdaeff",
     glow: "rgba(190, 142, 255, 0.6)",
     accent: "#f0e4ff",
-    ghost: "rgba(205, 174, 255, 0.14)"
-  }
+    ghost: "rgba(205, 174, 255, 0.14)",
+  },
 };

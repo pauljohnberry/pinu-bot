@@ -41,6 +41,12 @@
     "dev": "./scripts/run-bun.sh run build && ./scripts/run-bun.sh run scripts/dev-server.ts",
     "stress": "./scripts/run-bun.sh run build && ./scripts/run-bun.sh run scripts/dev-server.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "format": "biome format .",
+    "format:write": "biome format --write .",
+    "lint": "biome lint .",
+    "lint:fix": "biome lint --write .",
+    "check:code": "biome check .",
+    "check:code:fix": "biome check --write .",
     "test": "./scripts/run-bun.sh test test/robotFace.test.ts",
     "test:visual": "playwright test",
     "check": "./scripts/check.sh",
@@ -62,6 +68,7 @@
   ],
   "license": "MIT",
   "devDependencies": {
+    "@biomejs/biome": "^2.4.9",
     "@playwright/test": "^1.58.2",
     "typescript": "^5.6.3"
   }

@@ -286,30 +286,30 @@
           <div class="group">
             <h3>Emotions</h3>
             <div class="controls">
-              <button data-emote="neutral">neutral</button>
-              <button data-emote="happy">happy</button>
-              <button data-emote="love">love</button>
-              <button data-emote="sad">sad</button>
-              <button data-emote="angry">angry</button>
-              <button data-emote="confused">confused</button>
-              <button data-emote="sleepy">sleepy</button>
-              <button data-emote="excited">excited</button>
+              <button type="button" data-emote="neutral">neutral</button>
+              <button type="button" data-emote="happy">happy</button>
+              <button type="button" data-emote="love">love</button>
+              <button type="button" data-emote="sad">sad</button>
+              <button type="button" data-emote="angry">angry</button>
+              <button type="button" data-emote="confused">confused</button>
+              <button type="button" data-emote="sleepy">sleepy</button>
+              <button type="button" data-emote="excited">excited</button>
             </div>
           </div>
           <div class="group">
             <h3>Actions</h3>
             <div class="controls">
-              <button id="smile">smile</button>
-              <button id="frown">frown</button>
-              <button id="pout">pout</button>
-              <button id="blink">blink</button>
-              <button id="wink">wink</button>
-              <button id="look-left">look left</button>
-              <button id="look-right">look right</button>
-              <button id="look-up">look up</button>
-              <button id="look-down">look down</button>
-              <button id="glitch">glitch</button>
-              <button id="speak">speak</button>
+              <button type="button" id="smile">smile</button>
+              <button type="button" id="frown">frown</button>
+              <button type="button" id="pout">pout</button>
+              <button type="button" id="blink">blink</button>
+              <button type="button" id="wink">wink</button>
+              <button type="button" id="look-left">look left</button>
+              <button type="button" id="look-right">look right</button>
+              <button type="button" id="look-up">look up</button>
+              <button type="button" id="look-down">look down</button>
+              <button type="button" id="glitch">glitch</button>
+              <button type="button" id="speak">speak</button>
             </div>
           </div>
           <div class="group">
@@ -1118,7 +1118,9 @@ bun add pinu-bot</pre>
         face.setParts({ scanlineSpacing: Number(event.target.value) });
         syncCodeSample();
       });
-      partCheckboxes.forEach((input) => input.addEventListener("change", syncFeaturesFromChecks));
+      partCheckboxes.forEach((input) => {
+        input.addEventListener("change", syncFeaturesFromChecks);
+      });
 
       window.addEventListener("pointermove", (event) => {
         pauseAmbient(1800);

@@ -11,9 +11,9 @@ export const FACE_THEMES: Record<FaceThemeName, FaceThemeDefinition> = {
       mouthShape: "arc",
       browShape: "line",
       scanlineThickness: 1.8,
-      scanlineSpacing: 5
+      scanlineSpacing: 5,
     },
-    backgroundFx: "emotion"
+    backgroundFx: "emotion",
   },
   service: {
     theme: THEMES["green-crt"],
@@ -23,9 +23,9 @@ export const FACE_THEMES: Record<FaceThemeName, FaceThemeDefinition> = {
       mouthShape: "visor",
       browShape: "line",
       scanlineThickness: 2.2,
-      scanlineSpacing: 4
+      scanlineSpacing: 4,
     },
-    backgroundFx: "off"
+    backgroundFx: "off",
   },
   sentinel: {
     theme: THEMES["red-alert"],
@@ -38,35 +38,35 @@ export const FACE_THEMES: Record<FaceThemeName, FaceThemeDefinition> = {
       eyeWidthScale: 1.08,
       eyeHeightScale: 0.82,
       scanlineThickness: 2,
-      scanlineSpacing: 4
+      scanlineSpacing: 4,
     },
-    backgroundFx: "emotion"
+    backgroundFx: "emotion",
   },
   "soft-smile": {
     theme: THEMES.sunset,
     style: STYLE_PRESETS.soft,
     features: {
-      brows: false
+      brows: false,
     },
     parts: {
       eyeShape: "capsule",
       mouthShape: "arc",
       scanlineThickness: 1.6,
-      scanlineSpacing: 5
+      scanlineSpacing: 5,
     },
     backgroundFx: {
       mode: "custom",
       color: "#ffbe72",
       intensity: 0.14,
-      pulseHz: 0.7
-    }
+      pulseHz: 0.7,
+    },
   },
   "status-strip": {
     theme: THEMES["green-crt"],
     style: STYLE_PRESETS.minimal,
     features: {
       nose: false,
-      brows: false
+      brows: false,
     },
     parts: {
       eyeShape: "capsule",
@@ -74,9 +74,9 @@ export const FACE_THEMES: Record<FaceThemeName, FaceThemeDefinition> = {
       eyeHeightScale: 0.82,
       mouthShape: "visor",
       scanlineThickness: 2.4,
-      scanlineSpacing: 4
+      scanlineSpacing: 4,
     },
-    backgroundFx: "off"
+    backgroundFx: "off",
   },
   "caret-cheer": {
     theme: THEMES.sunset,
@@ -84,7 +84,7 @@ export const FACE_THEMES: Record<FaceThemeName, FaceThemeDefinition> = {
     features: {
       brows: false,
       pupils: false,
-      nose: false
+      nose: false,
     },
     parts: {
       eyeShape: "chevron",
@@ -92,14 +92,14 @@ export const FACE_THEMES: Record<FaceThemeName, FaceThemeDefinition> = {
       eyeHeightScale: 0.88,
       mouthShape: "arc",
       scanlineThickness: 1.8,
-      scanlineSpacing: 5
+      scanlineSpacing: 5,
     },
     backgroundFx: {
       mode: "custom",
       color: "#ffb34d",
       intensity: 0.16,
-      pulseHz: 1
-    }
+      pulseHz: 1,
+    },
   },
   "crescent-muse": {
     theme: THEMES.amber,
@@ -107,7 +107,7 @@ export const FACE_THEMES: Record<FaceThemeName, FaceThemeDefinition> = {
     features: {
       brows: false,
       pupils: false,
-      nose: false
+      nose: false,
     },
     parts: {
       eyeShape: "crescent",
@@ -115,21 +115,21 @@ export const FACE_THEMES: Record<FaceThemeName, FaceThemeDefinition> = {
       eyeHeightScale: 1.08,
       mouthShape: "arc",
       scanlineThickness: 2,
-      scanlineSpacing: 4
+      scanlineSpacing: 4,
     },
     backgroundFx: {
       mode: "custom",
       color: "#ffbf6a",
       intensity: 0.15,
-      pulseHz: 0.7
-    }
+      pulseHz: 0.7,
+    },
   },
   "teardrop-dream": {
     theme: THEMES["ice-blue"],
     style: STYLE_PRESETS.soft,
     features: {
       brows: false,
-      pupils: false
+      pupils: false,
     },
     parts: {
       eyeShape: "tear",
@@ -138,13 +138,13 @@ export const FACE_THEMES: Record<FaceThemeName, FaceThemeDefinition> = {
       noseShape: "dot",
       mouthShape: "arc",
       scanlineThickness: 1.9,
-      scanlineSpacing: 5
+      scanlineSpacing: 5,
     },
     backgroundFx: {
       mode: "custom",
       color: "#72d7ff",
       intensity: 0.14,
-      pulseHz: 0.55
-    }
-  }
+      pulseHz: 0.55,
+    },
+  },
 };
