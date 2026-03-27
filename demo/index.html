@@ -57,6 +57,7 @@
       .meta a {
         display: inline-flex;
         align-items: center;
+        gap: 8px;
         min-height: 34px;
         padding: 0 12px;
         border: 1px solid rgba(255, 255, 255, 0.12);
@@ -65,6 +66,23 @@
         color: #e6f7fb;
         text-decoration: none;
         font-size: 0.92rem;
+      }
+
+      .meta img {
+        display: block;
+        height: 20px;
+      }
+
+      .meta .star-link {
+        background: #0a0d10;
+        color: #ffffff;
+        border-color: rgba(255, 255, 255, 0.16);
+      }
+
+      .meta .star-link::before {
+        content: "★";
+        color: #ffffff;
+        font-size: 0.95rem;
       }
 
       .stage {
@@ -246,7 +264,15 @@
         <p>expressive robot display runtime for modern web apps</p>
         <div class="meta">
           <span class="badge" id="package-version">v0.1.0</span>
-          <a id="repo-link" href="#" target="_blank" rel="noreferrer" hidden>GitHub</a>
+          <a id="repo-link" href="https://github.com/pauljohnberry/pinu-bot" target="_blank" rel="noreferrer">GitHub</a>
+          <a
+            class="star-link"
+            href="https://github.com/pauljohnberry/pinu-bot/stargazers"
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Star pinu-bot on GitHub"
+            >Star</a
+          >
         </div>
       </header>
       <div class="stage">
@@ -538,7 +564,6 @@ bun add pinu-bot</pre>
       const scanlineSpacingInput = document.querySelector("#scanline-spacing");
       const codeSample = document.querySelector("#code-sample");
       const versionBadge = document.querySelector("#package-version");
-      const repoLink = document.querySelector("#repo-link");
       let currentActionCode = INTRO_ACTION_CODE;
       let introActive = false;
       const introTimeouts = [];
@@ -697,29 +722,11 @@ bun add pinu-bot</pre>
         symbolSelect.classList.toggle("is-disabled", !enabled);
       };
 
-      const normalizeRepositoryUrl = (repository) => {
-        if (!repository) {
-          return "";
-        }
-
-        const raw = typeof repository === "string" ? repository : repository.url;
-        if (!raw) {
-          return "";
-        }
-
-        return raw.replace(/^git\+/, "").replace(/\.git$/, "");
-      };
-
       const syncPackageMeta = async () => {
         try {
           const pkg = await fetch("../package.json").then((response) => response.json());
           if (pkg.version) {
             versionBadge.textContent = `v${pkg.version}`;
-          }
-          const repoUrl = normalizeRepositoryUrl(pkg.repository);
-          if (repoUrl) {
-            repoLink.href = repoUrl;
-            repoLink.hidden = false;
           }
         } catch {
           versionBadge.textContent = "v0.1.0";
