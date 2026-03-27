@@ -8,6 +8,7 @@ The fastest deployment path for the current demo/docs site is Vercel.
 - Install Command: `bun install --frozen-lockfile`
 - Build Command: `bun run build`
 - Output Directory: `.`
+- Git Repository: `pauljohnberry/pinu-bot`
 
 The root-level [vercel.json](./vercel.json) rewrites:
 
@@ -19,6 +20,11 @@ That keeps the public site pointed at the interactive demo/docs page while still
 ## Domain
 
 After the project is deployed, attach `pinubot.com` in the Vercel project settings.
+
+Official docs:
+
+- Project settings: <https://vercel.com/docs/project-configuration/project-settings>
+- Custom domains: <https://vercel.com/docs/domains/set-up-custom-domain>
 
 ## Local Preview
 
