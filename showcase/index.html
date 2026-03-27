@@ -1,0 +1,866 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>pinu bot showcase | Robot face patterns for real interfaces</title>
+    <meta
+      name="description"
+      content="Robot face patterns for real interfaces: companion widgets, terminal displays, status strips, and embedded surfaces."
+    />
+    <meta name="robots" content="index,follow,max-image-preview:large" />
+    <meta name="theme-color" content="#081116" />
+    <link rel="canonical" href="https://www.pinubot.com/showcase" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-32x32.png" sizes="32x32" type="image/png" />
+    <link rel="icon" href="/favicon-16x16.png" sizes="16x16" type="image/png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#0a0d10" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="pinu bot" />
+    <meta property="og:title" content="pinu bot showcase | Robot face patterns for real interfaces" />
+    <meta
+      property="og:description"
+      content="Robot face patterns for companion widgets, embedded robot faces, CRT displays, and alert strips."
+    />
+    <meta property="og:url" content="https://www.pinubot.com/showcase" />
+    <meta property="og:image" content="https://www.pinubot.com/og-image.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="pinu bot showcase | Robot face patterns for real interfaces"
+    />
+    <meta
+      name="twitter:description"
+      content="Robot face patterns for companion widgets, embedded robot faces, CRT displays, and alert strips."
+    />
+    <meta name="twitter:image" content="https://www.pinubot.com/og-image.png" />
+    <script defer src="https://cdn.vercel-insights.com/v1/script.js"></script>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at top, rgba(255, 161, 104, 0.17), transparent 36%),
+          radial-gradient(circle at 80% 8%, rgba(92, 163, 214, 0.14), transparent 28%),
+          linear-gradient(180deg, #081116 0%, #05080b 100%);
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        padding: 28px 24px 64px;
+        color: #f2fbff;
+        background:
+          radial-gradient(circle at top, rgba(255, 161, 104, 0.17), transparent 36%),
+          radial-gradient(circle at 80% 8%, rgba(92, 163, 214, 0.14), transparent 28%),
+          linear-gradient(180deg, #081116 0%, #05080b 100%);
+      }
+
+      a {
+        color: inherit;
+      }
+
+      code {
+        font-family: "SFMono-Regular", "Menlo", monospace;
+      }
+
+      .shell {
+        width: min(1280px, 100%);
+        margin: 0 auto;
+        display: grid;
+        gap: 26px;
+      }
+
+      .hero {
+        display: grid;
+        gap: 8px;
+      }
+
+      .hero-label {
+        margin: 0;
+        color: rgba(230, 247, 251, 0.58);
+        font-size: 0.86rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+
+      .hero h1 {
+        margin: 0;
+        font-size: clamp(2rem, 4vw, 3.2rem);
+        letter-spacing: 0.12em;
+        text-transform: lowercase;
+        color: #f3fbff;
+      }
+
+      .hero p {
+        margin: 0;
+        max-width: 42ch;
+        color: rgba(230, 247, 251, 0.72);
+        font-size: 0.98rem;
+      }
+
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .hero-actions a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 34px;
+        padding: 0 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.04);
+        color: #e6f7fb;
+        text-decoration: none;
+        font-size: 0.92rem;
+      }
+
+      .hero-actions a.primary {
+        background: linear-gradient(180deg, rgba(255, 183, 129, 0.3), rgba(255, 143, 82, 0.18));
+        border-color: rgba(255, 195, 149, 0.32);
+      }
+
+      .notes {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .note {
+        padding: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .note strong {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 0.92rem;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: rgba(243, 251, 255, 0.92);
+      }
+
+      .note p {
+        margin: 0;
+        color: rgba(230, 247, 251, 0.72);
+        line-height: 1.55;
+        font-size: 0.95rem;
+      }
+
+      .gallery {
+        display: grid;
+        gap: 20px;
+      }
+
+      .scenario {
+        display: grid;
+        grid-template-columns: minmax(0, 1.05fr) minmax(300px, 0.95fr);
+        gap: 18px;
+        align-items: stretch;
+      }
+
+      .preview,
+      .details {
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 28px;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .preview {
+        position: relative;
+        min-height: 320px;
+        padding: 22px;
+      }
+
+      .preview[data-scene="overlay"] {
+        background:
+          radial-gradient(circle at 25% 30%, rgba(119, 184, 255, 0.18), transparent 24%),
+          radial-gradient(circle at 78% 18%, rgba(255, 191, 137, 0.22), transparent 28%),
+          linear-gradient(145deg, #121d25 0%, #101822 44%, #0c1219 100%);
+      }
+
+      .preview[data-scene="widget"] {
+        background:
+          radial-gradient(circle at 80% 20%, rgba(255, 149, 102, 0.12), transparent 26%),
+          linear-gradient(180deg, #0f1521 0%, #0b1018 100%);
+      }
+
+      .preview[data-scene="crt"] {
+        background:
+          radial-gradient(circle at center, rgba(44, 119, 73, 0.18), transparent 42%),
+          linear-gradient(180deg, #071109 0%, #030604 100%);
+      }
+
+      .preview[data-scene="status"] {
+        background:
+          linear-gradient(90deg, rgba(255, 84, 84, 0.15), transparent 42%),
+          linear-gradient(180deg, #1b0c10 0%, #11080b 100%);
+      }
+
+      .preview[data-scene="symbol"] {
+        background:
+          radial-gradient(circle at 82% 18%, rgba(127, 196, 255, 0.12), transparent 24%),
+          radial-gradient(circle at 18% 82%, rgba(255, 173, 120, 0.12), transparent 26%),
+          linear-gradient(180deg, #0d1118 0%, #090c11 100%);
+      }
+
+      .scene-chrome {
+        position: relative;
+        display: grid;
+        place-items: center;
+        min-height: 100%;
+        border-radius: 22px;
+      }
+
+      .scene-chrome.overlay {
+        background: transparent;
+      }
+
+      .scene-chrome.widget {
+        width: min(100%, 420px);
+        margin-inline: auto;
+        grid-template-columns: 1fr;
+        justify-items: center;
+        gap: 18px;
+        padding: 20px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)),
+          #101723;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .scene-chrome.crt {
+        padding: 18px;
+        background: #040907;
+        border: 1px solid rgba(112, 255, 165, 0.12);
+        box-shadow: inset 0 0 0 1px rgba(112, 255, 165, 0.06);
+      }
+
+      .scene-chrome.status {
+        width: min(100%, 760px);
+        margin-inline: auto;
+        justify-items: center;
+        padding: 18px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01)),
+          #130b0f;
+      }
+
+      .scene-chrome.symbol {
+        width: min(100%, 760px);
+        margin-inline: auto;
+        gap: 18px;
+        padding: 22px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.015)),
+          rgba(10, 14, 20, 0.92);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .widget-copy {
+        display: grid;
+        gap: 10px;
+        width: min(100%, 320px);
+        align-content: center;
+        justify-items: center;
+        text-align: center;
+      }
+
+      .widget-copy strong {
+        display: block;
+        font-size: 0.82rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(230, 247, 251, 0.68);
+      }
+
+      .widget-copy h3 {
+        margin: 0;
+        max-width: 8ch;
+        font-size: clamp(1.2rem, 2vw, 1.8rem);
+        line-height: 1.02;
+      }
+
+      .widget-copy p {
+        margin: 0;
+        max-width: 22ch;
+        color: rgba(230, 247, 251, 0.72);
+        line-height: 1.6;
+      }
+
+      canvas {
+        width: min(100%, 560px);
+        height: auto;
+        display: block;
+        border-radius: 24px;
+      }
+
+      .overlay {
+        width: min(100%, 620px);
+        max-width: 620px;
+        justify-self: center;
+        margin-inline: auto;
+      }
+
+      .widget {
+        width: 100%;
+        max-width: 280px;
+      }
+
+      .status {
+        width: min(100%, 640px);
+        max-width: 640px;
+        justify-self: center;
+        margin-inline: auto;
+      }
+
+      .symbol {
+        width: min(100%, 520px);
+      }
+
+      .details {
+        display: grid;
+        grid-template-rows: auto auto 1fr;
+        gap: 16px;
+        padding: 22px;
+      }
+
+      .details h2 {
+        margin: 0;
+        font-size: 1.4rem;
+      }
+
+      .details p {
+        margin: 0;
+        color: rgba(230, 247, 251, 0.74);
+        line-height: 1.62;
+      }
+
+      .tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .tags span {
+        display: inline-flex;
+        align-items: center;
+        min-height: 30px;
+        padding: 0 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.06);
+        color: rgba(238, 251, 255, 0.86);
+        font-size: 0.85rem;
+      }
+
+      pre {
+        margin: 0;
+        padding: 16px;
+        border-radius: 18px;
+        overflow: auto;
+        background: rgba(5, 9, 12, 0.86);
+        color: #f0fbff;
+        font: 0.85rem/1.55 "SFMono-Regular", "Menlo", monospace;
+      }
+
+      .footer-note {
+        padding: 18px 20px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.04);
+        color: rgba(230, 247, 251, 0.74);
+        line-height: 1.65;
+      }
+
+      .footer-note strong {
+        color: #f3fbff;
+      }
+
+      @media (max-width: 1024px) {
+        .notes,
+        .scenario {
+          grid-template-columns: 1fr;
+        }
+
+        .scene-chrome.widget {
+          grid-template-columns: 1fr;
+          justify-items: center;
+        }
+
+        .widget-copy {
+          width: min(100%, 420px);
+          margin-left: 0;
+          justify-items: center;
+          text-align: center;
+        }
+
+        .widget-copy h3 {
+          max-width: 100%;
+        }
+
+        .widget-copy p {
+          max-width: 28ch;
+        }
+
+        .widget {
+          max-width: min(100%, 340px);
+        }
+      }
+
+      @media (max-width: 720px) {
+        body {
+          padding: 18px 14px 44px;
+        }
+
+        .preview,
+        .details {
+          border-radius: 22px;
+        }
+
+        .preview {
+          min-height: 260px;
+          padding: 14px;
+        }
+
+        .hero h1 {
+          max-width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <p class="hero-label">showcase</p>
+        <h1>pinu bot</h1>
+        <p>robot face patterns for real interfaces.</p>
+        <div class="hero-actions">
+          <a class="primary" href="/">Open Interactive Demo</a>
+          <a href="https://www.npmjs.com/package/pinu-bot">npm</a>
+          <a href="https://github.com/pauljohnberry/pinu-bot">GitHub</a>
+        </div>
+      </section>
+
+      <section class="notes">
+        <article class="note">
+          <strong>Panel Off</strong>
+          <p>
+            You can remove the inner shell with <code>features.panel: false</code> for a cleaner embedded
+            look.
+          </p>
+        </article>
+        <article class="note">
+          <strong>Host Styling</strong>
+          <p>
+            The surrounding card, HUD frame, and brand atmosphere can belong to your app. pinu-bot only
+            owns the canvas.
+          </p>
+        </article>
+        <article class="note">
+          <strong>Transparent Canvas</strong>
+          <p>
+            Use <code>transparentBackground: true</code> when you want the host app background to show
+            through the canvas instead of painting the theme background first.
+          </p>
+        </article>
+      </section>
+
+      <section class="gallery">
+        <article class="scenario">
+          <div class="preview" data-scene="overlay">
+            <div class="scene-chrome overlay">
+              <canvas id="overlay-face" class="overlay" width="900" height="520"></canvas>
+            </div>
+          </div>
+          <div class="details">
+            <div>
+              <h2>Panel-Light Embed</h2>
+            </div>
+            <p>
+              This runs with a truly transparent canvas background. The panel shell is removed, scanlines are
+              off, and the host interface provides the surrounding product chrome.
+            </p>
+            <div class="tags">
+              <span>transparentBackground: true</span>
+              <span>panel: false</span>
+              <span>scanlines: false</span>
+              <span>minimal</span>
+            </div>
+            <pre><code>const face = createRobotFace(canvas, {
+  theme: "white",
+  style: "minimal",
+  backgroundFx: "off",
+  transparentBackground: true,
+  features: {
+    panel: false,
+    scanlines: false
+  },
+  parts: {
+    eyeShape: "capsule",
+    noseShape: "bar",
+    mouthShape: "arc"
+  }
+});
+
+face.emote("listening");
+face.lookRight(0.7);</code></pre>
+          </div>
+        </article>
+
+        <article class="scenario">
+          <div class="preview" data-scene="widget">
+            <div class="scene-chrome widget">
+              <canvas id="widget-face" class="widget" width="500" height="540"></canvas>
+              <div class="widget-copy">
+                <strong>Companion Widget</strong>
+                <h3>Nia is listening.</h3>
+                <p>
+                  Small product assistant, ambient motion, and enough shell to feel like a device without
+                  dominating the panel.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="details">
+            <div>
+              <h2>Companion Card</h2>
+            </div>
+            <p>
+              A compact assistant surface with a friendly face theme and quiet lighting. This is the sort of
+              UI where pinu-bot feels like a character layer rather than a whole app screen.
+            </p>
+            <div class="tags">
+              <span>faceTheme: companion</span>
+              <span>capsule eyes</span>
+              <span>visor brows</span>
+              <span>friendly idle motion</span>
+            </div>
+            <pre><code>const face = createRobotFace(canvas, {
+  faceTheme: "companion",
+  theme: "amber",
+  style: "soft",
+  features: {
+    nose: false,
+  },
+  parts: {
+    eyeShape: "capsule",
+    eyeWidthScale: 0.52,
+    eyeHeightScale: 1.72,
+    browShape: "visor",
+    noseShape: "bar",
+    scanlineThickness: 1.75,
+  },
+});
+
+face.emote("happy");
+face.wink("left");</code></pre>
+          </div>
+        </article>
+
+        <article class="scenario">
+          <div class="preview" data-scene="crt">
+            <div class="scene-chrome crt">
+              <canvas id="crt-face" width="900" height="500"></canvas>
+            </div>
+          </div>
+          <div class="details">
+            <div>
+              <h2>Terminal Surface</h2>
+            </div>
+            <p>
+              The library also works well as a whole-screen display treatment: stronger panel frame, CRT
+              palette, denser scanlines, and more mechanical face geometry.
+            </p>
+            <div class="tags">
+              <span>green-crt</span>
+              <span>industrial</span>
+              <span>scanline tuning</span>
+              <span>service face theme</span>
+            </div>
+            <pre><code>const face = createRobotFace(canvas, {
+  faceTheme: "service",
+  theme: "green-crt",
+  style: "industrial",
+  backgroundFx: "emotion",
+  parts: {
+    noseShape: "bar",
+    mouthShape: "visor",
+    scanlineThickness: 2.5,
+    scanlineSpacing: 5
+  }
+});
+
+face.emote("thinking");</code></pre>
+          </div>
+        </article>
+
+        <article class="scenario">
+          <div class="preview" data-scene="status">
+            <div class="scene-chrome status">
+              <canvas id="status-face" class="status" width="980" height="280"></canvas>
+            </div>
+          </div>
+          <div class="details">
+            <div>
+              <h2>Status Strip</h2>
+            </div>
+            <p>
+              Faces can also read well in wide, low-height surfaces. This lets you treat the character more
+              like a status system or robotic HUD than a centered mascot.
+            </p>
+            <div class="tags">
+              <span>status-strip</span>
+              <span>red-alert</span>
+              <span>visor styling</span>
+              <span>wide layout</span>
+            </div>
+            <pre><code>const face = createRobotFace(canvas, {
+  faceTheme: "status-strip",
+  theme: "red-alert",
+  style: "visor",
+  backgroundFx: "emotion",
+  parts: {
+    noseShape: "bar",
+    mouthShape: "visor"
+  }
+});
+
+face.emote("angry");
+face.perform("glitch");</code></pre>
+          </div>
+        </article>
+
+        <article class="scenario">
+          <div class="preview" data-scene="symbol">
+            <div class="scene-chrome symbol">
+              <canvas id="symbol-face" class="symbol" width="760" height="360"></canvas>
+            </div>
+          </div>
+          <div class="details">
+            <div>
+              <h2>Momentary Reactions</h2>
+            </div>
+            <p>
+              Symbol mode is useful for momentary strong reactions instead of a full facial pose: warning,
+              question, loading, heart, and other quick response beats that can pop in, communicate, and clear fast.
+            </p>
+            <div class="tags">
+              <span>mode: symbol</span>
+              <span>momentary reactions</span>
+              <span>question / warning / heart</span>
+              <span>8-bit symbols</span>
+            </div>
+            <pre><code>const face = createRobotFace(canvas, {
+  theme: "ice-blue",
+  style: "minimal",
+  mode: "symbol",
+  symbol: "question",
+  backgroundFx: "emotion",
+  features: {
+    brows: false,
+    nose: false,
+    mouth: false
+  }
+});
+
+face.showSymbol("heart");
+face.showSymbol("warning");</code></pre>
+          </div>
+        </article>
+      </section>
+
+    </main>
+
+    <script type="module">
+      import { createRobotFace } from "../dist/index.js";
+
+      const faces = [];
+      const timers = [];
+
+      const later = (fn, delay) => {
+        const timer = window.setTimeout(fn, delay);
+        timers.push(timer);
+        return timer;
+      };
+
+      const every = (fn, delay) => {
+        const timer = window.setInterval(fn, delay);
+        timers.push(timer);
+        return timer;
+      };
+
+      const createScene = (id, options, setup) => {
+        const canvas = document.getElementById(id);
+        const face = createRobotFace(canvas, options);
+        faces.push(face);
+        setup(face);
+        return face;
+      };
+
+      createScene(
+        "overlay-face",
+        {
+          theme: "white",
+          style: "minimal",
+          backgroundFx: "off",
+          transparentBackground: true,
+          features: {
+            panel: false,
+            scanlines: false,
+          },
+          parts: {
+            eyeShape: "capsule",
+            noseShape: "bar",
+            mouthShape: "arc",
+          },
+        },
+        (face) => {
+          face.emote("listening");
+          face.lookRight(0.55);
+          const loop = () => {
+            face.lookLeft(0.75);
+            later(() => face.lookRight(0.78), 1400);
+            later(() => face.smile(0.5, { open: false }), 2400);
+            later(() => face.emote("listening"), 3600);
+          };
+          loop();
+          every(loop, 4600);
+        },
+      );
+
+      createScene(
+        "widget-face",
+        {
+          faceTheme: "companion",
+          theme: "amber",
+          style: "soft",
+          features: {
+            nose: false,
+          },
+          parts: {
+            eyeShape: "capsule",
+            eyeWidthScale: 0.52,
+            eyeHeightScale: 1.72,
+            browShape: "visor",
+            noseShape: "bar",
+            scanlineThickness: 1.75,
+          },
+        },
+        (face) => {
+          face.emote("happy");
+          const loop = () => {
+            face.wink(Math.random() > 0.5 ? "left" : "right");
+            later(() => face.lookAt((Math.random() - 0.5) * 1.3, (Math.random() - 0.5) * 0.9), 420);
+            later(() => face.smile(0.85, { open: false }), 920);
+            later(() => face.emote("happy"), 2100);
+          };
+          loop();
+          every(loop, 4200);
+        },
+      );
+
+      createScene(
+        "crt-face",
+        {
+          faceTheme: "service",
+          theme: "green-crt",
+          style: "industrial",
+          backgroundFx: "emotion",
+          parts: {
+            noseShape: "bar",
+            mouthShape: "visor",
+            scanlineThickness: 2.5,
+            scanlineSpacing: 5,
+          },
+        },
+        (face) => {
+          face.emote("thinking");
+          const loop = () => {
+            face.lookLeft(0.42);
+            later(() => face.lookRight(0.42), 1200);
+            later(() => face.emote("confused"), 2100);
+            later(() => face.emote("thinking"), 3500);
+          };
+          loop();
+          every(loop, 4800);
+        },
+      );
+
+      createScene(
+        "status-face",
+        {
+          faceTheme: "status-strip",
+          theme: "red-alert",
+          style: "visor",
+          backgroundFx: "emotion",
+          parts: {
+            noseShape: "bar",
+            mouthShape: "visor",
+          },
+        },
+        (face) => {
+          face.emote("angry");
+          const loop = () => {
+            face.perform("glitch");
+            later(() => face.lookLeft(0.68), 600);
+            later(() => face.lookRight(0.68), 1300);
+            later(() => face.emote("angry"), 2600);
+          };
+          loop();
+          every(loop, 5200);
+        },
+      );
+
+      createScene(
+        "symbol-face",
+        {
+          theme: "ice-blue",
+          style: "minimal",
+          mode: "symbol",
+          symbol: "question",
+          backgroundFx: "emotion",
+          features: {
+            brows: false,
+            nose: false,
+            mouth: false,
+          },
+        },
+        (face) => {
+          const symbols = ["question", "heart", "warning", "loading"];
+          let index = 0;
+          const loop = () => {
+            face.showSymbol(symbols[index % symbols.length]);
+            index += 1;
+          };
+          loop();
+          every(loop, 1800);
+        },
+      );
+
+      window.addEventListener("pagehide", () => {
+        for (const timer of timers) {
+          clearTimeout(timer);
+          clearInterval(timer);
+        }
+        for (const face of faces) {
+          face.destroy();
+        }
+      });
+    </script>
+  </body>
+</html>

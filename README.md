@@ -45,7 +45,8 @@ import { createRobotFace } from "pinu-bot";
 const canvas = document.querySelector("canvas")!;
 const face = createRobotFace(canvas, {
   faceTheme: "companion",
-  backgroundFx: "emotion"
+  backgroundFx: "emotion",
+  transparentBackground: false
 });
 
 face.emote("happy");
@@ -146,6 +147,7 @@ face.configure({
 ## Public API
 
 - `createRobotFace(canvas, options?)`
+  Options include `theme`, `style`, `features`, `parts`, `mode`, `symbol`, `backgroundFx`, `transparentBackground`, `autoStart`, and `pixelRatio`.
 - `face.emote(name, options?)`
 - `face.perform(name)`
 - `face.transitionTo(state)`
@@ -168,7 +170,7 @@ face.configure({
 - `face.showSymbol(name)`
 - `face.showFace()`
 - `face.setBackgroundFx("off" | "emotion" | { mode: "custom", color, intensity, pulseHz })`
-- `face.configure({ theme, style, features, parts, mode, symbol, backgroundFx, pixelRatio })`
+- `face.configure({ theme, style, features, parts, mode, symbol, backgroundFx, transparentBackground, pixelRatio })`
 - `face.start()`
 - `face.stop()`
 - `face.render()`
@@ -220,7 +222,6 @@ Symbols:
 - `exclamation`
 - `ellipsis`
 - `heart`
-- `dead`
 - `offline`
 - `loading`
 - `warning`
@@ -232,6 +233,24 @@ Symbols still participate in glow, bob, flicker, scanlines, and distortion.
 - `off`: no extra lighting
 - `emotion`: derive tint and pulse from the current emotion
 - `custom`: provide your own `color`, `intensity`, and `pulseHz`
+
+## Canvas Background
+
+- `transparentBackground: true`: clear the canvas without painting the theme background first
+- default: paints the full theme background across the canvas
+
+Example:
+
+```ts
+const face = createRobotFace(canvas, {
+  theme: "white",
+  transparentBackground: true,
+  features: {
+    panel: false,
+    scanlines: false
+  }
+});
+```
 
 ## Framework Consumption
 

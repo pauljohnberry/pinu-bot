@@ -46,7 +46,6 @@ export type SymbolName =
   | "exclamation"
   | "ellipsis"
   | "heart"
-  | "dead"
   | "offline"
   | "loading"
   | "warning";
@@ -198,6 +197,7 @@ export interface RobotFaceConfig {
   mode?: DisplayMode;
   symbol?: SymbolName;
   backgroundFx?: BackgroundFxMode | BackgroundFxConfig;
+  transparentBackground?: boolean;
   pixelRatio?: number;
 }
 
@@ -210,6 +210,7 @@ export interface RobotFaceOptions {
   mode?: DisplayMode;
   symbol?: SymbolName;
   backgroundFx?: BackgroundFxMode | BackgroundFxConfig;
+  transparentBackground?: boolean;
   autoStart?: boolean;
   pixelRatio?: number;
 }
