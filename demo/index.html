@@ -1168,9 +1168,12 @@ bun add pinu-bot</pre>
           syncCodeSample();
           return;
         }
-        symbolSelect.value = "question";
-        face.showSymbol("question");
-        currentActionCode = 'face.showSymbol("question");';
+        const selectedSymbol = symbolSelect.value || "question";
+        if (!symbolSelect.value) {
+          symbolSelect.value = selectedSymbol;
+        }
+        face.showSymbol(selectedSymbol);
+        currentActionCode = `face.showSymbol("${selectedSymbol}");`;
         syncSymbolControl();
         syncCodeSample();
       });
