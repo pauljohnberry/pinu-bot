@@ -4,7 +4,7 @@
 
 `pinu-bot` is a framework-agnostic TypeScript library for expressive robot display faces on HTML5 canvas. It focuses on orchestrating animated emotions, overlays, and display-state transitions instead of drawing static avatars.
 
-![Neutral Pinubot face with bar nose](./.github/assets/neutral-demo.png)
+![Neutral Pinubot face with bar nose](https://raw.githubusercontent.com/pauljohnberry/pinu-bot/HEAD/.github/assets/neutral-demo.png)
 
 ## Highlights
 
