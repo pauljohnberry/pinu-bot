@@ -10,7 +10,7 @@ This repo is structurally ready for npm publishing, but two things still depend 
 1. Confirm the npm package name is still available.
 2. Enable npm trusted publishing for `pauljohnberry/pinu-bot`.
 3. Verify the workflow filename matches `.github/workflows/release.yml`.
-4. Create the first release tag.
+4. Create the next release tag.
 
 For npm trusted publishing on npmjs.com:
 
@@ -49,13 +49,13 @@ It triggers on git tags matching `v*` and will:
 4. publish to npm with provenance
 5. create a GitHub release with generated notes
 
-## First Tag
+## Release Tag
 
 Once npm trusted publishing is configured:
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.1.1
+git push origin v0.1.1
 ```
 
 ## Notes
