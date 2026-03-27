@@ -32,6 +32,7 @@
       const faceTheme = params.get("faceTheme");
       const mode = params.get("mode") ?? "face";
       const symbol = params.get("symbol");
+      const noseShape = params.get("noseShape");
 
       const canvas = document.querySelector("#face");
       const face = createRobotFace(canvas, {
@@ -39,7 +40,12 @@
         pixelRatio: 1,
         theme,
         style,
-        faceTheme: faceTheme || undefined
+        faceTheme: faceTheme || undefined,
+        parts: noseShape
+          ? {
+              noseShape
+            }
+          : undefined
       });
 
       face.setMode(mode);
