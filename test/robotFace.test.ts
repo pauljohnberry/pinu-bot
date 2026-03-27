@@ -111,7 +111,7 @@ const installRaf = () => {
 
   Object.assign(globalThis, {
     requestAnimationFrame: request,
-    cancelAnimationFrame: cancel
+    cancelAnimationFrame: cancel,
   });
 
   return {
@@ -124,7 +124,7 @@ const installRaf = () => {
     },
     queued(): number {
       return queue.size;
-    }
+    },
   };
 };
 
@@ -133,7 +133,7 @@ describe("createRobotFace", () => {
     const canvas = new FakeCanvas();
     const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
       autoStart: false,
-      pixelRatio: 2
+      pixelRatio: 2,
     });
 
     face.render();
@@ -147,7 +147,7 @@ describe("createRobotFace", () => {
   test("supports chained controls and overlay methods without throwing", () => {
     const canvas = new FakeCanvas();
     const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
-      autoStart: false
+      autoStart: false,
     });
 
     face
@@ -181,13 +181,13 @@ describe("createRobotFace", () => {
         noseShape: "dot",
         mouthShape: "visor",
         scanlineThickness: 2,
-        scanlineSpacing: 6
+        scanlineSpacing: 6,
       })
       .setBackgroundFx({
         mode: "custom",
         color: "#ff9966",
         intensity: 0.18,
-        pulseHz: 1.2
+        pulseHz: 1.2,
       })
       .configure({
         mode: "symbol",
@@ -195,8 +195,8 @@ describe("createRobotFace", () => {
         features: {
           brows: true,
           nose: false,
-          panel: false
-        }
+          panel: false,
+        },
       })
       .setTheme({
         background: "#000",
@@ -205,7 +205,7 @@ describe("createRobotFace", () => {
         foreground: "#0ff",
         glow: "rgba(0,255,255,0.5)",
         accent: "#fff",
-        ghost: "rgba(255,255,255,0.1)"
+        ghost: "rgba(255,255,255,0.1)",
       })
       .showFace()
       .showSymbol("warning")
@@ -219,7 +219,7 @@ describe("createRobotFace", () => {
     const raf = installRaf();
     const canvas = new FakeCanvas();
     const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
-      autoStart: false
+      autoStart: false,
     });
 
     face.start();
@@ -240,7 +240,7 @@ describe("createRobotFace", () => {
     const raf = installRaf();
     const canvas = new FakeCanvas();
     const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
-      autoStart: true
+      autoStart: true,
     });
 
     expect(raf.queued()).toBe(1);

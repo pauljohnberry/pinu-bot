@@ -5,12 +5,11 @@ import { THEMES } from "./themes.js";
 import type {
   BackgroundFxConfig,
   BackgroundFxMode,
-  BrowShapeName,
   DisplayMode,
   EmoteOptions,
   EyeControlApi,
-  EyeShapeName,
   EyePose,
+  EyeShapeName,
   FaceFeatures,
   FacePose,
   FaceThemeDefinition,
@@ -18,13 +17,13 @@ import type {
   GlobalPose,
   MouthControlApi,
   MouthExpressionOptions,
-  MouthShapeName,
   MouthPose,
+  MouthShapeName,
   NoseControlApi,
-  NoseShapeName,
   NosePose,
-  PartStyleConfig,
+  NoseShapeName,
   PartialFacePose,
+  PartStyleConfig,
   PerformanceName,
   RobotFace,
   RobotFaceConfig,
@@ -35,7 +34,7 @@ import type {
   SymbolName,
   ThemeDefinition,
   ThemeName,
-  WinkSide
+  WinkSide,
 } from "./types.js";
 
 type EasingName = EmotionDefinition["ease"];
@@ -54,14 +53,14 @@ const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 
 const ease = (name: EasingName, t: number): number => {
   if (name === "snap") {
-    return 1 - Math.pow(1 - t, 3);
+    return 1 - (1 - t) ** 3;
   }
 
   if (name === "gentle") {
     return t * t * (3 - 2 * t);
   }
 
-  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  return t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
 };
 
 const damp = (current: number, target: number, dt: number, speed: number): number =>
@@ -75,7 +74,7 @@ const roundedRect = (
   y: number,
   width: number,
   height: number,
-  radius: number
+  radius: number,
 ): void => {
   const r = Math.min(radius, width * 0.5, height * 0.5);
   ctx.beginPath();
@@ -92,15 +91,36 @@ const createPose = (): FacePose => ({
   rightEye: { openness: 0, squint: 0, tilt: 0, pupilX: 0, pupilY: 0, brightness: 1 },
   nose: { scale: 1, tilt: 0, brightness: 1 },
   mouth: { openness: 0, curvature: 0, width: 1, tilt: 0, brightness: 1 },
-  global: { glow: 1, bob: 0, jitter: 0, distortion: 0, flicker: 0, scanline: 0 }
+  global: { glow: 1, bob: 0, jitter: 0, distortion: 0, flicker: 0, scanline: 0 },
 });
 
 const createUnsetPose = (): FacePose => ({
-  leftEye: { openness: UNSET, squint: UNSET, tilt: UNSET, pupilX: UNSET, pupilY: UNSET, brightness: UNSET },
-  rightEye: { openness: UNSET, squint: UNSET, tilt: UNSET, pupilX: UNSET, pupilY: UNSET, brightness: UNSET },
+  leftEye: {
+    openness: UNSET,
+    squint: UNSET,
+    tilt: UNSET,
+    pupilX: UNSET,
+    pupilY: UNSET,
+    brightness: UNSET,
+  },
+  rightEye: {
+    openness: UNSET,
+    squint: UNSET,
+    tilt: UNSET,
+    pupilX: UNSET,
+    pupilY: UNSET,
+    brightness: UNSET,
+  },
   nose: { scale: UNSET, tilt: UNSET, brightness: UNSET },
   mouth: { openness: UNSET, curvature: UNSET, width: UNSET, tilt: UNSET, brightness: UNSET },
-  global: { glow: UNSET, bob: UNSET, jitter: UNSET, distortion: UNSET, flicker: UNSET, scanline: UNSET }
+  global: {
+    glow: UNSET,
+    bob: UNSET,
+    jitter: UNSET,
+    distortion: UNSET,
+    flicker: UNSET,
+    scanline: UNSET,
+  },
 });
 
 const copyPose = (target: FacePose, source: FacePose): void => {
@@ -164,13 +184,19 @@ const applyOverrides = (target: FacePose, overrides: FacePose): void => {
   target.leftEye.tilt = overrideValue(target.leftEye.tilt, overrides.leftEye.tilt);
   target.leftEye.pupilX = overrideValue(target.leftEye.pupilX, overrides.leftEye.pupilX);
   target.leftEye.pupilY = overrideValue(target.leftEye.pupilY, overrides.leftEye.pupilY);
-  target.leftEye.brightness = overrideValue(target.leftEye.brightness, overrides.leftEye.brightness);
+  target.leftEye.brightness = overrideValue(
+    target.leftEye.brightness,
+    overrides.leftEye.brightness,
+  );
   target.rightEye.openness = overrideValue(target.rightEye.openness, overrides.rightEye.openness);
   target.rightEye.squint = overrideValue(target.rightEye.squint, overrides.rightEye.squint);
   target.rightEye.tilt = overrideValue(target.rightEye.tilt, overrides.rightEye.tilt);
   target.rightEye.pupilX = overrideValue(target.rightEye.pupilX, overrides.rightEye.pupilX);
   target.rightEye.pupilY = overrideValue(target.rightEye.pupilY, overrides.rightEye.pupilY);
-  target.rightEye.brightness = overrideValue(target.rightEye.brightness, overrides.rightEye.brightness);
+  target.rightEye.brightness = overrideValue(
+    target.rightEye.brightness,
+    overrides.rightEye.brightness,
+  );
   target.nose.scale = overrideValue(target.nose.scale, overrides.nose.scale);
   target.nose.tilt = overrideValue(target.nose.tilt, overrides.nose.tilt);
   target.nose.brightness = overrideValue(target.nose.brightness, overrides.nose.brightness);
@@ -199,32 +225,33 @@ const resolveStyle = (style: StylePresetName | StyleDefinition): StyleDefinition
 
 const mergeFeatures = (
   base: FaceFeatures,
-  update: Partial<FaceFeatures> | undefined
+  update: Partial<FaceFeatures> | undefined,
 ): FaceFeatures => ({
   ...base,
-  ...update
+  ...update,
 });
 
 const mergeParts = (
   base: Required<PartStyleConfig>,
-  update: PartStyleConfig | undefined
+  update: PartStyleConfig | undefined,
 ): Required<PartStyleConfig> => ({
   ...base,
-  ...update
+  ...update,
 });
 
-const resolveFaceTheme = (
-  faceTheme: FaceThemeName | FaceThemeDefinition
-): FaceThemeDefinition => (typeof faceTheme === "string" ? FACE_THEMES[faceTheme] : faceTheme);
+const resolveFaceTheme = (faceTheme: FaceThemeName | FaceThemeDefinition): FaceThemeDefinition =>
+  typeof faceTheme === "string" ? FACE_THEMES[faceTheme] : faceTheme;
 
 const DEFAULT_BACKGROUND_FX: ResolvedBackgroundFx = {
   mode: "off",
   color: "#ffb36b",
   intensity: 0.22,
-  pulseHz: 0.9
+  pulseHz: 0.9,
 };
 
-const EMOTION_BACKGROUND_FX: Partial<Record<keyof typeof EMOTIONS, Omit<ResolvedBackgroundFx, "mode">>> = {
+const EMOTION_BACKGROUND_FX: Partial<
+  Record<keyof typeof EMOTIONS, Omit<ResolvedBackgroundFx, "mode">>
+> = {
   happy: { color: "#ffcf76", intensity: 0.18, pulseHz: 1.1 },
   love: { color: "#ff7ea8", intensity: 0.22, pulseHz: 1.2 },
   sad: { color: "#5e89d6", intensity: 0.16, pulseHz: 0.45 },
@@ -238,7 +265,7 @@ const EMOTION_BACKGROUND_FX: Partial<Record<keyof typeof EMOTIONS, Omit<Resolved
   speaking: { color: "#86f0ff", intensity: 0.17, pulseHz: 1.5 },
   offline: { color: "#34404f", intensity: 0.12, pulseHz: 0.2 },
   booting: { color: "#a8d7ff", intensity: 0.2, pulseHz: 2.1 },
-  glitch: { color: "#ff789a", intensity: 0.26, pulseHz: 7 }
+  glitch: { color: "#ff789a", intensity: 0.26, pulseHz: 7 },
 };
 
 const EMOTION_SYMBOLS: Partial<Record<keyof typeof EMOTIONS, SymbolName>> = {
@@ -248,11 +275,11 @@ const EMOTION_SYMBOLS: Partial<Record<keyof typeof EMOTIONS, SymbolName>> = {
   offline: "offline",
   booting: "loading",
   glitch: "warning",
-  surprised: "exclamation"
+  surprised: "exclamation",
 };
 
 const resolveBackgroundFx = (
-  config: BackgroundFxMode | BackgroundFxConfig | undefined
+  config: BackgroundFxMode | BackgroundFxConfig | undefined,
 ): ResolvedBackgroundFx => {
   if (!config) {
     return { ...DEFAULT_BACKGROUND_FX };
@@ -265,7 +292,7 @@ const resolveBackgroundFx = (
   return {
     ...DEFAULT_BACKGROUND_FX,
     ...config,
-    mode: config.mode ?? DEFAULT_BACKGROUND_FX.mode
+    mode: config.mode ?? DEFAULT_BACKGROUND_FX.mode,
   };
 };
 
@@ -274,7 +301,7 @@ const neutralMouth = EMOTIONS.neutral.pose.mouth;
 const mouthPreset = (
   kind: "smile" | "frown" | "pout",
   amount: number,
-  options: MouthExpressionOptions = {}
+  options: MouthExpressionOptions = {},
 ): Partial<MouthPose> => {
   const t = clamp(amount, 0, 1);
   const open = options.open ?? false;
@@ -285,7 +312,7 @@ const mouthPreset = (
       curvature: lerp(neutralMouth.curvature, 0.56, t),
       width: lerp(neutralMouth.width, 0.96, t),
       tilt: lerp(neutralMouth.tilt, 0, t),
-      brightness: lerp(neutralMouth.brightness, 1.04, t)
+      brightness: lerp(neutralMouth.brightness, 1.04, t),
     };
   }
 
@@ -295,7 +322,7 @@ const mouthPreset = (
       curvature: lerp(neutralMouth.curvature, -0.56, t),
       width: lerp(neutralMouth.width, 0.94, t),
       tilt: lerp(neutralMouth.tilt, 0, t),
-      brightness: lerp(neutralMouth.brightness, 1.02, t)
+      brightness: lerp(neutralMouth.brightness, 1.02, t),
     };
   }
 
@@ -304,7 +331,7 @@ const mouthPreset = (
     curvature: lerp(neutralMouth.curvature, -0.02, t),
     width: lerp(neutralMouth.width, 0.44, t),
     tilt: lerp(neutralMouth.tilt, 0, t),
-    brightness: lerp(neutralMouth.brightness, 1.04, t)
+    brightness: lerp(neutralMouth.brightness, 1.04, t),
   };
 };
 
@@ -330,7 +357,7 @@ class EyeControl<TDone> implements EyeControlApi<TDone> {
   constructor(
     private readonly pose: FacePose,
     private readonly select: (pose: FacePose) => EyePose[],
-    private readonly doneValue: TDone
+    private readonly doneValue: TDone,
   ) {}
 
   open(value: number): EyeControl<TDone> {
@@ -375,7 +402,10 @@ class EyeControl<TDone> implements EyeControlApi<TDone> {
 }
 
 class MouthControl<TDone> implements MouthControlApi<TDone> {
-  constructor(private readonly pose: FacePose, private readonly doneValue: TDone) {}
+  constructor(
+    private readonly pose: FacePose,
+    private readonly doneValue: TDone,
+  ) {}
 
   open(value: number): MouthControl<TDone> {
     this.pose.mouth.openness = clamp(value, 0, 1);
@@ -408,7 +438,10 @@ class MouthControl<TDone> implements MouthControlApi<TDone> {
 }
 
 class NoseControl<TDone> implements NoseControlApi<TDone> {
-  constructor(private readonly pose: FacePose, private readonly doneValue: TDone) {}
+  constructor(
+    private readonly pose: FacePose,
+    private readonly doneValue: TDone,
+  ) {}
 
   scale(value: number): NoseControl<TDone> {
     this.pose.nose.scale = clamp(value, 0.1, 1.5);
@@ -439,9 +472,17 @@ class RobotFaceRenderer implements RobotFace {
   private readonly fromEmotionPose = createPose();
   private readonly manualPose = createUnsetPose();
 
-  private readonly bothEyesControl = new EyeControl(this.manualPose, (pose) => [pose.leftEye, pose.rightEye], this);
+  private readonly bothEyesControl = new EyeControl(
+    this.manualPose,
+    (pose) => [pose.leftEye, pose.rightEye],
+    this,
+  );
   private readonly leftEyeControl = new EyeControl(this.manualPose, (pose) => [pose.leftEye], this);
-  private readonly rightEyeControl = new EyeControl(this.manualPose, (pose) => [pose.rightEye], this);
+  private readonly rightEyeControl = new EyeControl(
+    this.manualPose,
+    (pose) => [pose.rightEye],
+    this,
+  );
   private readonly mouthControl = new MouthControl(this.manualPose, this);
   private readonly noseControl = new NoseControl(this.manualPose, this);
 
@@ -459,8 +500,6 @@ class RobotFaceRenderer implements RobotFace {
   private dpr = 1;
   private logicalWidth = 0;
   private logicalHeight = 0;
-
-  private currentEmotionName: keyof typeof EMOTIONS = "neutral";
   private emotionTargetName: keyof typeof EMOTIONS = "neutral";
   private emotionIntensity = 1;
   private emotionFromTime = 0;
@@ -506,7 +545,10 @@ class RobotFaceRenderer implements RobotFace {
     this.rafId = requestAnimationFrame(this.tick);
   };
 
-  constructor(private readonly canvas: HTMLCanvasElement, options: RobotFaceOptions = {}) {
+  constructor(
+    private readonly canvas: HTMLCanvasElement,
+    options: RobotFaceOptions = {},
+  ) {
     const context = canvas.getContext("2d");
     if (!context) {
       throw new Error("Canvas 2D context is required.");
@@ -545,7 +587,8 @@ class RobotFaceRenderer implements RobotFace {
     if (options.backgroundFx) {
       this.backgroundFx = resolveBackgroundFx(options.backgroundFx);
     }
-    this.dpr = options.pixelRatio ?? (typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1);
+    this.dpr =
+      options.pixelRatio ?? (typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1);
     this.autoBlinkInMs = this.randomBlinkDelay(EMOTIONS.neutral);
 
     copyPose(this.currentPose, EMOTIONS.neutral.pose);
@@ -561,7 +604,6 @@ class RobotFaceRenderer implements RobotFace {
   emote(name: keyof typeof EMOTIONS, options: EmoteOptions = {}): RobotFace {
     const definition = EMOTIONS[name];
     this.clearManualOverrides();
-    this.currentEmotionName = this.emotionTargetName;
     copyPose(this.fromEmotionPose, this.basePose);
     this.emotionTargetName = name;
     this.emotionIntensity = clamp(options.intensity ?? 1, 0, 1);
@@ -817,12 +859,17 @@ class RobotFaceRenderer implements RobotFace {
 
   private update(dt: number, dtMs: number): void {
     const emotionDefinition = EMOTIONS[this.emotionTargetName];
-    const emotionProgress = clamp((this.elapsed - this.emotionFromTime) / this.emotionDurationMs, 0, 1);
-    lerpPose(this.basePose, this.fromEmotionPose, this.targetEmotionPose, ease(this.emotionEase, emotionProgress));
-
-    if (emotionProgress >= 1) {
-      this.currentEmotionName = this.emotionTargetName;
-    }
+    const emotionProgress = clamp(
+      (this.elapsed - this.emotionFromTime) / this.emotionDurationMs,
+      0,
+      1,
+    );
+    lerpPose(
+      this.basePose,
+      this.fromEmotionPose,
+      this.targetEmotionPose,
+      ease(this.emotionEase, emotionProgress),
+    );
 
     this.lookX = damp(this.lookX, this.lookTargetX, dt, 9);
     this.lookY = damp(this.lookY, this.lookTargetY, dt, 9);
@@ -867,7 +914,7 @@ class RobotFaceRenderer implements RobotFace {
       const performanceProgress = clamp(
         (this.elapsed - this.performanceStartedAt) / this.performanceDurationMs,
         0,
-        1
+        1,
       );
       if (performanceProgress >= 1) {
         const completed = this.performance;
@@ -909,45 +956,87 @@ class RobotFaceRenderer implements RobotFace {
     if (blinkAmount > 0) {
       this.composedPose.leftEye.openness *= 1 - 0.98 * blinkAmount;
       this.composedPose.rightEye.openness *= 1 - 0.98 * blinkAmount;
-      this.composedPose.leftEye.squint = clamp(this.composedPose.leftEye.squint + blinkAmount * 0.5, 0, 1);
-      this.composedPose.rightEye.squint = clamp(this.composedPose.rightEye.squint + blinkAmount * 0.5, 0, 1);
+      this.composedPose.leftEye.squint = clamp(
+        this.composedPose.leftEye.squint + blinkAmount * 0.5,
+        0,
+        1,
+      );
+      this.composedPose.rightEye.squint = clamp(
+        this.composedPose.rightEye.squint + blinkAmount * 0.5,
+        0,
+        1,
+      );
     }
 
     const winkAmount = this.winkActive ? Math.sin(Math.PI * this.winkProgress) : 0;
     if (winkAmount > 0) {
-      const winkEye = this.winkSide === "left" ? this.composedPose.leftEye : this.composedPose.rightEye;
+      const winkEye =
+        this.winkSide === "left" ? this.composedPose.leftEye : this.composedPose.rightEye;
       winkEye.openness *= 1 - 0.985 * winkAmount;
       winkEye.squint = clamp(winkEye.squint + winkAmount * 0.55, 0, 1);
     }
 
     const lookStrength = 0.62;
-    this.composedPose.leftEye.pupilX = clamp(this.composedPose.leftEye.pupilX + this.lookX * lookStrength, -1, 1);
-    this.composedPose.rightEye.pupilX = clamp(this.composedPose.rightEye.pupilX + this.lookX * lookStrength, -1, 1);
-    this.composedPose.leftEye.pupilY = clamp(this.composedPose.leftEye.pupilY + this.lookY * lookStrength, -1, 1);
-    this.composedPose.rightEye.pupilY = clamp(this.composedPose.rightEye.pupilY + this.lookY * lookStrength, -1, 1);
+    this.composedPose.leftEye.pupilX = clamp(
+      this.composedPose.leftEye.pupilX + this.lookX * lookStrength,
+      -1,
+      1,
+    );
+    this.composedPose.rightEye.pupilX = clamp(
+      this.composedPose.rightEye.pupilX + this.lookX * lookStrength,
+      -1,
+      1,
+    );
+    this.composedPose.leftEye.pupilY = clamp(
+      this.composedPose.leftEye.pupilY + this.lookY * lookStrength,
+      -1,
+      1,
+    );
+    this.composedPose.rightEye.pupilY = clamp(
+      this.composedPose.rightEye.pupilY + this.lookY * lookStrength,
+      -1,
+      1,
+    );
     this.composedPose.leftEye.tilt += this.lookX * 0.04;
     this.composedPose.rightEye.tilt += this.lookX * 0.04;
 
     const talkOverlay =
       this.speakingAmount > 0.001
-        ? (0.25 + 0.75 * Math.pow(Math.abs(Math.sin(this.speakingPhase * Math.PI)), 0.8)) * this.speakingAmount
+        ? (0.25 + 0.75 * Math.abs(Math.sin(this.speakingPhase * Math.PI)) ** 0.8) *
+          this.speakingAmount
         : 0;
     if (talkOverlay > 0) {
-      this.composedPose.mouth.openness = clamp(this.composedPose.mouth.openness + talkOverlay * 1.08, 0, 1);
-      this.composedPose.mouth.width = clamp(this.composedPose.mouth.width + talkOverlay * 0.15, 0.2, 1.2);
+      this.composedPose.mouth.openness = clamp(
+        this.composedPose.mouth.openness + talkOverlay * 1.08,
+        0,
+        1,
+      );
+      this.composedPose.mouth.width = clamp(
+        this.composedPose.mouth.width + talkOverlay * 0.15,
+        0.2,
+        1.2,
+      );
       this.composedPose.mouth.curvature = damp(this.composedPose.mouth.curvature, 0.05, dt, 10);
       this.composedPose.mouth.brightness += talkOverlay * 0.3;
       this.composedPose.global.glow += talkOverlay * 0.08;
       this.composedPose.global.flicker += talkOverlay * 0.05;
-      this.composedPose.leftEye.openness = clamp(this.composedPose.leftEye.openness - talkOverlay * 0.05, 0, 1);
-      this.composedPose.rightEye.openness = clamp(this.composedPose.rightEye.openness - talkOverlay * 0.05, 0, 1);
+      this.composedPose.leftEye.openness = clamp(
+        this.composedPose.leftEye.openness - talkOverlay * 0.05,
+        0,
+        1,
+      );
+      this.composedPose.rightEye.openness = clamp(
+        this.composedPose.rightEye.openness - talkOverlay * 0.05,
+        0,
+        1,
+      );
     }
 
     if (this.performance !== "idle") {
       const performanceProgress = clamp(
         (this.elapsed - this.performanceStartedAt) / this.performanceDurationMs,
         0,
-        1
+        1,
       );
 
       if (this.performance === "glitch") {
@@ -958,12 +1047,12 @@ class RobotFaceRenderer implements RobotFace {
         this.composedPose.leftEye.openness = clamp(
           this.composedPose.leftEye.openness - 0.12 * burst,
           0,
-          1
+          1,
         );
         this.composedPose.rightEye.openness = clamp(
           this.composedPose.rightEye.openness + 0.08 * burst,
           0,
-          1
+          1,
         );
         this.composedPose.mouth.tilt += 0.2 * burst * wave(this.elapsed / 1000, 12);
       }
@@ -971,8 +1060,14 @@ class RobotFaceRenderer implements RobotFace {
       if (this.performance === "bootUp") {
         const open = ease("smooth", clamp((performanceProgress - 0.12) / 0.72, 0, 1));
         const brightness = ease("smooth", clamp((performanceProgress - 0.08) / 0.84, 0, 1));
-        this.composedPose.leftEye.openness = Math.min(this.composedPose.leftEye.openness, 0.04 + open * 0.96);
-        this.composedPose.rightEye.openness = Math.min(this.composedPose.rightEye.openness, 0.04 + open * 0.96);
+        this.composedPose.leftEye.openness = Math.min(
+          this.composedPose.leftEye.openness,
+          0.04 + open * 0.96,
+        );
+        this.composedPose.rightEye.openness = Math.min(
+          this.composedPose.rightEye.openness,
+          0.04 + open * 0.96,
+        );
         this.composedPose.mouth.openness *= brightness;
         this.composedPose.mouth.brightness *= brightness;
         this.composedPose.nose.brightness *= brightness;
@@ -983,32 +1078,92 @@ class RobotFaceRenderer implements RobotFace {
     }
 
     const current = this.currentPose;
-    current.leftEye.openness = damp(current.leftEye.openness, this.composedPose.leftEye.openness, dt, 16);
+    current.leftEye.openness = damp(
+      current.leftEye.openness,
+      this.composedPose.leftEye.openness,
+      dt,
+      16,
+    );
     current.leftEye.squint = damp(current.leftEye.squint, this.composedPose.leftEye.squint, dt, 14);
     current.leftEye.tilt = damp(current.leftEye.tilt, this.composedPose.leftEye.tilt, dt, 14);
     current.leftEye.pupilX = damp(current.leftEye.pupilX, this.composedPose.leftEye.pupilX, dt, 18);
     current.leftEye.pupilY = damp(current.leftEye.pupilY, this.composedPose.leftEye.pupilY, dt, 18);
-    current.leftEye.brightness = damp(current.leftEye.brightness, this.composedPose.leftEye.brightness, dt, 12);
-    current.rightEye.openness = damp(current.rightEye.openness, this.composedPose.rightEye.openness, dt, 16);
-    current.rightEye.squint = damp(current.rightEye.squint, this.composedPose.rightEye.squint, dt, 14);
+    current.leftEye.brightness = damp(
+      current.leftEye.brightness,
+      this.composedPose.leftEye.brightness,
+      dt,
+      12,
+    );
+    current.rightEye.openness = damp(
+      current.rightEye.openness,
+      this.composedPose.rightEye.openness,
+      dt,
+      16,
+    );
+    current.rightEye.squint = damp(
+      current.rightEye.squint,
+      this.composedPose.rightEye.squint,
+      dt,
+      14,
+    );
     current.rightEye.tilt = damp(current.rightEye.tilt, this.composedPose.rightEye.tilt, dt, 14);
-    current.rightEye.pupilX = damp(current.rightEye.pupilX, this.composedPose.rightEye.pupilX, dt, 18);
-    current.rightEye.pupilY = damp(current.rightEye.pupilY, this.composedPose.rightEye.pupilY, dt, 18);
-    current.rightEye.brightness = damp(current.rightEye.brightness, this.composedPose.rightEye.brightness, dt, 12);
+    current.rightEye.pupilX = damp(
+      current.rightEye.pupilX,
+      this.composedPose.rightEye.pupilX,
+      dt,
+      18,
+    );
+    current.rightEye.pupilY = damp(
+      current.rightEye.pupilY,
+      this.composedPose.rightEye.pupilY,
+      dt,
+      18,
+    );
+    current.rightEye.brightness = damp(
+      current.rightEye.brightness,
+      this.composedPose.rightEye.brightness,
+      dt,
+      12,
+    );
     current.nose.scale = damp(current.nose.scale, this.composedPose.nose.scale, dt, 10);
     current.nose.tilt = damp(current.nose.tilt, this.composedPose.nose.tilt, dt, 10);
-    current.nose.brightness = damp(current.nose.brightness, this.composedPose.nose.brightness, dt, 10);
+    current.nose.brightness = damp(
+      current.nose.brightness,
+      this.composedPose.nose.brightness,
+      dt,
+      10,
+    );
     current.mouth.openness = damp(current.mouth.openness, this.composedPose.mouth.openness, dt, 12);
-    current.mouth.curvature = damp(current.mouth.curvature, this.composedPose.mouth.curvature, dt, 12);
+    current.mouth.curvature = damp(
+      current.mouth.curvature,
+      this.composedPose.mouth.curvature,
+      dt,
+      12,
+    );
     current.mouth.width = damp(current.mouth.width, this.composedPose.mouth.width, dt, 10);
     current.mouth.tilt = damp(current.mouth.tilt, this.composedPose.mouth.tilt, dt, 10);
-    current.mouth.brightness = damp(current.mouth.brightness, this.composedPose.mouth.brightness, dt, 10);
+    current.mouth.brightness = damp(
+      current.mouth.brightness,
+      this.composedPose.mouth.brightness,
+      dt,
+      10,
+    );
     current.global.glow = damp(current.global.glow, this.composedPose.global.glow, dt, 10);
     current.global.bob = damp(current.global.bob, this.composedPose.global.bob, dt, 8);
     current.global.jitter = damp(current.global.jitter, this.composedPose.global.jitter, dt, 18);
-    current.global.distortion = damp(current.global.distortion, this.composedPose.global.distortion, dt, 18);
+    current.global.distortion = damp(
+      current.global.distortion,
+      this.composedPose.global.distortion,
+      dt,
+      18,
+    );
     current.global.flicker = damp(current.global.flicker, this.composedPose.global.flicker, dt, 18);
-    current.global.scanline = damp(current.global.scanline, this.composedPose.global.scanline, dt, 12);
+    current.global.scanline = damp(
+      current.global.scanline,
+      this.composedPose.global.scanline,
+      dt,
+      12,
+    );
   }
 
   private syncCanvasSize(): void {
@@ -1068,7 +1223,7 @@ class RobotFaceRenderer implements RobotFace {
       panelWidth - innerPadding * 2,
       panelHeight - innerPadding * 2,
       Math.max(4, panelRadius - innerPadding),
-      pose.global.glow
+      pose.global.glow,
     );
 
     ctx.save();
@@ -1080,7 +1235,7 @@ class RobotFaceRenderer implements RobotFace {
         panelY + innerPadding,
         panelWidth - innerPadding * 2,
         panelHeight - innerPadding * 2,
-        Math.max(4, panelRadius - innerPadding)
+        Math.max(4, panelRadius - innerPadding),
       );
     } else {
       ctx.rect(0, 0, width, height);
@@ -1122,7 +1277,8 @@ class RobotFaceRenderer implements RobotFace {
     const defaultBrowY = height * style.browY;
     const browOffsetFromEyeTop = defaultBrowY - defaultEyeTopY;
     const browExtraLift = Math.max(0, eyeHeightScale - 1) * scaledEyeHeight * 0.18;
-    const dynamicBrowY = height * style.eyeY - scaledEyeHeight * 0.5 + browOffsetFromEyeTop - browExtraLift;
+    const dynamicBrowY =
+      height * style.eyeY - scaledEyeHeight * 0.5 + browOffsetFromEyeTop - browExtraLift;
     const confusedBrowRaise = this.emotionTargetName === "confused" ? height * 0.024 : 0;
     const leftBrowY = dynamicBrowY - confusedBrowRaise;
     const rightBrowY = dynamicBrowY + confusedBrowRaise * 0.22;
@@ -1152,7 +1308,7 @@ class RobotFaceRenderer implements RobotFace {
           width * style.browWidth,
           height * style.browHeight,
           pose.leftEye,
-          -1
+          -1,
         );
       }
       if (this.features.rightEye) {
@@ -1162,21 +1318,47 @@ class RobotFaceRenderer implements RobotFace {
           width * style.browWidth,
           height * style.browHeight,
           pose.rightEye,
-          1
+          1,
         );
       }
     }
     if (this.features.leftEye) {
-      this.drawEye(-width * style.eyeGap, eyeBaseY, width * style.eyeWidth, height * style.eyeHeight, pose.leftEye, -1);
+      this.drawEye(
+        -width * style.eyeGap,
+        eyeBaseY,
+        width * style.eyeWidth,
+        height * style.eyeHeight,
+        pose.leftEye,
+        -1,
+      );
     }
     if (this.features.rightEye) {
-      this.drawEye(width * style.eyeGap, eyeBaseY, width * style.eyeWidth, height * style.eyeHeight, pose.rightEye, 1);
+      this.drawEye(
+        width * style.eyeGap,
+        eyeBaseY,
+        width * style.eyeWidth,
+        height * style.eyeHeight,
+        pose.rightEye,
+        1,
+      );
     }
     if (this.features.nose) {
-      this.drawNose(0, height * style.noseY, width * style.noseWidth, height * style.noseHeight, pose.nose);
+      this.drawNose(
+        0,
+        height * style.noseY,
+        width * style.noseWidth,
+        height * style.noseHeight,
+        pose.nose,
+      );
     }
     if (this.features.mouth) {
-      this.drawMouth(0, height * style.mouthY, width * style.mouthWidth, height * style.mouthHeight, pose.mouth);
+      this.drawMouth(
+        0,
+        height * style.mouthY,
+        width * style.mouthWidth,
+        height * style.mouthHeight,
+        pose.mouth,
+      );
     }
     ctx.restore();
   }
@@ -1205,7 +1387,10 @@ class RobotFaceRenderer implements RobotFace {
           height *
           (isAngry ? 0.008 : 0.01);
       const offsetX =
-        wave((this.elapsed + index * 140) / 1000, isAngry ? 8.8 - index * 0.35 : 8.5 - index * 0.45) *
+        wave(
+          (this.elapsed + index * 140) / 1000,
+          isAngry ? 8.8 - index * 0.35 : 8.5 - index * 0.45,
+        ) *
         width *
         scramble *
         (isAngry ? 0.16 + index * 0.024 : 0.18 + index * 0.03);
@@ -1214,9 +1399,7 @@ class RobotFaceRenderer implements RobotFace {
         height *
         scramble *
         (isAngry ? 0.008 : 0.012);
-      const alpha = isAngry
-        ? (0.08 + scramble * 0.16) * angryPulse
-        : 0.1 + scramble * 0.22;
+      const alpha = isAngry ? (0.08 + scramble * 0.16) * angryPulse : 0.1 + scramble * 0.22;
 
       ctx.save();
       ctx.beginPath();
@@ -1241,7 +1424,7 @@ class RobotFaceRenderer implements RobotFace {
     width: number,
     height: number,
     pose: EyePose,
-    side: number
+    side: number,
   ): void {
     const ctx = this.ctx;
     const openness = clamp(pose.openness, 0.01, 1);
@@ -1250,7 +1433,7 @@ class RobotFaceRenderer implements RobotFace {
     const baseWidth = width * clamp(this.parts.eyeWidthScale, 0.5, 1.8);
     const eyeHeight = Math.max(
       baseHeight * 0.1,
-      baseHeight * (0.18 + openness * 0.74) * (1 - squint * 0.52)
+      baseHeight * (0.18 + openness * 0.74) * (1 - squint * 0.52),
     );
     const radius = eyeHeight * this.style.eyeCorner;
     const eyeWidth = baseWidth * (0.82 + openness * 0.14);
@@ -1295,7 +1478,7 @@ class RobotFaceRenderer implements RobotFace {
       -eyeHeight * 0.5 + strokeWidth,
       eyeWidth - strokeWidth * 2,
       eyeHeight - strokeWidth * 2,
-      Math.max(2, radius - strokeWidth)
+      Math.max(2, radius - strokeWidth),
     );
     ctx.fillStyle = this.theme.accent;
     ctx.fill();
@@ -1314,7 +1497,7 @@ class RobotFaceRenderer implements RobotFace {
         pupilY - pupilSize * 0.5,
         pupilSize,
         pupilSize * (0.85 + (1 - openness) * 0.3),
-        pupilSize * 0.28
+        pupilSize * 0.28,
       );
       ctx.fill();
       ctx.restore();
@@ -1341,7 +1524,7 @@ class RobotFaceRenderer implements RobotFace {
     y: number,
     width: number,
     height: number,
-    radius: number
+    radius: number,
   ): void {
     const ctx = this.ctx;
     if (shape === "pixel") {
@@ -1369,7 +1552,7 @@ class RobotFaceRenderer implements RobotFace {
     height: number,
     side: number,
     openness: number,
-    squint: number
+    squint: number,
   ): void {
     const ctx = this.ctx;
 
@@ -1419,17 +1602,12 @@ class RobotFaceRenderer implements RobotFace {
     width: number,
     height: number,
     pose: EyePose,
-    side: number
+    side: number,
   ): void {
     const ctx = this.ctx;
     const shape = this.parts.browShape;
     const baseAngle = pose.tilt * 0.52 + pose.squint * 0.18 * -side;
-    const angle =
-      this.emotionTargetName === "confused"
-        ? side === -1
-          ? -0.2
-          : -0.08
-        : baseAngle;
+    const angle = this.emotionTargetName === "confused" ? (side === -1 ? -0.2 : -0.08) : baseAngle;
     const lift = (1 - pose.openness) * height * 0.4;
     const brightness = clamp(pose.brightness, 0.1, 1.6);
 
@@ -1467,7 +1645,13 @@ class RobotFaceRenderer implements RobotFace {
     ctx.restore();
   }
 
-  private drawNose(centerX: number, centerY: number, width: number, height: number, pose: NosePose): void {
+  private drawNose(
+    centerX: number,
+    centerY: number,
+    width: number,
+    height: number,
+    pose: NosePose,
+  ): void {
     const ctx = this.ctx;
     const scale = clamp(pose.scale, 0.1, 1.5);
     const brightness = clamp(pose.brightness, 0.1, 1.6);
@@ -1518,7 +1702,13 @@ class RobotFaceRenderer implements RobotFace {
     ctx.stroke();
   }
 
-  private drawMouth(centerX: number, centerY: number, width: number, height: number, pose: MouthPose): void {
+  private drawMouth(
+    centerX: number,
+    centerY: number,
+    width: number,
+    height: number,
+    pose: MouthPose,
+  ): void {
     const ctx = this.ctx;
     const curvature = clamp(pose.curvature, -1, 1);
     const mouthWidth = width * clamp(pose.width, 0.2, 1.2);
@@ -1543,7 +1733,13 @@ class RobotFaceRenderer implements RobotFace {
     ctx.restore();
   }
 
-  private drawMouthShape(shape: MouthShapeName, mouthWidth: number, height: number, lift: number, openDepth: number): void {
+  private drawMouthShape(
+    shape: MouthShapeName,
+    mouthWidth: number,
+    height: number,
+    lift: number,
+    openDepth: number,
+  ): void {
     const ctx = this.ctx;
 
     if (shape === "visor") {
@@ -1560,7 +1756,12 @@ class RobotFaceRenderer implements RobotFace {
       ctx.moveTo(leftX, topY + endDip - skew);
       ctx.quadraticCurveTo(0, topY + centerDip, rightX, topY + endDip + skew);
       ctx.lineTo(rightX, bottomY + endDip + skew);
-      ctx.quadraticCurveTo(0, bottomY + centerDip + openDepth * 0.12, leftX, bottomY + endDip - skew);
+      ctx.quadraticCurveTo(
+        0,
+        bottomY + centerDip + openDepth * 0.12,
+        leftX,
+        bottomY + endDip - skew,
+      );
       ctx.closePath();
       ctx.stroke();
       return;
@@ -1598,7 +1799,7 @@ class RobotFaceRenderer implements RobotFace {
     width: number,
     height: number,
     radius: number,
-    glow: number
+    glow: number,
   ): void {
     const fx = this.resolveFrameBackgroundFx();
     if (!fx) {
@@ -1633,7 +1834,7 @@ class RobotFaceRenderer implements RobotFace {
     return {
       ...DEFAULT_BACKGROUND_FX,
       ...emotionFx,
-      mode: "emotion"
+      mode: "emotion",
     };
   }
 
@@ -1686,15 +1887,15 @@ class RobotFaceRenderer implements RobotFace {
       "01111110",
       "00111100",
       "00011000",
-      "00000000"
+      "00000000",
     ];
-    const firstRow = pattern[0]!;
+    const firstRow = pattern[0] ?? "00000000";
     const cell = size / firstRow.length;
-    const originX = centerX - (firstRow.length * cell) * 0.5;
-    const originY = centerY - (pattern.length * cell) * 0.5;
+    const originX = centerX - firstRow.length * cell * 0.5;
+    const originY = centerY - pattern.length * cell * 0.5;
 
     for (let row = 0; row < pattern.length; row += 1) {
-      const line = pattern[row]!;
+      const line = pattern[row] ?? "";
       for (let col = 0; col < line.length; col += 1) {
         if (line[col] !== "1") {
           continue;
@@ -1746,7 +1947,7 @@ class RobotFaceRenderer implements RobotFace {
       -height * 0.26 + pose.global.bob * height * 0.06,
       width * 0.48,
       height * 0.38,
-      Math.min(width, height) * 0.06
+      Math.min(width, height) * 0.06,
     );
     ctx.fill();
 
@@ -1794,7 +1995,14 @@ class RobotFaceRenderer implements RobotFace {
 
     if (symbol === "ellipsis") {
       for (let i = -1; i <= 1; i += 1) {
-        roundedRect(ctx, i * scale * 0.12 - scale * 0.03, y + scale * 0.08, scale * 0.06, scale * 0.06, scale * 0.02);
+        roundedRect(
+          ctx,
+          i * scale * 0.12 - scale * 0.03,
+          y + scale * 0.08,
+          scale * 0.06,
+          scale * 0.06,
+          scale * 0.02,
+        );
         ctx.fill();
       }
       return;
@@ -1839,7 +2047,14 @@ class RobotFaceRenderer implements RobotFace {
       for (let i = 0; i < 3; i += 1) {
         ctx.save();
         ctx.globalAlpha *= i === active ? 1 : 0.35;
-        roundedRect(ctx, (i - 1) * scale * 0.12 - scale * 0.03, y + scale * 0.06, scale * 0.06, scale * 0.16, scale * 0.02);
+        roundedRect(
+          ctx,
+          (i - 1) * scale * 0.12 - scale * 0.03,
+          y + scale * 0.06,
+          scale * 0.06,
+          scale * 0.16,
+          scale * 0.02,
+        );
         ctx.fill();
         ctx.restore();
       }
@@ -1858,7 +2073,13 @@ class RobotFaceRenderer implements RobotFace {
     ctx.fill();
   }
 
-  private drawScanlines(x: number, y: number, width: number, height: number, strength: number): void {
+  private drawScanlines(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    strength: number,
+  ): void {
     if (strength <= 0.01) {
       return;
     }
@@ -1889,7 +2110,5 @@ class RobotFaceRenderer implements RobotFace {
   }
 }
 
-export const createRobotFace = (
-  canvas: HTMLCanvasElement,
-  options?: RobotFaceOptions
-): RobotFace => new RobotFaceRenderer(canvas, options);
+export const createRobotFace = (canvas: HTMLCanvasElement, options?: RobotFaceOptions): RobotFace =>
+  new RobotFaceRenderer(canvas, options);

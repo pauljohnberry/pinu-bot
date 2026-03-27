@@ -8,7 +8,7 @@ export const FACE_FEATURE_DEFAULTS: FaceFeatures = {
   nose: true,
   mouth: true,
   panel: true,
-  scanlines: true
+  scanlines: true,
 };
 
 export const PART_STYLE_DEFAULTS: Required<PartStyleConfig> = {
@@ -19,7 +19,7 @@ export const PART_STYLE_DEFAULTS: Required<PartStyleConfig> = {
   mouthShape: "arc",
   browShape: "line",
   scanlineThickness: 1.5,
-  scanlineSpacing: 5
+  scanlineSpacing: 5,
 };
 
 export const STYLE_PRESETS: Record<StylePresetName, StyleDefinition> = {
@@ -43,7 +43,7 @@ export const STYLE_PRESETS: Record<StylePresetName, StyleDefinition> = {
     mouthWidth: 0.36,
     mouthHeight: 0.16,
     mouthY: 0.18,
-    glowScale: 0.04
+    glowScale: 0.04,
   },
   soft: {
     panelInsetX: 0.055,
@@ -65,7 +65,7 @@ export const STYLE_PRESETS: Record<StylePresetName, StyleDefinition> = {
     mouthWidth: 0.33,
     mouthHeight: 0.15,
     mouthY: 0.185,
-    glowScale: 0.046
+    glowScale: 0.046,
   },
   minimal: {
     panelInsetX: 0.08,
@@ -87,7 +87,7 @@ export const STYLE_PRESETS: Record<StylePresetName, StyleDefinition> = {
     mouthWidth: 0.27,
     mouthHeight: 0.11,
     mouthY: 0.18,
-    glowScale: 0.032
+    glowScale: 0.032,
   },
   visor: {
     panelInsetX: 0.05,
@@ -109,7 +109,7 @@ export const STYLE_PRESETS: Record<StylePresetName, StyleDefinition> = {
     mouthWidth: 0.3,
     mouthHeight: 0.115,
     mouthY: 0.2,
-    glowScale: 0.05
+    glowScale: 0.05,
   },
   industrial: {
     panelInsetX: 0.065,
@@ -131,6 +131,6 @@ export const STYLE_PRESETS: Record<StylePresetName, StyleDefinition> = {
     mouthWidth: 0.39,
     mouthHeight: 0.13,
     mouthY: 0.19,
-    glowScale: 0.036
-  }
+    glowScale: 0.036,
+  },
 };

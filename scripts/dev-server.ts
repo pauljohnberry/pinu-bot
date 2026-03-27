@@ -8,7 +8,7 @@ const types: Record<string, string> = {
   ".js": "text/javascript; charset=utf-8",
   ".map": "application/json; charset=utf-8",
   ".css": "text/css; charset=utf-8",
-  ".json": "application/json; charset=utf-8"
+  ".json": "application/json; charset=utf-8",
 };
 
 const resolveCandidates = (pathname: string): string[] => {
@@ -17,7 +17,11 @@ const resolveCandidates = (pathname: string): string[] => {
   }
 
   const relativePath = pathname.startsWith("/") ? pathname.slice(1) : pathname;
-  if (relativePath.startsWith("demo/") || relativePath.startsWith("dist/") || relativePath.startsWith("test/")) {
+  if (
+    relativePath.startsWith("demo/") ||
+    relativePath.startsWith("dist/") ||
+    relativePath.startsWith("test/")
+  ) {
     return [relativePath];
   }
 
@@ -54,7 +58,7 @@ const server = Bun.serve({
     }
 
     return new Response("Not found", { status: 404 });
-  }
+  },
 });
 
 console.log(`pinu-bot demo running at http://localhost:${server.port}`);

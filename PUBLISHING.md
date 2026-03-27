@@ -2,15 +2,30 @@
 
 This repo is structurally ready for npm publishing, but two things still depend on the eventual GitHub repository:
 
-1. the final GitHub remote URL
-2. npm trusted publishing setup for that repo
+1. npm trusted publishing setup for the real repo
+2. the first release tag / npm publish run
 
 ## Before First Publish
 
-1. Create or connect the GitHub repository.
-2. Add the final `repository` and `bugs` fields to `package.json`.
-3. Confirm the npm package name is still available.
-4. Enable npm trusted publishing for the GitHub repo.
+1. Confirm the npm package name is still available.
+2. Enable npm trusted publishing for `pauljohnberry/pinu-bot`.
+3. Verify the workflow filename matches `.github/workflows/release.yml`.
+4. Create the first release tag.
+
+For npm trusted publishing on npmjs.com:
+
+1. Go to the `pinu-bot` package settings.
+2. Open `Trusted publishing`.
+3. Choose `GitHub Actions`.
+4. Set owner/user to `pauljohnberry`.
+5. Set repository to `pinu-bot`.
+6. Set workflow file to `release.yml`.
+
+Notes from the current npm docs:
+
+- trusted publishing docs: <https://docs.npmjs.com/trusted-publishers/>
+- GitHub-hosted runners are required
+- npm CLI `11.5.1+` and Node `22.14.0+` are required for OIDC trusted publishing
 
 ## Local Validation
 
@@ -36,7 +51,7 @@ It triggers on git tags matching `v*` and will:
 
 ## First Tag
 
-Once the GitHub repo and npm trusted publishing are configured:
+Once npm trusted publishing is configured:
 
 ```bash
 git tag v0.1.0
@@ -48,3 +63,5 @@ git push origin v0.1.0
 - The release workflow assumes `npm publish --provenance --access public`.
 - Visual regression depends on Playwright Chromium being available in CI.
 - The current demo site is suitable as the first public docs surface.
+- The current release workflow already uses Node 24, which satisfies npm's current OIDC requirement
+- Repository: <https://github.com/pauljohnberry/pinu-bot>
