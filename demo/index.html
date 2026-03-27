@@ -1,0 +1,1150 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>pinu bot</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at top, rgba(49, 102, 117, 0.4), transparent 42%),
+          linear-gradient(180deg, #081116 0%, #040709 100%);
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: start center;
+        padding: 22px 24px 24px;
+      }
+
+      .shell {
+        width: min(1240px, 100%);
+        display: grid;
+        gap: 20px;
+      }
+
+      .hero {
+        display: grid;
+        gap: 8px;
+      }
+
+      .hero h1 {
+        margin: 0;
+        font-size: clamp(2rem, 4vw, 3.2rem);
+        letter-spacing: 0.12em;
+        text-transform: lowercase;
+        color: #f3fbff;
+      }
+
+      .hero p {
+        margin: 0;
+        color: rgba(230, 247, 251, 0.72);
+        font-size: 0.98rem;
+      }
+
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .badge,
+      .meta a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 34px;
+        padding: 0 12px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.04);
+        color: #e6f7fb;
+        text-decoration: none;
+        font-size: 0.92rem;
+      }
+
+      .stage {
+        position: sticky;
+        top: 14px;
+        z-index: 1;
+        width: min(820px, 100%);
+        margin-inline: auto;
+        padding: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 28px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
+        box-shadow: 0 26px 70px rgba(0, 0, 0, 0.25);
+      }
+
+      canvas {
+        width: 100%;
+        aspect-ratio: 16 / 8.9;
+        border-radius: 24px;
+        box-shadow: 0 30px 90px rgba(0, 0, 0, 0.45);
+      }
+
+      .docs-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.95fr);
+        gap: 20px;
+        align-items: start;
+      }
+
+      .panel {
+        padding: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .panel h2 {
+        margin: 0 0 14px;
+        font-size: 1rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(243, 251, 255, 0.88);
+      }
+
+      .panel p {
+        margin: 0;
+        color: rgba(230, 247, 251, 0.72);
+      }
+
+      .stack {
+        display: grid;
+        gap: 16px;
+      }
+
+      .docs-aside {
+        min-height: 0;
+      }
+
+      .sidebar-panel {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        gap: 16px;
+        min-height: 100%;
+      }
+
+      .code-group {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        min-height: 0;
+      }
+
+      .api-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .api-item {
+        display: grid;
+        gap: 4px;
+      }
+
+      .api-item code {
+        color: #f0fbff;
+        font: 0.86rem/1.4 "SFMono-Regular", "Menlo", monospace;
+      }
+
+      .group {
+        display: grid;
+        gap: 10px;
+      }
+
+      .group h3 {
+        margin: 0;
+        font-size: 0.88rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: rgba(230, 247, 251, 0.78);
+      }
+
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .checks {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+      }
+
+      button,
+      select,
+      input[type="range"] {
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.06);
+        color: #e6f7fb;
+        padding: 10px 14px;
+        font: inherit;
+      }
+
+      label {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 12px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      input[type="checkbox"] {
+        margin: 0;
+      }
+
+      .is-disabled {
+        opacity: 0.45;
+        pointer-events: none;
+      }
+
+      .code-block {
+        margin: 0;
+        padding: 14px 16px;
+        border-radius: 18px;
+        background: rgba(0, 0, 0, 0.28);
+        color: #cfeef3;
+        overflow: auto;
+        font: 0.9rem/1.55 "SFMono-Regular", "Menlo", monospace;
+      }
+
+      .code-block--live {
+        min-height: 220px;
+        max-height: 320px;
+      }
+
+      .subtle {
+        color: rgba(230, 247, 251, 0.6);
+        font-size: 0.92rem;
+      }
+
+      @media (max-width: 960px) {
+        .stage {
+          position: static;
+          width: 100%;
+        }
+
+        .docs-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="hero">
+        <h1>pinu bot</h1>
+        <p>expressive robot display runtime for modern web apps</p>
+        <div class="meta">
+          <span class="badge" id="package-version">v0.1.0</span>
+          <a id="repo-link" href="#" target="_blank" rel="noreferrer" hidden>GitHub</a>
+        </div>
+      </header>
+      <div class="stage">
+        <canvas id="face" width="720" height="480"></canvas>
+      </div>
+      <div class="docs-grid">
+        <section class="panel stack">
+          <div class="group">
+            <h2>Controls</h2>
+            <p class="subtle">Use the live panel below as the first-pass docs surface. Every selection updates the code sample on the right.</p>
+          </div>
+          <div class="group">
+            <h3>Emotions</h3>
+            <div class="controls">
+              <button data-emote="neutral">neutral</button>
+              <button data-emote="happy">happy</button>
+              <button data-emote="love">love</button>
+              <button data-emote="sad">sad</button>
+              <button data-emote="angry">angry</button>
+              <button data-emote="confused">confused</button>
+              <button data-emote="sleepy">sleepy</button>
+              <button data-emote="excited">excited</button>
+            </div>
+          </div>
+          <div class="group">
+            <h3>Actions</h3>
+            <div class="controls">
+              <button id="smile">smile</button>
+              <button id="frown">frown</button>
+              <button id="pout">pout</button>
+              <button id="blink">blink</button>
+              <button id="wink">wink</button>
+              <button id="look-left">look left</button>
+              <button id="look-right">look right</button>
+              <button id="look-up">look up</button>
+              <button id="look-down">look down</button>
+              <button id="glitch">glitch</button>
+              <button id="speak">speak</button>
+            </div>
+          </div>
+          <div class="group">
+            <h3>Display</h3>
+            <div class="controls">
+              <select id="mode">
+                <option value="face" selected>mode face</option>
+                <option value="symbol">mode symbol</option>
+              </select>
+              <select id="symbol" disabled>
+                <option value="question">symbol question</option>
+                <option value="exclamation">symbol exclamation</option>
+                <option value="ellipsis">symbol ellipsis</option>
+                <option value="heart">symbol heart</option>
+                <option value="dead">symbol dead</option>
+                <option value="offline">symbol offline</option>
+                <option value="loading">symbol loading</option>
+                <option value="warning">symbol warning</option>
+              </select>
+              <select id="background-fx">
+                <option value="off" selected>background off</option>
+                <option value="emotion">background emotion</option>
+                <option value="custom">background custom</option>
+              </select>
+              <select id="face-theme">
+                <option value="">face theme custom</option>
+                <option value="companion">face theme companion</option>
+                <option value="service">face theme service</option>
+                <option value="sentinel">face theme sentinel</option>
+                <option value="soft-smile">face theme soft-smile</option>
+                <option value="status-strip">face theme status-strip</option>
+                <option value="caret-cheer">face theme caret-cheer</option>
+                <option value="crescent-muse">face theme crescent-muse</option>
+                <option value="teardrop-dream">face theme teardrop-dream</option>
+              </select>
+              <label>background color <input id="background-color" type="color" value="#ff9b64" /></label>
+              <select id="theme">
+                <option value="cyan">cyan</option>
+                <option value="amber">amber</option>
+                <option value="green-crt">green-crt</option>
+                <option value="white">white</option>
+                <option value="red-alert">red-alert</option>
+                <option value="ice-blue">ice-blue</option>
+                <option value="sunset">sunset</option>
+                <option value="violet">violet</option>
+              </select>
+              <select id="style">
+                <option value="classic">classic</option>
+                <option value="soft">soft</option>
+                <option value="minimal">minimal</option>
+                <option value="visor">visor</option>
+                <option value="industrial">industrial</option>
+              </select>
+            </div>
+          </div>
+          <div class="group">
+            <h3>Parts</h3>
+            <div class="controls">
+              <select id="eye-shape">
+                <option value="rounded">eye rounded</option>
+                <option value="capsule">eye capsule</option>
+                <option value="pixel">eye pixel</option>
+                <option value="chevron">eye chevron</option>
+                <option value="crescent">eye crescent</option>
+                <option value="tear">eye tear</option>
+              </select>
+              <select id="eye-aspect">
+                <option value="wide">eye wide</option>
+                <option value="balanced" selected>eye balanced</option>
+                <option value="tall">eye tall</option>
+                <option value="pillar">eye pillar</option>
+              </select>
+              <select id="brow-shape">
+                <option value="line">brow line</option>
+                <option value="block">brow block</option>
+                <option value="visor">brow visor</option>
+              </select>
+              <select id="nose-shape">
+                <option value="diamond">nose diamond</option>
+                <option value="triangle">nose triangle</option>
+                <option value="bar" selected>nose bar</option>
+                <option value="dot">nose dot</option>
+              </select>
+              <select id="mouth-shape">
+                <option value="arc">mouth arc</option>
+                <option value="visor">mouth visor</option>
+                <option value="pixel">mouth pixel</option>
+              </select>
+              <label>scanline thickness <input id="scanline-thickness" type="range" min="1.25" max="5" step="0.25" value="5" /></label>
+              <label>scanline spacing <input id="scanline-spacing" type="range" min="3" max="12" step="1" value="12" /></label>
+            </div>
+            <div class="checks" id="parts">
+              <label><input type="checkbox" value="eyes" checked />eyes</label>
+              <label><input type="checkbox" value="brows" checked />brows</label>
+              <label><input type="checkbox" value="pupils" checked />pupils</label>
+              <label><input type="checkbox" value="nose" checked />nose</label>
+              <label><input type="checkbox" value="mouth" checked />mouth</label>
+              <label><input type="checkbox" value="panel" checked />panel</label>
+              <label><input type="checkbox" value="scanlines" checked />scanlines</label>
+            </div>
+          </div>
+        </section>
+        <aside class="docs-aside">
+          <section class="panel sidebar-panel">
+            <div class="group">
+              <h2>Install</h2>
+              <pre class="code-block">npm install pinu-bot
+pnpm add pinu-bot
+bun add pinu-bot</pre>
+            </div>
+            <div class="group code-group">
+              <h3>Live Code</h3>
+              <pre class="code-block code-block--live" id="code-sample"></pre>
+            </div>
+            <div class="group">
+              <h2>API Guide</h2>
+              <div class="api-list">
+                <div class="api-item">
+                  <code>createRobotFace(canvas, options?)</code>
+                  <span class="subtle">Create a face runtime bound to a canvas.</span>
+                </div>
+                <div class="api-item">
+                  <code>face.emote(name, options?)</code>
+                  <span class="subtle">Animate to a named emotion.</span>
+                </div>
+                <div class="api-item">
+                  <code>face.perform(name) / face.transitionTo(state)</code>
+                  <span class="subtle">Run a cinematic sequence or push direct pose overrides.</span>
+                </div>
+                <div class="api-item">
+                  <code>face.lookAt(x, y)</code>
+                  <span class="subtle">Move gaze using normalized coordinates.</span>
+                </div>
+                <div class="api-item">
+                  <code>face.lookLeft(amount) / face.lookUp(amount)</code>
+                  <span class="subtle">Directional gaze helpers for quick expressions.</span>
+                </div>
+                <div class="api-item">
+                  <code>face.smile(amount, { open }) / face.frown(amount, { open })</code>
+                  <span class="subtle">Convenience mouth actions with open or closed variants.</span>
+                </div>
+                <div class="api-item">
+                  <code>face.pout(amount, { open })</code>
+                  <span class="subtle">Pursed-lip mouth action with optional open depth.</span>
+                </div>
+                <div class="api-item">
+                  <code>face.blink() / face.wink(side)</code>
+                  <span class="subtle">Trigger quick eye overlays.</span>
+                </div>
+                <div class="api-item">
+                  <code>face.speak({ intensity, cadence, durationMs })</code>
+                  <span class="subtle">Layer speaking animation on top of the current emotion.</span>
+                </div>
+                <div class="api-item">
+                  <code>face.perform("bootUp" | "glitch")</code>
+                  <span class="subtle">Play cinematic display transitions.</span>
+                </div>
+                <div class="api-item">
+                  <code>face.setTheme(...) / face.setStyle(...) / face.setBackgroundFx(...)</code>
+                  <span class="subtle">Switch visual themes, style presets, and mood lighting.</span>
+                </div>
+                <div class="api-item">
+                  <code>face.setParts(...) / face.setFaceTheme(...)</code>
+                  <span class="subtle">Configure shape language and presets.</span>
+                </div>
+                <div class="api-item">
+                  <code>face.setMode(...) / face.showSymbol(...) / face.showFace()</code>
+                  <span class="subtle">Swap between face and symbol display modes.</span>
+                </div>
+                <div class="api-item">
+                  <code>face.eyes() / face.leftEye() / face.rightEye() / face.mouth() / face.nose()</code>
+                  <span class="subtle">Use direct part-control chains for precise adjustments.</span>
+                </div>
+                <div class="api-item">
+                  <code>face.configure(...) / face.start() / face.stop() / face.render() / face.destroy()</code>
+                  <span class="subtle">Configure and manage the runtime lifecycle.</span>
+                </div>
+              </div>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </div>
+
+    <script type="module">
+      import {
+        BUILTIN_FACE_THEMES,
+        BUILTIN_STYLES,
+        BUILTIN_THEMES,
+        createRobotFace
+      } from "../dist/index.js";
+
+      const INTRO_ACTION_CODE = [
+        'face.perform("bootUp");',
+        'setTimeout(() => face.emote("neutral"), 1500);',
+        "setTimeout(() => face.lookLeft(0.62), 1820);",
+        "setTimeout(() => face.lookRight(0.58), 2140);",
+        'setTimeout(() => face.wink("right"), 2440);',
+        "setTimeout(() => face.lookAt(0, 0), 2860);"
+      ].join("\n");
+      const canvas = document.querySelector("#face");
+      const face = createRobotFace(canvas, {
+        theme: "cyan",
+        parts: {
+          noseShape: "bar",
+          scanlineThickness: 5,
+          scanlineSpacing: 12
+        },
+        backgroundFx: "off"
+      });
+      const partCheckboxes = [...document.querySelectorAll('#parts input[type="checkbox"]')];
+      const checkboxByValue = Object.fromEntries(partCheckboxes.map((input) => [input.value, input]));
+      const defaultFeatureState = {
+        eyes: true,
+        brows: true,
+        pupils: true,
+        nose: true,
+        mouth: true,
+        panel: true,
+        scanlines: true
+      };
+      const defaultPartState = {
+        eyeShape: "rounded",
+        eyeWidthScale: 1,
+        eyeHeightScale: 1,
+        noseShape: "diamond",
+        mouthShape: "arc",
+        browShape: "line",
+        scanlineThickness: 1.5,
+        scanlineSpacing: 5
+      };
+      const eyeAspectPresets = {
+        wide: { eyeShape: "capsule", eyeWidthScale: 1.38, eyeHeightScale: 0.72 },
+        balanced: { eyeShape: "rounded", eyeWidthScale: 1, eyeHeightScale: 1 },
+        tall: { eyeShape: "capsule", eyeWidthScale: 0.72, eyeHeightScale: 1.42 },
+        pillar: { eyeShape: "capsule", eyeWidthScale: 0.52, eyeHeightScale: 1.72 }
+      };
+      const themeSelect = document.querySelector("#theme");
+      const styleSelect = document.querySelector("#style");
+      const modeSelect = document.querySelector("#mode");
+      const symbolSelect = document.querySelector("#symbol");
+      const faceThemeSelect = document.querySelector("#face-theme");
+      const backgroundFxSelect = document.querySelector("#background-fx");
+      const backgroundColorInput = document.querySelector("#background-color");
+      const eyeShapeSelect = document.querySelector("#eye-shape");
+      const eyeAspectSelect = document.querySelector("#eye-aspect");
+      const browShapeSelect = document.querySelector("#brow-shape");
+      const noseShapeSelect = document.querySelector("#nose-shape");
+      const mouthShapeSelect = document.querySelector("#mouth-shape");
+      const scanlineThicknessInput = document.querySelector("#scanline-thickness");
+      const scanlineSpacingInput = document.querySelector("#scanline-spacing");
+      const codeSample = document.querySelector("#code-sample");
+      const versionBadge = document.querySelector("#package-version");
+      const repoLink = document.querySelector("#repo-link");
+      let currentActionCode = INTRO_ACTION_CODE;
+      let introActive = false;
+      const introTimeouts = [];
+      let actionResetTimeout = 0;
+      let ambientTimeout = 0;
+      let ambientResumeAt = 0;
+      let activeEmotionName = "neutral";
+      let activeEmotionIntensity = 1;
+
+      const cancelIntro = () => {
+        if (!introActive) {
+          return;
+        }
+
+        introActive = false;
+        for (const timeoutId of introTimeouts) {
+          window.clearTimeout(timeoutId);
+        }
+        introTimeouts.length = 0;
+      };
+
+      const queueIntroStep = (delay, callback) => {
+        const timeoutId = window.setTimeout(() => {
+          if (!introActive) {
+            return;
+          }
+          callback();
+        }, delay);
+        introTimeouts.push(timeoutId);
+      };
+
+      const clearActionReset = () => {
+        if (actionResetTimeout) {
+          window.clearTimeout(actionResetTimeout);
+          actionResetTimeout = 0;
+        }
+      };
+
+      const scheduleAmbient = (delay = 1400 + Math.random() * 1800) => {
+        if (ambientTimeout) {
+          window.clearTimeout(ambientTimeout);
+        }
+        ambientTimeout = window.setTimeout(runAmbientStep, delay);
+      };
+
+      const pauseAmbient = (ms = 4200) => {
+        ambientResumeAt = Date.now() + ms;
+        scheduleAmbient(ms);
+      };
+
+      const applyActiveEmotion = (updateCode = false) => {
+        face.emote(activeEmotionName, { intensity: activeEmotionIntensity });
+        if (updateCode) {
+          currentActionCode = `face.emote("${activeEmotionName}", { intensity: ${activeEmotionIntensity} });`;
+          syncCodeSample();
+        }
+      };
+
+      const setActiveEmotion = (name, intensity = 1, updateCode = true) => {
+        clearActionReset();
+        activeEmotionName = name;
+        activeEmotionIntensity = intensity;
+        applyActiveEmotion(false);
+        if (updateCode) {
+          currentActionCode = `face.emote("${name}", { intensity: ${intensity} });`;
+          syncCodeSample();
+        }
+      };
+
+      const restoreAfterAction = (duration = 900) => {
+        clearActionReset();
+        actionResetTimeout = window.setTimeout(() => {
+          actionResetTimeout = 0;
+          applyActiveEmotion(false);
+          face.lookAt(0, 0);
+        }, duration);
+      };
+
+      const runExpressionAction = (label, callback, duration = 920, updateCode = true) => {
+        clearActionReset();
+        callback();
+        restoreAfterAction(duration);
+        if (updateCode) {
+          currentActionCode = label;
+          syncCodeSample();
+        }
+      };
+
+      const runLookAction = (label, callback, duration = 860, updateCode = true) => {
+        clearActionReset();
+        callback();
+        restoreAfterAction(duration);
+        if (updateCode) {
+          currentActionCode = label;
+          syncCodeSample();
+        }
+      };
+
+      const runAmbientStep = () => {
+        if (introActive) {
+          scheduleAmbient(900);
+          return;
+        }
+
+        if (Date.now() < ambientResumeAt) {
+          scheduleAmbient(Math.max(700, ambientResumeAt - Date.now()));
+          return;
+        }
+
+        if (modeSelect.value !== "face") {
+          scheduleAmbient(1800);
+          return;
+        }
+
+        const ambientActions = [];
+        if (checkboxByValue.eyes.checked && checkboxByValue.pupils.checked) {
+          ambientActions.push(
+            () => runLookAction("", () => face.lookAt(-0.68, -0.04), 840, false),
+            () => runLookAction("", () => face.lookAt(0.68, 0.04), 880, false),
+            () => runLookAction("", () => face.lookAt(0, -0.52), 760, false),
+            () => runLookAction("", () => face.lookAt(0.04, 0.48), 760, false)
+          );
+        }
+        if (checkboxByValue.mouth.checked) {
+          ambientActions.push(
+            () => runExpressionAction("", () => face.smile(0.75, { open: false }), 760, false),
+            () => runExpressionAction("", () => face.frown(0.72, { open: false }), 820, false),
+            () => runExpressionAction("", () => face.pout(1, { open: false }), 900, false)
+          );
+        }
+        if (checkboxByValue.eyes.checked) {
+          ambientActions.push(
+            () => face.blink(),
+            () => face.wink(Math.random() > 0.5 ? "left" : "right")
+          );
+        }
+
+        if (ambientActions.length === 0) {
+          scheduleAmbient(1800);
+          return;
+        }
+
+        ambientActions[Math.floor(Math.random() * ambientActions.length)]();
+        scheduleAmbient();
+      };
+
+      const markManualInteraction = (ms = 4200) => {
+        cancelIntro();
+        clearActionReset();
+        pauseAmbient(ms);
+      };
+
+      const syncSymbolControl = () => {
+        const enabled = modeSelect.value === "symbol";
+        symbolSelect.disabled = !enabled;
+        symbolSelect.classList.toggle("is-disabled", !enabled);
+      };
+
+      const normalizeRepositoryUrl = (repository) => {
+        if (!repository) {
+          return "";
+        }
+
+        const raw = typeof repository === "string" ? repository : repository.url;
+        if (!raw) {
+          return "";
+        }
+
+        return raw.replace(/^git\+/, "").replace(/\.git$/, "");
+      };
+
+      const syncPackageMeta = async () => {
+        try {
+          const pkg = await fetch("../package.json").then((response) => response.json());
+          if (pkg.version) {
+            versionBadge.textContent = `v${pkg.version}`;
+          }
+          const repoUrl = normalizeRepositoryUrl(pkg.repository);
+          if (repoUrl) {
+            repoLink.href = repoUrl;
+            repoLink.hidden = false;
+          }
+        } catch {
+          versionBadge.textContent = "v0.1.0";
+        }
+      };
+
+      const buildFeatureLines = () => {
+        const features = {
+          leftEye: checkboxByValue.eyes.checked,
+          rightEye: checkboxByValue.eyes.checked,
+          brows: checkboxByValue.brows.checked,
+          pupils: checkboxByValue.pupils.checked,
+          nose: checkboxByValue.nose.checked,
+          mouth: checkboxByValue.mouth.checked,
+          panel: checkboxByValue.panel.checked,
+          scanlines: checkboxByValue.scanlines.checked
+        };
+
+        return Object.entries(features)
+          .filter(([key, value]) => {
+            const defaultValue = key === "leftEye" || key === "rightEye" ? true : defaultFeatureState[key];
+            return value !== defaultValue;
+          })
+          .map(([key, value]) => `    ${key}: ${value},`);
+      };
+
+      const buildPartsLines = () => {
+        const resolvedAspect = eyeAspectPresets[eyeAspectSelect.value] ?? eyeAspectPresets.balanced;
+        const parts = {
+          eyeShape: eyeShapeSelect.value,
+          eyeWidthScale: resolvedAspect.eyeWidthScale,
+          eyeHeightScale: resolvedAspect.eyeHeightScale,
+          browShape: browShapeSelect.value,
+          noseShape: noseShapeSelect.value,
+          mouthShape: mouthShapeSelect.value,
+          scanlineThickness: Number(scanlineThicknessInput.value),
+          scanlineSpacing: Number(scanlineSpacingInput.value)
+        };
+
+        return Object.entries(parts)
+          .filter(([key, value]) => value !== defaultPartState[key])
+          .map(([key, value]) =>
+            typeof value === "string" ? `    ${key}: "${value}",` : `    ${key}: ${value},`
+          );
+      };
+
+      const syncCodeSample = () => {
+        const optionLines = [];
+        const faceThemeValue = faceThemeSelect.value;
+
+        if (faceThemeValue) {
+          optionLines.push(`  faceTheme: "${faceThemeValue}",`);
+        }
+        if (themeSelect.value !== "cyan") {
+          optionLines.push(`  theme: "${themeSelect.value}",`);
+        }
+        if (styleSelect.value !== "classic") {
+          optionLines.push(`  style: "${styleSelect.value}",`);
+        }
+        if (modeSelect.value !== "face") {
+          optionLines.push(`  mode: "${modeSelect.value}",`);
+        }
+        if (modeSelect.value === "symbol") {
+          optionLines.push(`  symbol: "${symbolSelect.value}",`);
+        }
+        if (backgroundFxSelect.value === "custom") {
+          optionLines.push("  backgroundFx: {");
+          optionLines.push('    mode: "custom",');
+          optionLines.push(`    color: "${backgroundColorInput.value}",`);
+          optionLines.push("    intensity: 0.2,");
+          optionLines.push("    pulseHz: 0.9");
+          optionLines.push("  },");
+        } else if (backgroundFxSelect.value !== "emotion") {
+          optionLines.push(`  backgroundFx: "${backgroundFxSelect.value}",`);
+        }
+
+        const featureLines = buildFeatureLines();
+        if (featureLines.length > 0) {
+          optionLines.push("  features: {");
+          optionLines.push(...featureLines);
+          optionLines.push("  },");
+        }
+
+        const partLines = buildPartsLines();
+        if (partLines.length > 0) {
+          optionLines.push("  parts: {");
+          optionLines.push(...partLines);
+          optionLines.push("  },");
+        }
+
+        const snippet = [
+          'import { createRobotFace } from "pinu-bot";',
+          "",
+          optionLines.length > 0
+            ? `const face = createRobotFace(canvas, {\n${optionLines.join("\n")}\n});`
+            : "const face = createRobotFace(canvas);",
+          "",
+          currentActionCode
+        ];
+
+        codeSample.textContent = snippet.join("\n");
+      };
+
+      const findPresetKey = (record, value) => {
+        const match = Object.entries(record).find(([, entry]) => entry === value);
+        return match ? match[0] : "";
+      };
+
+      const resolveEyeAspectPresetName = (parts) => {
+        return (
+          Object.entries(eyeAspectPresets).find(([, preset]) => {
+            return (
+              Math.abs(preset.eyeWidthScale - parts.eyeWidthScale) < 0.001 &&
+              Math.abs(preset.eyeHeightScale - parts.eyeHeightScale) < 0.001
+            );
+          })?.[0] ?? "balanced"
+        );
+      };
+
+      const syncControlsFromFaceTheme = (faceThemeName) => {
+        const faceTheme = BUILTIN_FACE_THEMES[faceThemeName];
+        if (!faceTheme) {
+          return;
+        }
+
+        const features = { ...defaultFeatureState };
+        if (faceTheme.features) {
+          if (typeof faceTheme.features.leftEye === "boolean" || typeof faceTheme.features.rightEye === "boolean") {
+            features.eyes = Boolean(faceTheme.features.leftEye ?? faceTheme.features.rightEye ?? true);
+          }
+          if (typeof faceTheme.features.brows === "boolean") {
+            features.brows = faceTheme.features.brows;
+          }
+          if (typeof faceTheme.features.pupils === "boolean") {
+            features.pupils = faceTheme.features.pupils;
+          }
+          if (typeof faceTheme.features.nose === "boolean") {
+            features.nose = faceTheme.features.nose;
+          }
+          if (typeof faceTheme.features.mouth === "boolean") {
+            features.mouth = faceTheme.features.mouth;
+          }
+          if (typeof faceTheme.features.panel === "boolean") {
+            features.panel = faceTheme.features.panel;
+          }
+          if (typeof faceTheme.features.scanlines === "boolean") {
+            features.scanlines = faceTheme.features.scanlines;
+          }
+        }
+
+        const parts = { ...defaultPartState, ...faceTheme.parts };
+
+        if (faceTheme.theme) {
+          themeSelect.value =
+            typeof faceTheme.theme === "string" ? faceTheme.theme : findPresetKey(BUILTIN_THEMES, faceTheme.theme);
+        }
+        if (faceTheme.style) {
+          styleSelect.value =
+            typeof faceTheme.style === "string" ? faceTheme.style : findPresetKey(BUILTIN_STYLES, faceTheme.style);
+        }
+
+        checkboxByValue.eyes.checked = features.eyes;
+        checkboxByValue.brows.checked = features.brows;
+        checkboxByValue.pupils.checked = features.pupils;
+        checkboxByValue.nose.checked = features.nose;
+        checkboxByValue.mouth.checked = features.mouth;
+        checkboxByValue.panel.checked = features.panel;
+        checkboxByValue.scanlines.checked = features.scanlines;
+        syncFeaturesFromChecks();
+
+        eyeShapeSelect.value = parts.eyeShape;
+        browShapeSelect.value = parts.browShape;
+        noseShapeSelect.value = parts.noseShape;
+        mouthShapeSelect.value = parts.mouthShape;
+        scanlineThicknessInput.value = String(parts.scanlineThickness);
+        scanlineSpacingInput.value = String(parts.scanlineSpacing);
+        eyeAspectSelect.value = resolveEyeAspectPresetName(parts);
+
+        if (faceTheme.mode) {
+          modeSelect.value = faceTheme.mode;
+        } else if (!faceTheme.symbol) {
+          modeSelect.value = "face";
+        }
+
+        if (faceTheme.symbol) {
+          symbolSelect.value = faceTheme.symbol;
+          modeSelect.value = "symbol";
+        }
+
+        if (faceTheme.backgroundFx) {
+          if (typeof faceTheme.backgroundFx === "string") {
+            backgroundFxSelect.value = faceTheme.backgroundFx;
+          } else {
+            backgroundFxSelect.value = faceTheme.backgroundFx.mode ?? "custom";
+            if (faceTheme.backgroundFx.color) {
+              backgroundColorInput.value = faceTheme.backgroundFx.color;
+            }
+          }
+        }
+
+        syncSymbolControl();
+        syncCodeSample();
+      };
+
+      const syncFeaturesFromChecks = () => {
+        markManualInteraction();
+        if ((checkboxByValue.brows.checked || checkboxByValue.pupils.checked) && !checkboxByValue.eyes.checked) {
+          checkboxByValue.eyes.checked = true;
+        }
+
+        if (!checkboxByValue.eyes.checked) {
+          checkboxByValue.brows.checked = false;
+          checkboxByValue.pupils.checked = false;
+        }
+
+        face.configure({
+          features: {
+            leftEye: checkboxByValue.eyes.checked,
+            rightEye: checkboxByValue.eyes.checked,
+            brows: checkboxByValue.brows.checked,
+            pupils: checkboxByValue.pupils.checked,
+            nose: checkboxByValue.nose.checked,
+            mouth: checkboxByValue.mouth.checked,
+            panel: checkboxByValue.panel.checked,
+            scanlines: checkboxByValue.scanlines.checked
+          }
+        });
+        syncCodeSample();
+      };
+
+      document.querySelectorAll("[data-emote]").forEach((button) => {
+        button.addEventListener("click", () => {
+          markManualInteraction();
+          setActiveEmotion(button.dataset.emote, 1, true);
+        });
+      });
+
+      document.querySelector("#smile").addEventListener("click", () => {
+        markManualInteraction();
+        runExpressionAction("face.smile(1, { open: false });", () => face.smile(1, { open: false }));
+      });
+      document.querySelector("#frown").addEventListener("click", () => {
+        markManualInteraction();
+        runExpressionAction("face.frown(1, { open: false });", () => face.frown(1, { open: false }));
+      });
+      document.querySelector("#pout").addEventListener("click", () => {
+        markManualInteraction();
+        runExpressionAction("face.pout(1, { open: false });", () => face.pout(1, { open: false }));
+      });
+      document.querySelector("#blink").addEventListener("click", () => {
+        markManualInteraction();
+        face.blink();
+        currentActionCode = "face.blink();";
+        syncCodeSample();
+      });
+      document.querySelector("#wink").addEventListener("click", () => {
+        markManualInteraction();
+        face.wink("right");
+        currentActionCode = 'face.wink("right");';
+        syncCodeSample();
+      });
+      document.querySelector("#look-left").addEventListener("click", () => {
+        markManualInteraction();
+        runLookAction("face.lookLeft(0.7);", () => face.lookLeft(0.7));
+      });
+      document.querySelector("#look-right").addEventListener("click", () => {
+        markManualInteraction();
+        runLookAction("face.lookRight(0.7);", () => face.lookRight(0.7));
+      });
+      document.querySelector("#look-up").addEventListener("click", () => {
+        markManualInteraction();
+        runLookAction("face.lookUp(0.5);", () => face.lookUp(0.5));
+      });
+      document.querySelector("#look-down").addEventListener("click", () => {
+        markManualInteraction();
+        runLookAction("face.lookDown(0.5);", () => face.lookDown(0.5));
+      });
+      document.querySelector("#glitch").addEventListener("click", () => {
+        markManualInteraction();
+        face.perform("glitch");
+        currentActionCode = 'face.perform("glitch");';
+        syncCodeSample();
+      });
+      document.querySelector("#speak").addEventListener("click", () => {
+        markManualInteraction();
+        face.speak({ intensity: 0.65, durationMs: 1800 });
+        currentActionCode = "face.speak({ intensity: 0.65, durationMs: 1800 });";
+        syncCodeSample();
+      });
+      document.querySelector("#face-theme").addEventListener("change", (event) => {
+        markManualInteraction();
+        if (!event.target.value) {
+          syncCodeSample();
+          return;
+        }
+        face.setFaceTheme(event.target.value);
+        syncControlsFromFaceTheme(event.target.value);
+      });
+      document.querySelector("#mode").addEventListener("change", (event) => {
+        markManualInteraction();
+        if (event.target.value === "face") {
+          face.showFace();
+          currentActionCode = "face.showFace();";
+          syncSymbolControl();
+          syncCodeSample();
+          return;
+        }
+        face.setMode("symbol");
+        currentActionCode = `face.showSymbol("${symbolSelect.value}");`;
+        syncSymbolControl();
+        syncCodeSample();
+      });
+      document.querySelector("#symbol").addEventListener("change", (event) => {
+        markManualInteraction();
+        face.showSymbol(event.target.value);
+        currentActionCode = `face.showSymbol("${event.target.value}");`;
+        syncCodeSample();
+      });
+      document.querySelector("#background-fx").addEventListener("change", (event) => {
+        markManualInteraction();
+        if (event.target.value === "custom") {
+          face.setBackgroundFx({
+            mode: "custom",
+            color: document.querySelector("#background-color").value,
+            intensity: 0.2,
+            pulseHz: 0.9
+          });
+          syncCodeSample();
+          return;
+        }
+        face.setBackgroundFx(event.target.value);
+        syncCodeSample();
+      });
+      document.querySelector("#background-color").addEventListener("input", (event) => {
+        markManualInteraction();
+        if (document.querySelector("#background-fx").value === "custom") {
+          face.setBackgroundFx({
+            mode: "custom",
+            color: event.target.value,
+            intensity: 0.2,
+            pulseHz: 0.9
+          });
+        }
+        syncCodeSample();
+      });
+      document.querySelector("#theme").addEventListener("change", (event) => {
+        markManualInteraction();
+        face.setTheme(event.target.value);
+        syncCodeSample();
+      });
+      document.querySelector("#style").addEventListener("change", (event) => {
+        markManualInteraction();
+        face.setStyle(BUILTIN_STYLES[event.target.value]);
+        syncCodeSample();
+      });
+      document.querySelector("#eye-shape").addEventListener("change", (event) => {
+        markManualInteraction();
+        face.setParts({ eyeShape: event.target.value });
+        syncCodeSample();
+      });
+      document.querySelector("#eye-aspect").addEventListener("change", (event) => {
+        markManualInteraction();
+        const preset = eyeAspectPresets[event.target.value];
+        document.querySelector("#eye-shape").value = preset.eyeShape;
+        face.setParts(preset);
+        syncCodeSample();
+      });
+      document.querySelector("#brow-shape").addEventListener("change", (event) => {
+        markManualInteraction();
+        face.setParts({ browShape: event.target.value });
+        syncCodeSample();
+      });
+      document.querySelector("#nose-shape").addEventListener("change", (event) => {
+        markManualInteraction();
+        face.setParts({ noseShape: event.target.value });
+        syncCodeSample();
+      });
+      document.querySelector("#mouth-shape").addEventListener("change", (event) => {
+        markManualInteraction();
+        face.setParts({ mouthShape: event.target.value });
+        syncCodeSample();
+      });
+      document.querySelector("#scanline-thickness").addEventListener("input", (event) => {
+        markManualInteraction();
+        face.setParts({ scanlineThickness: Number(event.target.value) });
+        syncCodeSample();
+      });
+      document.querySelector("#scanline-spacing").addEventListener("input", (event) => {
+        markManualInteraction();
+        face.setParts({ scanlineSpacing: Number(event.target.value) });
+        syncCodeSample();
+      });
+      partCheckboxes.forEach((input) => input.addEventListener("change", syncFeaturesFromChecks));
+
+      window.addEventListener("pointermove", (event) => {
+        pauseAmbient(1800);
+        const rect = canvas.getBoundingClientRect();
+        const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        const y = ((event.clientY - rect.top) / rect.height) * 2 - 1;
+        face.lookAt(x, y);
+      });
+
+      const playIntro = () => {
+        cancelIntro();
+        clearActionReset();
+        introActive = true;
+        face.perform("bootUp");
+        queueIntroStep(1500, () => setActiveEmotion("neutral", 1, false));
+        queueIntroStep(1820, () => face.lookLeft(0.62));
+        queueIntroStep(2140, () => face.lookRight(0.58));
+        queueIntroStep(2440, () => face.wink("right"));
+        queueIntroStep(2860, () => {
+          face.lookAt(0, 0);
+          introActive = false;
+          ambientResumeAt = Date.now();
+          scheduleAmbient(1200);
+        });
+      };
+
+      syncFeaturesFromChecks();
+      syncSymbolControl();
+      face.setBackgroundFx("off");
+      playIntro();
+      syncPackageMeta();
+      syncCodeSample();
+    </script>
+  </body>
+</html>

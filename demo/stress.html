@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>pinu bot stress demo</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at top, rgba(45, 108, 126, 0.35), transparent 40%),
+          linear-gradient(180deg, #091217 0%, #04070a 100%);
+      }
+
+      body {
+        margin: 0;
+        padding: 24px;
+        color: #edf8fb;
+      }
+
+      .shell {
+        width: min(1200px, 100%);
+        margin: 0 auto;
+        display: grid;
+        gap: 18px;
+      }
+
+      .hero,
+      .controls {
+        padding: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .hero {
+        display: grid;
+        gap: 8px;
+      }
+
+      .hero h1,
+      .hero p {
+        margin: 0;
+      }
+
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 14px;
+      }
+
+      .card {
+        padding: 10px;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      canvas {
+        width: 100%;
+        aspect-ratio: 16 / 10;
+        display: block;
+        border-radius: 16px;
+      }
+
+      input[type="range"] {
+        width: 220px;
+      }
+
+      a {
+        color: #9fe8ff;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="hero">
+        <h1>pinu bot stress demo</h1>
+        <p>Quick many-face page for performance sanity checks. Increase face count and watch FPS stability.</p>
+        <a href="./index.html">Back to main demo</a>
+      </header>
+
+      <section class="controls">
+        <label>face count <input id="count" type="range" min="1" max="24" step="1" value="12" /></label>
+        <span id="count-value">12 faces</span>
+        <span id="fps">fps --</span>
+      </section>
+
+      <section class="grid" id="grid"></section>
+    </div>
+
+    <script type="module">
+      import { createRobotFace } from "../dist/index.js";
+
+      const grid = document.querySelector("#grid");
+      const countInput = document.querySelector("#count");
+      const countValue = document.querySelector("#count-value");
+      const fpsLabel = document.querySelector("#fps");
+      const themes = ["cyan", "amber", "ice-blue", "green-crt", "red-alert", "sunset"];
+      const emotions = ["neutral", "happy", "sad", "love", "confused", "thinking", "sleepy", "excited", "angry"];
+      let instances = [];
+      let frameCount = 0;
+      let lastFpsAt = performance.now();
+
+      const destroyAll = () => {
+        for (const entry of instances) {
+          entry.face.destroy();
+        }
+        instances = [];
+        grid.innerHTML = "";
+      };
+
+      const mountFaces = (count) => {
+        destroyAll();
+        countValue.textContent = `${count} faces`;
+
+        for (let index = 0; index < count; index += 1) {
+          const card = document.createElement("div");
+          card.className = "card";
+          const canvas = document.createElement("canvas");
+          canvas.width = 320;
+          canvas.height = 200;
+          card.appendChild(canvas);
+          grid.appendChild(card);
+
+          const face = createRobotFace(canvas, {
+            theme: themes[index % themes.length],
+            autoStart: true
+          });
+
+          face.emote(emotions[index % emotions.length]);
+          instances.push({ face, offset: index * 0.37 });
+        }
+      };
+
+      const tick = (time) => {
+        frameCount += 1;
+        if (time - lastFpsAt >= 1000) {
+          const fps = Math.round((frameCount * 1000) / (time - lastFpsAt));
+          fpsLabel.textContent = `fps ${fps}`;
+          frameCount = 0;
+          lastFpsAt = time;
+        }
+
+        for (const entry of instances) {
+          entry.face.lookAt(
+            Math.sin(time * 0.001 + entry.offset) * 0.45,
+            Math.cos(time * 0.0012 + entry.offset) * 0.22
+          );
+        }
+
+        requestAnimationFrame(tick);
+      };
+
+      countInput.addEventListener("input", () => mountFaces(Number(countInput.value)));
+
+      mountFaces(Number(countInput.value));
+      requestAnimationFrame(tick);
+    </script>
+  </body>
+</html>

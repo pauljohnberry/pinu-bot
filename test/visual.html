@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>visual harness</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #05080b;
+      }
+
+      canvas {
+        width: 720px;
+        height: 480px;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="face" width="720" height="480"></canvas>
+
+    <script type="module">
+      import { EMOTIONS } from "../dist/emotions.js";
+      import { createRobotFace } from "../dist/index.js";
+
+      const params = new URLSearchParams(window.location.search);
+      const emotion = params.get("emotion") ?? "neutral";
+      const theme = params.get("theme") ?? "cyan";
+      const style = params.get("style") ?? "classic";
+      const faceTheme = params.get("faceTheme");
+      const mode = params.get("mode") ?? "face";
+      const symbol = params.get("symbol");
+
+      const canvas = document.querySelector("#face");
+      const face = createRobotFace(canvas, {
+        autoStart: false,
+        pixelRatio: 1,
+        theme,
+        style,
+        faceTheme: faceTheme || undefined
+      });
+
+      face.setMode(mode);
+      if (mode === "symbol" && symbol) {
+        face.showSymbol(symbol);
+      } else {
+        face.transitionTo(EMOTIONS[emotion].pose);
+      }
+
+      face.render();
+      window.__PINU_READY__ = true;
+    </script>
+  </body>
+</html>

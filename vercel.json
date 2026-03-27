@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/demo/index.html"
+    },
+    {
+      "source": "/stress.html",
+      "destination": "/demo/stress.html"
+    }
+  ]
+}

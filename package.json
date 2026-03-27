@@ -1,0 +1,60 @@
+{
+  "name": "pinu-bot",
+  "version": "0.1.0",
+  "description": "A small TypeScript library for orchestrating expressive robot screen faces on HTML5 canvas.",
+  "homepage": "https://pinubot.com",
+  "packageManager": "bun@1.3.11",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "./scripts/run-bun.sh run build && ./scripts/run-bun.sh run scripts/dev-server.ts",
+    "stress": "./scripts/run-bun.sh run build && ./scripts/run-bun.sh run scripts/dev-server.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "./scripts/run-bun.sh test test/robotFace.test.ts",
+    "test:visual": "playwright test",
+    "check": "./scripts/check.sh",
+    "pack:dry-run": "npm pack --dry-run --cache .npm-cache",
+    "prepack": "tsc -p tsconfig.json"
+  },
+  "keywords": [
+    "canvas",
+    "robot",
+    "robot-face",
+    "robot-ui",
+    "ui",
+    "animation",
+    "emotion",
+    "face",
+    "canvas2d",
+    "html5-canvas",
+    "typescript"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "typescript": "^5.6.3"
+  }
+}
