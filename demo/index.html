@@ -3,7 +3,43 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>pinu bot</title>
+    <title>pinu bot | Expressive robot display runtime for modern web apps</title>
+    <meta
+      name="description"
+      content="pinu bot is a TypeScript canvas library for expressive robot display faces, animated emotions, layered overlays, and sci-fi UI characters in modern web apps."
+    />
+    <meta name="robots" content="index,follow,max-image-preview:large" />
+    <meta name="theme-color" content="#081116" />
+    <link rel="canonical" href="https://www.pinubot.com/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="pinu bot" />
+    <meta property="og:title" content="pinu bot | Expressive robot display runtime for modern web apps" />
+    <meta
+      property="og:description"
+      content="A TypeScript canvas library for expressive robot display faces, animated emotions, and layered overlays."
+    />
+    <meta property="og:url" content="https://www.pinubot.com/" />
+    <meta property="og:image" content="https://www.pinubot.com/og-image.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="pinu bot | Expressive robot display runtime for modern web apps" />
+    <meta
+      name="twitter:description"
+      content="A TypeScript canvas library for expressive robot display faces, animated emotions, and layered overlays."
+    />
+    <meta name="twitter:image" content="https://www.pinubot.com/og-image.png" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "pinu bot",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Web",
+        "url": "https://www.pinubot.com/",
+        "downloadUrl": "https://www.npmjs.com/package/pinu-bot",
+        "codeRepository": "https://github.com/pauljohnberry/pinu-bot",
+        "description": "A TypeScript canvas library for expressive robot display faces, animated emotions, and layered overlays."
+      }
+    </script>
     <script defer src="https://cdn.vercel-insights.com/v1/script.js"></script>
     <style>
       :root {
@@ -503,6 +539,7 @@ bun add pinu-bot</pre>
         createRobotFace
       } from "../dist/index.js";
 
+      const PACKAGE_VERSION = "0.1.1";
       const INTRO_ACTION_CODE = [
         'face.perform("bootUp");',
         'setTimeout(() => face.emote("neutral"), 1500);',
@@ -723,14 +760,7 @@ bun add pinu-bot</pre>
       };
 
       const syncPackageMeta = async () => {
-        try {
-          const pkg = await fetch("../package.json").then((response) => response.json());
-          if (pkg.version) {
-            versionBadge.textContent = `v${pkg.version}`;
-          }
-        } catch {
-          versionBadge.textContent = "v0.1.1";
-        }
+        versionBadge.textContent = `v${PACKAGE_VERSION}`;
       };
 
       const buildFeatureLines = () => {
