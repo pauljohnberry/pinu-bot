@@ -1,5 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { BUILTIN_FACE_THEMES, BUILTIN_STYLES, createRobotFace } from "../src/index";
+import {
+  BUILTIN_EMOTIONS,
+  BUILTIN_FACE_THEMES,
+  BUILTIN_STYLES,
+  type CharacterDefinition,
+  createRobotFace,
+} from "../src/index";
 
 type RafCallback = (time: number) => void;
 
@@ -286,6 +292,88 @@ describe("createRobotFace", () => {
           call.height === canvas.height,
       ),
     ).toBe(false);
+  });
+
+  test("applies character defaults, background layers, and emotion overrides", () => {
+    const raf = installRaf();
+    const canvas = new FakeCanvas();
+    let backgroundCalls = 0;
+    let browCalls = 0;
+    let lastEyeCenterX = 0;
+    let lastNoseShape = "";
+    let lastMouthOpenness = 0;
+
+    const customCharacter: CharacterDefinition = {
+      name: "spec-character",
+      partOptions: {
+        eyeShape: ["rounded"],
+        noseShape: ["triangle"],
+        mouthShape: ["arc"],
+        browShape: ["line"],
+      },
+      defaultParts: {
+        eyeShape: "rounded",
+        eyeWidthScale: "1",
+        eyeHeightScale: "1",
+        noseShape: "triangle",
+        mouthShape: "arc",
+        browShape: "line",
+        scanlineThickness: "1.5",
+        scanlineSpacing: "5",
+      },
+      defaultStyle: {
+        ...BUILTIN_STYLES.soft,
+        eyeGap: 0.24,
+      },
+      defaultFeatures: {
+        brows: false,
+      },
+      emotions: {
+        happy: {
+          ...BUILTIN_EMOTIONS.happy,
+          pose: {
+            ...BUILTIN_EMOTIONS.happy.pose,
+            mouth: {
+              ...BUILTIN_EMOTIONS.happy.pose.mouth,
+              openness: 0.95,
+            },
+          },
+        },
+      },
+      drawBackground() {
+        backgroundCalls += 1;
+      },
+      drawEye(_dc, params) {
+        lastEyeCenterX = params.centerX;
+      },
+      drawBrow() {
+        browCalls += 1;
+      },
+      drawNose(_dc, params) {
+        lastNoseShape = params.parts.noseShape;
+      },
+      drawMouth(_dc, params) {
+        lastMouthOpenness = params.pose.openness;
+      },
+    };
+
+    const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
+      autoStart: true,
+      character: customCharacter,
+    });
+
+    raf.step(0);
+
+    expect(backgroundCalls).toBeGreaterThan(0);
+    expect(browCalls).toBe(0);
+    expect(lastEyeCenterX).toBeCloseTo(canvas.clientWidth * 0.24, 4);
+    expect(lastNoseShape).toBe("triangle");
+    face.emote("happy");
+    raf.step(400);
+    raf.step(800);
+
+    expect(lastMouthOpenness).toBeGreaterThan(0.45);
+    face.destroy();
   });
 
   test("starts, advances animation frames, and stops cleanly", () => {

@@ -188,7 +188,7 @@ face.configure({
 
 Characters define how the face looks: the shapes of eyes, nose, mouth, and brows, plus optional overlays and emotion-specific effects. Every character shares the same API.
 
-Built-in characters: `pinu`
+Built-in characters: `pinu`, `kiba`
 
 Switch characters at creation or at runtime:
 

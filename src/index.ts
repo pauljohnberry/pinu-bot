@@ -1,13 +1,13 @@
-export { registerCharacter, getCharacter } from "./character.js";
 export type {
+  BrowDrawParams,
   CharacterDefinition,
   DrawContext,
   EyeDrawParams,
-  BrowDrawParams,
-  NoseDrawParams,
   MouthDrawParams,
+  NoseDrawParams,
 } from "./character.js";
-export { pinuCharacter } from "./characters/index.js";
+export { getCharacter, registerCharacter } from "./character.js";
+export { kibaCharacter, pinuCharacter } from "./characters/index.js";
 export { clamp, drawPixelGlyph, ease, roundedRect, wave } from "./drawUtils.js";
 export { EMOTIONS as BUILTIN_EMOTIONS } from "./emotions.js";
 export { FACE_THEMES as BUILTIN_FACE_THEMES } from "./faceThemes.js";

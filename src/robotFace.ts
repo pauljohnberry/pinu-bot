@@ -1,6 +1,6 @@
 import type { CharacterDefinition, DrawContext } from "./character.js";
 import { getCharacter, registerCharacter } from "./character.js";
-import { pinuCharacter } from "./characters/index.js";
+import { kibaCharacter, pinuCharacter } from "./characters/index.js";
 import { clamp, drawPixelGlyph, ease, roundedRect, wave } from "./drawUtils.js";
 import { EMOTIONS, type EmotionDefinition } from "./emotions.js";
 import { FACE_THEMES } from "./faceThemes.js";
@@ -11,6 +11,7 @@ import type {
   BackgroundFxMode,
   DisplayMode,
   EmoteOptions,
+  EmotionName,
   EyeControlApi,
   EyePose,
   FaceFeatures,
@@ -39,6 +40,7 @@ import type {
 } from "./types.js";
 
 registerCharacter(pinuCharacter);
+registerCharacter(kibaCharacter);
 
 type EasingName = EmotionDefinition["ease"];
 type PerformanceState = "idle" | PerformanceName;
@@ -216,6 +218,44 @@ const resolveCharacter = (character: CharacterDefinition | string): CharacterDef
     return found;
   }
   return character;
+};
+
+const parseCharacterPartNumber = (value: string | undefined, fallback: number): number => {
+  if (value === undefined) {
+    return fallback;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const resolveCharacterParts = (character: CharacterDefinition): Required<PartStyleConfig> => {
+  const parts = character.defaultParts;
+
+  return {
+    eyeShape:
+      (parts.eyeShape as Required<PartStyleConfig>["eyeShape"]) ?? PART_STYLE_DEFAULTS.eyeShape,
+    eyeWidthScale: parseCharacterPartNumber(parts.eyeWidthScale, PART_STYLE_DEFAULTS.eyeWidthScale),
+    eyeHeightScale: parseCharacterPartNumber(
+      parts.eyeHeightScale,
+      PART_STYLE_DEFAULTS.eyeHeightScale,
+    ),
+    noseShape:
+      (parts.noseShape as Required<PartStyleConfig>["noseShape"]) ?? PART_STYLE_DEFAULTS.noseShape,
+    mouthShape:
+      (parts.mouthShape as Required<PartStyleConfig>["mouthShape"]) ??
+      PART_STYLE_DEFAULTS.mouthShape,
+    browShape:
+      (parts.browShape as Required<PartStyleConfig>["browShape"]) ?? PART_STYLE_DEFAULTS.browShape,
+    scanlineThickness: parseCharacterPartNumber(
+      parts.scanlineThickness,
+      PART_STYLE_DEFAULTS.scanlineThickness,
+    ),
+    scanlineSpacing: parseCharacterPartNumber(
+      parts.scanlineSpacing,
+      PART_STYLE_DEFAULTS.scanlineSpacing,
+    ),
+  };
 };
 
 const DEFAULT_BACKGROUND_FX: ResolvedBackgroundFx = {
@@ -611,13 +651,12 @@ class RobotFaceRenderer implements RobotFace {
     }
 
     this.ctx = context;
-    if (options.character) {
-      this.character = resolveCharacter(options.character);
-    }
+    this.character = options.character ? resolveCharacter(options.character) : pinuCharacter;
     this.theme = resolveTheme("cyan");
     this.style = resolveStyle("classic");
     this.features = { ...FACE_FEATURE_DEFAULTS };
     this.parts = { ...PART_STYLE_DEFAULTS };
+    this.applyCharacterDefaults(this.character);
     this.mode = "face";
     this.symbolName = null;
     this.backgroundFx = { ...DEFAULT_BACKGROUND_FX };
@@ -649,12 +688,13 @@ class RobotFaceRenderer implements RobotFace {
     this.transparentBackground = options.transparentBackground ?? false;
     this.dpr =
       options.pixelRatio ?? (typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1);
-    this.autoBlinkInMs = this.randomBlinkDelay(EMOTIONS.neutral);
+    const neutralDefinition = this.getEmotionDefinition("neutral");
+    this.autoBlinkInMs = this.randomBlinkDelay(neutralDefinition);
 
-    copyPose(this.currentPose, EMOTIONS.neutral.pose);
-    copyPose(this.basePose, EMOTIONS.neutral.pose);
-    copyPose(this.targetEmotionPose, EMOTIONS.neutral.pose);
-    copyPose(this.fromEmotionPose, EMOTIONS.neutral.pose);
+    copyPose(this.currentPose, neutralDefinition.pose);
+    copyPose(this.basePose, neutralDefinition.pose);
+    copyPose(this.targetEmotionPose, neutralDefinition.pose);
+    copyPose(this.fromEmotionPose, neutralDefinition.pose);
 
     if (options.autoStart !== false) {
       this.start();
@@ -662,7 +702,7 @@ class RobotFaceRenderer implements RobotFace {
   }
 
   emote(name: keyof typeof EMOTIONS, options: EmoteOptions = {}): RobotFace {
-    const definition = EMOTIONS[name];
+    const definition = this.getEmotionDefinition(name);
     this.clearManualOverrides();
     copyPose(this.fromEmotionPose, this.basePose);
     this.emotionTargetName = name;
@@ -760,6 +800,8 @@ class RobotFaceRenderer implements RobotFace {
 
   setCharacter(character: CharacterDefinition | string): RobotFace {
     this.character = resolveCharacter(character);
+    this.applyCharacterDefaults(this.character);
+    this.syncCharacterEmotionState();
     return this;
   }
 
@@ -805,8 +847,11 @@ class RobotFaceRenderer implements RobotFace {
   }
 
   configure(config: RobotFaceConfig): RobotFace {
+    let characterChanged = false;
     if (config.character) {
       this.character = resolveCharacter(config.character);
+      this.applyCharacterDefaults(this.character);
+      characterChanged = true;
     }
     if (config.faceTheme) {
       this.applyFaceThemeDefinition(resolveFaceTheme(config.faceTheme), true);
@@ -838,6 +883,9 @@ class RobotFaceRenderer implements RobotFace {
     }
     if (config.pixelRatio) {
       this.dpr = Math.max(1, config.pixelRatio);
+    }
+    if (characterChanged) {
+      this.syncCharacterEmotionState();
     }
     return this;
   }
@@ -896,6 +944,27 @@ class RobotFaceRenderer implements RobotFace {
     clearPose(this.manualPose);
   }
 
+  private applyCharacterDefaults(character: CharacterDefinition): void {
+    this.style = character.defaultStyle;
+    this.features = mergeFeatures({ ...FACE_FEATURE_DEFAULTS }, character.defaultFeatures);
+    this.parts = resolveCharacterParts(character);
+  }
+
+  private getEmotionDefinition(name: EmotionName): EmotionDefinition {
+    return this.character.emotions?.[name] ?? EMOTIONS[name];
+  }
+
+  private syncCharacterEmotionState(): void {
+    const definition = this.getEmotionDefinition(this.emotionTargetName);
+    copyPose(this.fromEmotionPose, this.basePose);
+    blendPoseFromNeutral(definition.pose, this.emotionIntensity, this.targetEmotionPose);
+    this.emotionFromTime = this.elapsed;
+    this.emotionDurationMs = definition.durationMs;
+    this.emotionEase = definition.ease;
+    this.blinkDurationMs = definition.blinkDurationMs;
+    this.autoBlinkInMs = this.randomBlinkDelay(definition);
+  }
+
   private applyFaceThemeDefinition(faceTheme: FaceThemeDefinition, resetProfile = false): void {
     if (resetProfile) {
       this.features = { ...FACE_FEATURE_DEFAULTS };
@@ -929,7 +998,7 @@ class RobotFaceRenderer implements RobotFace {
   }
 
   private update(dt: number, dtMs: number): void {
-    const emotionDefinition = EMOTIONS[this.emotionTargetName];
+    const emotionDefinition = this.getEmotionDefinition(this.emotionTargetName);
     const emotionProgress = clamp(
       (this.elapsed - this.emotionFromTime) / this.emotionDurationMs,
       0,
@@ -1002,7 +1071,7 @@ class RobotFaceRenderer implements RobotFace {
   }
 
   private composePose(dt: number): void {
-    const definition = EMOTIONS[this.emotionTargetName];
+    const definition = this.getEmotionDefinition(this.emotionTargetName);
     copyPose(this.composedPose, this.basePose);
     applyOverrides(this.composedPose, this.manualPose);
 
@@ -1399,6 +1468,8 @@ class RobotFaceRenderer implements RobotFace {
       ctx.restore();
       return;
     }
+
+    this.character.drawBackground?.(dc, width, height, pose);
 
     const eyeBaseY = height * style.eyeY;
     if (this.features.brows) {

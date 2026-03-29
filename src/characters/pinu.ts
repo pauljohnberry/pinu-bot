@@ -224,7 +224,7 @@ export const pinuCharacter: CharacterDefinition = {
     eyeShape: "rounded",
     eyeWidthScale: "1",
     eyeHeightScale: "1",
-    noseShape: "diamond",
+    noseShape: "bar",
     mouthShape: "arc",
     browShape: "line",
     scanlineThickness: "1.5",

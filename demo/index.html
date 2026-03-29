@@ -372,6 +372,41 @@
         }
       }
 
+      .character-switcher {
+        display: flex;
+        justify-content: center;
+        gap: 6px;
+        padding: 0 4px;
+      }
+
+      .character-switcher button {
+        position: relative;
+        min-width: 110px;
+        padding: 10px 20px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.04);
+        color: rgba(230, 247, 251, 0.6);
+        font: inherit;
+        font-size: 0.95rem;
+        letter-spacing: 0.04em;
+        cursor: pointer;
+        transition: all 180ms ease;
+      }
+
+      .character-switcher button:hover {
+        border-color: rgba(127, 244, 255, 0.28);
+        background: rgba(127, 244, 255, 0.08);
+        color: #e6f7fb;
+      }
+
+      .character-switcher button.is-active {
+        border-color: rgba(127, 244, 255, 0.5);
+        background: rgba(127, 244, 255, 0.14);
+        color: #f3fbff;
+        box-shadow: 0 0 12px rgba(127, 244, 255, 0.12);
+      }
+
       @media (max-width: 640px) {
         .stage {
           width: 100%;
@@ -401,6 +436,10 @@
       <div class="stage">
         <canvas id="face" width="720" height="480"></canvas>
       </div>
+      <nav class="character-switcher" id="character-switcher">
+        <button type="button" data-character="pinu" class="is-active">pinu</button>
+        <button type="button" data-character="kiba">kiba</button>
+      </nav>
       <div class="docs-grid">
         <section class="panel stack">
           <div class="group">
@@ -439,9 +478,6 @@
           <div class="group">
             <h3>Display</h3>
             <div class="controls">
-              <select id="character">
-                <option value="pinu" selected>character pinu</option>
-              </select>
               <select id="mode">
                 <option value="face" selected>mode face</option>
                 <option value="symbol">mode symbol</option>
@@ -639,6 +675,7 @@ bun add pinu-bot</pre>
         BUILTIN_STYLES,
         BUILTIN_THEMES,
         createRobotFace,
+        kibaCharacter,
         pinuCharacter
       } from "../dist/index.js";
 
@@ -676,7 +713,7 @@ bun add pinu-bot</pre>
         eyeShape: "rounded",
         eyeWidthScale: 1,
         eyeHeightScale: 1,
-        noseShape: "diamond",
+        noseShape: "bar",
         mouthShape: "arc",
         browShape: "line",
         scanlineThickness: 1.5,
@@ -688,7 +725,7 @@ bun add pinu-bot</pre>
         tall: { eyeShape: "capsule", eyeWidthScale: 0.72, eyeHeightScale: 1.42 },
         pillar: { eyeShape: "capsule", eyeWidthScale: 0.52, eyeHeightScale: 1.72 }
       };
-      const characterSelect = document.querySelector("#character");
+      const characterButtons = document.querySelectorAll("#character-switcher button");
       const themeSelect = document.querySelector("#theme");
       const styleSelect = document.querySelector("#style");
       const modeSelect = document.querySelector("#mode");
@@ -705,6 +742,8 @@ bun add pinu-bot</pre>
       const scanlineSpacingInput = document.querySelector("#scanline-spacing");
       const codeSample = document.querySelector("#code-sample");
       const versionBadge = document.querySelector("#package-version");
+      const characters = { pinu: pinuCharacter, kiba: kibaCharacter };
+      let activeCharacter = pinuCharacter;
       let currentActionCode = INTRO_ACTION_CODE;
       let introActive = false;
       const introTimeouts = [];
@@ -863,6 +902,30 @@ bun add pinu-bot</pre>
         symbolSelect.classList.toggle("is-disabled", !enabled);
       };
 
+      const rebuildSelect = (select, options, prefix, currentValue) => {
+        select.innerHTML = "";
+        for (const name of options) {
+          const opt = document.createElement("option");
+          opt.value = name;
+          opt.textContent = `${prefix} ${name}`;
+          select.appendChild(opt);
+        }
+        if (options.includes(currentValue)) {
+          select.value = currentValue;
+        } else {
+          select.value = options[0] ?? "";
+        }
+      };
+
+      const syncPartSelects = (character) => {
+        const po = character.partOptions;
+        const dp = character.defaultParts;
+        rebuildSelect(eyeShapeSelect, po.eyeShape, "eye", dp.eyeShape);
+        rebuildSelect(browShapeSelect, po.browShape, "brow", dp.browShape);
+        rebuildSelect(noseShapeSelect, po.noseShape, "nose", dp.noseShape);
+        rebuildSelect(mouthShapeSelect, po.mouthShape, "mouth", dp.mouthShape);
+      };
+
       const syncPackageMeta = () => {
         versionBadge.textContent = `v${PACKAGE_VERSION}`;
       };
@@ -909,7 +972,7 @@ bun add pinu-bot</pre>
 
       const syncCodeSample = () => {
         const optionLines = [];
-        const characterValue = characterSelect.value;
+        const characterValue = activeCharacter.name;
         const faceThemeValue = faceThemeSelect.value;
 
         if (characterValue && characterValue !== "pinu") {
@@ -1163,11 +1226,50 @@ bun add pinu-bot</pre>
         currentActionCode = "face.speak({ intensity: 0.65, durationMs: 1800 });";
         syncCodeSample();
       });
-      document.querySelector("#character").addEventListener("change", (event) => {
-        markManualInteraction();
-        face.setCharacter(event.target.value);
-        currentActionCode = `face.setCharacter("${event.target.value}");`;
-        syncCodeSample();
+      characterButtons.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          markManualInteraction();
+          const name = btn.dataset.character;
+          const character = characters[name];
+          if (!character) {
+            return;
+          }
+          activeCharacter = character;
+          face.setCharacter(name);
+          syncPartSelects(character);
+
+          characterButtons.forEach((b) => { b.classList.remove("is-active"); });
+          btn.classList.add("is-active");
+
+          face.setParts({
+            eyeShape: eyeShapeSelect.value,
+            noseShape: noseShapeSelect.value,
+            mouthShape: mouthShapeSelect.value,
+            browShape: browShapeSelect.value,
+          });
+
+          // reset features to defaults, then apply character overrides
+          checkboxByValue.eyes.checked = true;
+          checkboxByValue.brows.checked = true;
+          checkboxByValue.pupils.checked = true;
+          checkboxByValue.nose.checked = true;
+          checkboxByValue.mouth.checked = true;
+          checkboxByValue.panel.checked = true;
+          checkboxByValue.scanlines.checked = true;
+          if (character.defaultFeatures) {
+            const df = character.defaultFeatures;
+            if (typeof df.brows === "boolean") {
+              checkboxByValue.brows.checked = df.brows;
+            }
+            if (typeof df.nose === "boolean") {
+              checkboxByValue.nose.checked = df.nose;
+            }
+          }
+          syncFeaturesFromChecks();
+
+          currentActionCode = `face.setCharacter("${name}");`;
+          syncCodeSample();
+        });
       });
       document.querySelector("#face-theme").addEventListener("change", (event) => {
         markManualInteraction();
