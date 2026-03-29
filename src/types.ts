@@ -1,3 +1,5 @@
+import type { CharacterDefinition } from "./character.js";
+
 export type EmotionName =
   | "neutral"
   | "happy"
@@ -189,6 +191,7 @@ export interface MouthExpressionOptions {
 }
 
 export interface RobotFaceConfig {
+  character?: CharacterDefinition | string;
   faceTheme?: FaceThemeName | FaceThemeDefinition;
   theme?: ThemeName | ThemeDefinition;
   style?: StylePresetName | StyleDefinition;
@@ -202,6 +205,7 @@ export interface RobotFaceConfig {
 }
 
 export interface RobotFaceOptions {
+  character?: CharacterDefinition | string;
   faceTheme?: FaceThemeName | FaceThemeDefinition;
   theme?: ThemeName | ThemeDefinition;
   style?: StylePresetName | StyleDefinition;
@@ -241,6 +245,7 @@ export interface NoseControlApi<TDone> {
 }
 
 export interface RobotFace {
+  setCharacter(character: CharacterDefinition | string): RobotFace;
   emote(name: EmotionName, options?: EmoteOptions): RobotFace;
   perform(name: PerformanceName): RobotFace;
   transitionTo(state: PartialFacePose): RobotFace;

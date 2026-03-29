@@ -439,6 +439,9 @@
           <div class="group">
             <h3>Display</h3>
             <div class="controls">
+              <select id="character">
+                <option value="pinu" selected>character pinu</option>
+              </select>
               <select id="mode">
                 <option value="face" selected>mode face</option>
                 <option value="symbol">mode symbol</option>
@@ -595,8 +598,12 @@ bun add pinu-bot</pre>
                   <span class="subtle">Play cinematic display transitions.</span>
                 </div>
                 <div class="api-item">
+                  <code>face.setCharacter(nameOrDefinition)</code>
+                  <span class="subtle">Switch to a different character. Each character has its own eye, nose, mouth, and brow graphics.</span>
+                </div>
+                <div class="api-item">
                   <code>face.setTheme(nameOrDefinition) / face.setFaceTheme(nameOrDefinition)</code>
-                  <span class="subtle">Switch visual palettes or apply bundled character presets.</span>
+                  <span class="subtle">Switch visual palettes or apply bundled face-theme presets.</span>
                 </div>
                 <div class="api-item">
                   <code>face.setStyle(nameOrDefinition) / face.setBackgroundFx(...)</code>
@@ -631,7 +638,8 @@ bun add pinu-bot</pre>
         BUILTIN_FACE_THEMES,
         BUILTIN_STYLES,
         BUILTIN_THEMES,
-        createRobotFace
+        createRobotFace,
+        pinuCharacter
       } from "../dist/index.js";
 
       const PACKAGE_VERSION = "0.2.0";
@@ -680,6 +688,7 @@ bun add pinu-bot</pre>
         tall: { eyeShape: "capsule", eyeWidthScale: 0.72, eyeHeightScale: 1.42 },
         pillar: { eyeShape: "capsule", eyeWidthScale: 0.52, eyeHeightScale: 1.72 }
       };
+      const characterSelect = document.querySelector("#character");
       const themeSelect = document.querySelector("#theme");
       const styleSelect = document.querySelector("#style");
       const modeSelect = document.querySelector("#mode");
@@ -900,8 +909,12 @@ bun add pinu-bot</pre>
 
       const syncCodeSample = () => {
         const optionLines = [];
+        const characterValue = characterSelect.value;
         const faceThemeValue = faceThemeSelect.value;
 
+        if (characterValue && characterValue !== "pinu") {
+          optionLines.push(`  character: "${characterValue}",`);
+        }
         if (faceThemeValue) {
           optionLines.push(`  faceTheme: "${faceThemeValue}",`);
         }
@@ -1148,6 +1161,12 @@ bun add pinu-bot</pre>
         markManualInteraction();
         face.speak({ intensity: 0.65, durationMs: 1800 });
         currentActionCode = "face.speak({ intensity: 0.65, durationMs: 1800 });";
+        syncCodeSample();
+      });
+      document.querySelector("#character").addEventListener("change", (event) => {
+        markManualInteraction();
+        face.setCharacter(event.target.value);
+        currentActionCode = `face.setCharacter("${event.target.value}");`;
         syncCodeSample();
       });
       document.querySelector("#face-theme").addEventListener("change", (event) => {

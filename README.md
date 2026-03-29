@@ -11,6 +11,7 @@
 - Canvas 2D only
 - Parametric geometry only, no sprite sheets
 - Layered runtime: base emotion + blink + lookAt + speaking + screen FX
+- Character system: swap between different face types (robot, dog, cat, anime, custom)
 - Optional mood lighting and symbol mode
 - Built-in face-theme presets, visual themes, and style presets
 - Direct part control for eyes, mouth, and nose
@@ -44,6 +45,7 @@ import { createRobotFace } from "pinu-bot";
 
 const canvas = document.querySelector("canvas")!;
 const face = createRobotFace(canvas, {
+  character: "pinu",
   faceTheme: "companion",
   backgroundFx: "emotion",
   transparentBackground: false
@@ -147,7 +149,8 @@ face.configure({
 ## Public API
 
 - `createRobotFace(canvas, options?)`
-  Options include `theme`, `style`, `features`, `parts`, `mode`, `symbol`, `backgroundFx`, `transparentBackground`, `autoStart`, and `pixelRatio`.
+  Options include `character`, `theme`, `style`, `features`, `parts`, `mode`, `symbol`, `backgroundFx`, `transparentBackground`, `autoStart`, and `pixelRatio`.
+- `face.setCharacter(nameOrDefinition)`
 - `face.emote(name, options?)`
 - `face.perform(name)`
 - `face.transitionTo(state)`
@@ -170,7 +173,7 @@ face.configure({
 - `face.showSymbol(name)`
 - `face.showFace()`
 - `face.setBackgroundFx("off" | "emotion" | { mode: "custom", color, intensity, pulseHz })`
-- `face.configure({ theme, style, features, parts, mode, symbol, backgroundFx, transparentBackground, pixelRatio })`
+- `face.configure({ character, theme, style, features, parts, mode, symbol, backgroundFx, transparentBackground, pixelRatio })`
 - `face.start()`
 - `face.stop()`
 - `face.render()`
@@ -180,6 +183,47 @@ face.configure({
 - `face.rightEye()`
 - `face.mouth()`
 - `face.nose()`
+
+## Characters
+
+Characters define how the face looks: the shapes of eyes, nose, mouth, and brows, plus optional overlays and emotion-specific effects. Every character shares the same API.
+
+Built-in characters: `pinu`
+
+Switch characters at creation or at runtime:
+
+```ts
+const face = createRobotFace(canvas, { character: "pinu" });
+face.setCharacter("pinu");
+```
+
+### Custom Characters
+
+```ts
+import { registerCharacter, createRobotFace } from "pinu-bot";
+import type { CharacterDefinition } from "pinu-bot";
+
+const myCharacter: CharacterDefinition = {
+  name: "my-character",
+  partOptions: {
+    eyeShape: ["round", "sleepy"],
+    noseShape: ["button"],
+    mouthShape: ["smile"],
+    browShape: ["thin"],
+  },
+  defaultParts: { eyeShape: "round", noseShape: "button", mouthShape: "smile", browShape: "thin" },
+  defaultStyle: { /* StyleDefinition */ },
+  drawEye(dc, params) { /* draw with dc.ctx */ },
+  drawBrow(dc, params) { /* draw with dc.ctx */ },
+  drawNose(dc, params) { /* draw with dc.ctx */ },
+  drawMouth(dc, params) { /* draw with dc.ctx */ },
+};
+
+registerCharacter(myCharacter);
+const face = createRobotFace(canvas, { character: "my-character" });
+```
+
+Characters can optionally provide `drawOverlay`, `drawBackground`, `getFaceVisibility`, `getScrambleStrength`, and per-character `emotions` overrides. See [`src/character.ts`](./src/character.ts) for the full interface and [`src/characters/pinu.ts`](./src/characters/pinu.ts) for a reference implementation.
 
 ## Built-In Presets
 
@@ -266,10 +310,11 @@ See [examples/frameworks.md](./examples/frameworks.md) for:
 
 The current architecture is intentionally open to extension:
 
+- add new characters in [`src/characters/`](./src/characters/) implementing `CharacterDefinition`
 - add new emotions in [`src/emotions.ts`](./src/emotions.ts)
 - add new bundled face themes in [`src/faceThemes.ts`](./src/faceThemes.ts)
 - add new visual themes in [`src/themes.ts`](./src/themes.ts)
-- add new shape families in [`src/robotFace.ts`](./src/robotFace.ts)
+- shared drawing helpers available in [`src/drawUtils.ts`](./src/drawUtils.ts): `roundedRect`, `clamp`, `wave`, `ease`, `drawPixelGlyph`
 
 ## Performance Notes
 

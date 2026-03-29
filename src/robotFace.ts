@@ -1,3 +1,7 @@
+import type { CharacterDefinition, DrawContext } from "./character.js";
+import { getCharacter, registerCharacter } from "./character.js";
+import { pinuCharacter } from "./characters/index.js";
+import { clamp, drawPixelGlyph, ease, roundedRect, wave } from "./drawUtils.js";
 import { EMOTIONS, type EmotionDefinition } from "./emotions.js";
 import { FACE_THEMES } from "./faceThemes.js";
 import { FACE_FEATURE_DEFAULTS, PART_STYLE_DEFAULTS, STYLE_PRESETS } from "./styles.js";
@@ -9,7 +13,6 @@ import type {
   EmoteOptions,
   EyeControlApi,
   EyePose,
-  EyeShapeName,
   FaceFeatures,
   FacePose,
   FaceThemeDefinition,
@@ -18,10 +21,8 @@ import type {
   MouthControlApi,
   MouthExpressionOptions,
   MouthPose,
-  MouthShapeName,
   NoseControlApi,
   NosePose,
-  NoseShapeName,
   PartialFacePose,
   PartStyleConfig,
   PerformanceName,
@@ -37,56 +38,18 @@ import type {
   WinkSide,
 } from "./types.js";
 
+registerCharacter(pinuCharacter);
+
 type EasingName = EmotionDefinition["ease"];
 type PerformanceState = "idle" | PerformanceName;
 type ResolvedBackgroundFx = Required<BackgroundFxConfig>;
 
-const TAU = Math.PI * 2;
 const UNSET = Number.NaN;
-const PUPIL_FILL = "#000000";
-const PUPIL_FILL_ANGRY = "#565d66";
-
-const clamp = (value: number, min: number, max: number): number =>
-  value < min ? min : value > max ? max : value;
 
 const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 
-const ease = (name: EasingName, t: number): number => {
-  if (name === "snap") {
-    return 1 - (1 - t) ** 3;
-  }
-
-  if (name === "gentle") {
-    return t * t * (3 - 2 * t);
-  }
-
-  return t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
-};
-
 const damp = (current: number, target: number, dt: number, speed: number): number =>
   lerp(current, target, 1 - Math.exp(-speed * dt));
-
-const wave = (time: number, frequency: number): number => Math.sin(time * TAU * frequency);
-
-const roundedRect = (
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  radius: number,
-): void => {
-  const safeWidth = Math.max(0, width);
-  const safeHeight = Math.max(0, height);
-  const r = Math.max(0, Math.min(radius, safeWidth * 0.5, safeHeight * 0.5));
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + safeWidth, y, x + safeWidth, y + safeHeight, r);
-  ctx.arcTo(x + safeWidth, y + safeHeight, x, y + safeHeight, r);
-  ctx.arcTo(x, y + safeHeight, x, y, r);
-  ctx.arcTo(x, y, x + safeWidth, y, r);
-  ctx.closePath();
-};
 
 const createPose = (): FacePose => ({
   leftEye: { openness: 0, squint: 0, tilt: 0, pupilX: 0, pupilY: 0, brightness: 1 },
@@ -243,6 +206,17 @@ const mergeParts = (
 
 const resolveFaceTheme = (faceTheme: FaceThemeName | FaceThemeDefinition): FaceThemeDefinition =>
   typeof faceTheme === "string" ? FACE_THEMES[faceTheme] : faceTheme;
+
+const resolveCharacter = (character: CharacterDefinition | string): CharacterDefinition => {
+  if (typeof character === "string") {
+    const found = getCharacter(character);
+    if (!found) {
+      throw new Error(`Unknown character: "${character}". Register it with registerCharacter().`);
+    }
+    return found;
+  }
+  return character;
+};
 
 const DEFAULT_BACKGROUND_FX: ResolvedBackgroundFx = {
   mode: "off",
@@ -544,6 +518,7 @@ class NoseControl<TDone> implements NoseControlApi<TDone> {
 }
 
 class RobotFaceRenderer implements RobotFace {
+  private character: CharacterDefinition = pinuCharacter;
   private readonly ctx: CanvasRenderingContext2D;
   private readonly currentPose = createPose();
   private readonly basePose = createPose();
@@ -636,6 +611,9 @@ class RobotFaceRenderer implements RobotFace {
     }
 
     this.ctx = context;
+    if (options.character) {
+      this.character = resolveCharacter(options.character);
+    }
     this.theme = resolveTheme("cyan");
     this.style = resolveStyle("classic");
     this.features = { ...FACE_FEATURE_DEFAULTS };
@@ -780,6 +758,11 @@ class RobotFaceRenderer implements RobotFace {
     return this;
   }
 
+  setCharacter(character: CharacterDefinition | string): RobotFace {
+    this.character = resolveCharacter(character);
+    return this;
+  }
+
   setTheme(theme: ThemeName | ThemeDefinition): RobotFace {
     this.theme = resolveTheme(theme);
     return this;
@@ -822,6 +805,9 @@ class RobotFaceRenderer implements RobotFace {
   }
 
   configure(config: RobotFaceConfig): RobotFace {
+    if (config.character) {
+      this.character = resolveCharacter(config.character);
+    }
     if (config.faceTheme) {
       this.applyFaceThemeDefinition(resolveFaceTheme(config.faceTheme), true);
     }
@@ -1337,7 +1323,7 @@ class RobotFaceRenderer implements RobotFace {
     }
 
     this.drawFacePass(0, 0, 1, flicker);
-    this.drawLoveTransitionOverlay(width, height, pose);
+    this.character.drawOverlay?.(this.buildDrawContext(), width, height, pose);
     this.drawScrambleSlices(width, height, pose, flicker);
     ctx.restore();
 
@@ -1346,11 +1332,38 @@ class RobotFaceRenderer implements RobotFace {
     }
   }
 
+  private buildDrawContext(): DrawContext {
+    return {
+      ctx: this.ctx,
+      theme: this.theme,
+      emotionName: this.emotionTargetName,
+      elapsed: this.elapsed,
+      emotionFromTime: this.emotionFromTime,
+      mode: this.mode,
+    };
+  }
+
+  private partsAsRecord(): Record<string, string> {
+    const p = this.parts;
+    return {
+      eyeShape: p.eyeShape,
+      eyeWidthScale: String(p.eyeWidthScale),
+      eyeHeightScale: String(p.eyeHeightScale),
+      noseShape: p.noseShape,
+      mouthShape: p.mouthShape,
+      browShape: p.browShape,
+      scanlineThickness: String(p.scanlineThickness),
+      scanlineSpacing: String(p.scanlineSpacing),
+    };
+  }
+
   private drawFacePass(offsetX: number, offsetY: number, alpha: number, flicker: number): void {
     const ctx = this.ctx;
     const width = this.logicalWidth;
     const height = this.logicalHeight;
     const pose = this.currentPose;
+    const dc = this.buildDrawContext();
+    const partsRecord = this.partsAsRecord();
 
     ctx.save();
     ctx.translate(offsetX, offsetY);
@@ -1377,7 +1390,8 @@ class RobotFaceRenderer implements RobotFace {
     ctx.shadowBlur = glow;
     ctx.globalAlpha *= flicker;
     if (this.mode === "face") {
-      ctx.globalAlpha *= this.resolveLoveFaceVisibility();
+      const visibility = this.character.getFaceVisibility?.(dc) ?? 1;
+      ctx.globalAlpha *= visibility;
     }
 
     if (this.mode === "symbol") {
@@ -1389,70 +1403,81 @@ class RobotFaceRenderer implements RobotFace {
     const eyeBaseY = height * style.eyeY;
     if (this.features.brows) {
       if (this.features.leftEye) {
-        this.drawBrow(
-          -width * style.eyeGap,
-          leftBrowY,
-          width * style.browWidth,
-          height * style.browHeight,
-          pose.leftEye,
-          -1,
-        );
+        this.character.drawBrow(dc, {
+          centerX: -width * style.eyeGap,
+          centerY: leftBrowY,
+          width: width * style.browWidth,
+          height: height * style.browHeight,
+          pose: pose.leftEye,
+          side: -1,
+          parts: partsRecord,
+        });
       }
       if (this.features.rightEye) {
-        this.drawBrow(
-          width * style.eyeGap,
-          rightBrowY,
-          width * style.browWidth,
-          height * style.browHeight,
-          pose.rightEye,
-          1,
-        );
+        this.character.drawBrow(dc, {
+          centerX: width * style.eyeGap,
+          centerY: rightBrowY,
+          width: width * style.browWidth,
+          height: height * style.browHeight,
+          pose: pose.rightEye,
+          side: 1,
+          parts: partsRecord,
+        });
       }
     }
     if (this.features.leftEye) {
-      this.drawEye(
-        -width * style.eyeGap,
-        eyeBaseY,
-        width * style.eyeWidth,
-        height * style.eyeHeight,
-        pose.leftEye,
-        -1,
-      );
+      this.character.drawEye(dc, {
+        centerX: -width * style.eyeGap,
+        centerY: eyeBaseY,
+        width: width * style.eyeWidth,
+        height: height * style.eyeHeight,
+        pose: pose.leftEye,
+        side: -1,
+        style,
+        features: this.features,
+        parts: partsRecord,
+      });
     }
     if (this.features.rightEye) {
-      this.drawEye(
-        width * style.eyeGap,
-        eyeBaseY,
-        width * style.eyeWidth,
-        height * style.eyeHeight,
-        pose.rightEye,
-        1,
-      );
+      this.character.drawEye(dc, {
+        centerX: width * style.eyeGap,
+        centerY: eyeBaseY,
+        width: width * style.eyeWidth,
+        height: height * style.eyeHeight,
+        pose: pose.rightEye,
+        side: 1,
+        style,
+        features: this.features,
+        parts: partsRecord,
+      });
     }
     if (this.features.nose) {
-      this.drawNose(
-        0,
-        height * style.noseY,
-        width * style.noseWidth,
-        height * style.noseHeight,
-        pose.nose,
-      );
+      this.character.drawNose(dc, {
+        centerX: 0,
+        centerY: height * style.noseY,
+        width: width * style.noseWidth,
+        height: height * style.noseHeight,
+        pose: pose.nose,
+        parts: partsRecord,
+      });
     }
     if (this.features.mouth) {
-      this.drawMouth(
-        0,
-        height * style.mouthY,
-        width * style.mouthWidth,
-        height * style.mouthHeight,
-        pose.mouth,
-      );
+      this.character.drawMouth(dc, {
+        centerX: 0,
+        centerY: height * style.mouthY,
+        width: width * style.mouthWidth,
+        height: height * style.mouthHeight,
+        pose: pose.mouth,
+        parts: partsRecord,
+      });
     }
     ctx.restore();
   }
 
   private drawScrambleSlices(width: number, height: number, pose: FacePose, flicker: number): void {
-    const angryStrength = this.emotionTargetName === "angry" ? 0.16 : 0;
-    const scramble = Math.max(angryStrength, pose.global.distortion * 0.7);
+    const scramble = this.character.getScrambleStrength
+      ? this.character.getScrambleStrength(this.emotionTargetName, pose.global.distortion)
+      : pose.global.distortion * 0.7;
 
     if (scramble < 0.08 || this.mode === "symbol") {
       return;
@@ -1505,385 +1530,6 @@ class RobotFaceRenderer implements RobotFace {
     }
   }
 
-  private drawEye(
-    centerX: number,
-    centerY: number,
-    width: number,
-    height: number,
-    pose: EyePose,
-    side: number,
-  ): void {
-    const ctx = this.ctx;
-    const openness = clamp(pose.openness, 0.01, 1);
-    const squint = clamp(pose.squint, 0, 1);
-    const baseHeight = height * clamp(this.parts.eyeHeightScale, 0.5, 1.8);
-    const baseWidth = width * clamp(this.parts.eyeWidthScale, 0.5, 1.8);
-    const eyeHeight = Math.max(
-      baseHeight * 0.1,
-      baseHeight * (0.18 + openness * 0.74) * (1 - squint * 0.52),
-    );
-    const radius = eyeHeight * this.style.eyeCorner;
-    const eyeWidth = baseWidth * (0.82 + openness * 0.14);
-    const pupilSize = Math.max(4, Math.min(eyeWidth, eyeHeight) * this.style.pupilScale);
-    const lidCut = eyeHeight * squint * 0.24;
-    const brightness = clamp(pose.brightness, 0.1, 1.8);
-    const strokeWidth = Math.max(2, eyeHeight * 0.08);
-    const eyeShape = this.parts.eyeShape;
-    const glyphEye = eyeShape === "chevron" || eyeShape === "crescent" || eyeShape === "tear";
-
-    ctx.save();
-    ctx.translate(centerX, centerY);
-    ctx.rotate(pose.tilt * 0.46);
-
-    if (eyeHeight < height * 0.16) {
-      ctx.lineWidth = strokeWidth;
-      ctx.beginPath();
-      ctx.moveTo(-eyeWidth * 0.5, 0);
-      ctx.lineTo(eyeWidth * 0.5, 0);
-      ctx.strokeStyle = this.theme.foreground;
-      ctx.globalAlpha *= brightness;
-      ctx.stroke();
-      ctx.restore();
-      return;
-    }
-
-    const faceAlpha = ctx.globalAlpha;
-    ctx.globalAlpha *= brightness;
-    if (glyphEye) {
-      this.drawGlyphEye(eyeShape, eyeWidth, eyeHeight, side, openness, squint);
-      ctx.restore();
-      return;
-    }
-
-    this.drawEyeShell(eyeShape, -eyeWidth * 0.5, -eyeHeight * 0.5, eyeWidth, eyeHeight, radius);
-    ctx.fill();
-
-    const innerEyeWidth = eyeWidth - strokeWidth * 2;
-    const innerEyeHeight = eyeHeight - strokeWidth * 2;
-    if (innerEyeWidth > 0 && innerEyeHeight > 0) {
-      ctx.globalAlpha *= 0.35;
-      this.drawEyeShell(
-        eyeShape,
-        -eyeWidth * 0.5 + strokeWidth,
-        -eyeHeight * 0.5 + strokeWidth,
-        innerEyeWidth,
-        innerEyeHeight,
-        Math.max(2, radius - strokeWidth),
-      );
-      ctx.fillStyle = this.theme.accent;
-      ctx.fill();
-    }
-
-    if (this.features.pupils && this.eyeShapeSupportsPupil(eyeShape)) {
-      ctx.save();
-      ctx.globalAlpha = faceAlpha;
-      ctx.fillStyle = this.emotionTargetName === "angry" ? PUPIL_FILL_ANGRY : PUPIL_FILL;
-      ctx.shadowBlur = 0;
-      ctx.shadowColor = "transparent";
-      const pupilX = clamp(pose.pupilX, -1, 1) * eyeWidth * 0.46;
-      const pupilY = clamp(pose.pupilY, -1, 1) * eyeHeight * 0.42;
-      roundedRect(
-        ctx,
-        pupilX - pupilSize * 0.5,
-        pupilY - pupilSize * 0.5,
-        pupilSize,
-        pupilSize * (0.85 + (1 - openness) * 0.3),
-        pupilSize * 0.28,
-      );
-      ctx.fill();
-      ctx.restore();
-    }
-
-    if (lidCut > 0.01) {
-      ctx.fillStyle = this.theme.panel;
-      ctx.globalAlpha = 0.2 + squint * 0.4;
-      ctx.beginPath();
-      ctx.moveTo(-eyeWidth * 0.54, -eyeHeight * 0.5);
-      ctx.lineTo(eyeWidth * 0.54, -eyeHeight * 0.5 + side * lidCut * 0.4);
-      ctx.lineTo(eyeWidth * 0.54, -eyeHeight * 0.5 + lidCut);
-      ctx.lineTo(-eyeWidth * 0.54, -eyeHeight * 0.5 + lidCut * 1.1);
-      ctx.closePath();
-      ctx.fill();
-    }
-
-    ctx.restore();
-  }
-
-  private drawEyeShell(
-    shape: EyeShapeName,
-    x: number,
-    y: number,
-    width: number,
-    height: number,
-    radius: number,
-  ): void {
-    const ctx = this.ctx;
-    if (shape === "pixel") {
-      ctx.beginPath();
-      ctx.rect(x, y, width, height);
-      ctx.closePath();
-      return;
-    }
-
-    if (shape === "capsule") {
-      roundedRect(ctx, x, y, width, height, height * 0.5);
-      return;
-    }
-
-    roundedRect(ctx, x, y, width, height, radius);
-  }
-
-  private eyeShapeSupportsPupil(shape: EyeShapeName): boolean {
-    return shape === "rounded" || shape === "capsule" || shape === "pixel";
-  }
-
-  private drawGlyphEye(
-    shape: EyeShapeName,
-    width: number,
-    height: number,
-    side: number,
-    openness: number,
-    squint: number,
-  ): void {
-    const ctx = this.ctx;
-
-    if (shape === "chevron") {
-      const lineWidth = Math.max(3, Math.min(width, height) * 0.18);
-      const apexX = side * width * 0.04;
-      const apexY = -height * (0.3 + squint * 0.08);
-      const wingY = height * (0.08 + (1 - openness) * 0.12);
-      ctx.lineWidth = lineWidth;
-      ctx.beginPath();
-      ctx.moveTo(-width * 0.42, wingY);
-      ctx.lineTo(apexX, apexY);
-      ctx.lineTo(width * 0.42, wingY);
-      ctx.stroke();
-      return;
-    }
-
-    if (shape === "crescent") {
-      const lineWidth = Math.max(3, Math.min(width, height) * 0.2);
-      const startX = -side * width * 0.08;
-      const controlX = side * width * 0.42;
-      const arcHeight = height * (0.42 + (1 - openness) * 0.08);
-      ctx.lineWidth = lineWidth;
-      ctx.beginPath();
-      ctx.moveTo(startX, -arcHeight);
-      ctx.quadraticCurveTo(controlX, 0, startX, arcHeight);
-      ctx.stroke();
-      return;
-    }
-
-    if (shape === "tear") {
-      const topY = -height * 0.48;
-      const bottomY = height * 0.48;
-      const shoulderX = width * 0.28;
-      ctx.beginPath();
-      ctx.moveTo(0, topY);
-      ctx.bezierCurveTo(shoulderX, -height * 0.28, shoulderX, height * 0.16, 0, bottomY);
-      ctx.bezierCurveTo(-shoulderX, height * 0.16, -shoulderX, -height * 0.28, 0, topY);
-      ctx.closePath();
-      ctx.fill();
-    }
-  }
-
-  private drawBrow(
-    centerX: number,
-    centerY: number,
-    width: number,
-    height: number,
-    pose: EyePose,
-    side: number,
-  ): void {
-    const ctx = this.ctx;
-    const shape = this.parts.browShape;
-    const baseAngle = pose.tilt * 0.52 + pose.squint * 0.18 * -side;
-    const angle = this.emotionTargetName === "confused" ? (side === -1 ? -0.2 : -0.08) : baseAngle;
-    const lift = (1 - pose.openness) * height * 0.4;
-    const brightness = clamp(pose.brightness, 0.1, 1.6);
-
-    ctx.save();
-    ctx.translate(centerX, centerY - lift);
-    ctx.rotate(angle);
-    ctx.fillStyle = this.theme.foreground;
-    ctx.strokeStyle = this.theme.foreground;
-    ctx.globalAlpha *= brightness * 0.9;
-    ctx.lineWidth = Math.max(2, height * 0.7);
-
-    if (shape === "line") {
-      ctx.beginPath();
-      ctx.moveTo(-width * 0.5, 0);
-      ctx.lineTo(width * 0.5, 0);
-      ctx.stroke();
-      ctx.restore();
-      return;
-    }
-
-    if (shape === "block") {
-      roundedRect(ctx, -width * 0.5, -height * 0.5, width, height, height * 0.3);
-      ctx.fill();
-      ctx.restore();
-      return;
-    }
-
-    ctx.beginPath();
-    ctx.moveTo(-width * 0.48, height * 0.35);
-    ctx.lineTo(-width * 0.18, -height * 0.45);
-    ctx.lineTo(width * 0.5, -height * 0.12);
-    ctx.lineTo(width * 0.2, height * 0.45);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
-  }
-
-  private drawNose(
-    centerX: number,
-    centerY: number,
-    width: number,
-    height: number,
-    pose: NosePose,
-  ): void {
-    const ctx = this.ctx;
-    const scale = clamp(pose.scale, 0.1, 1.5);
-    const brightness = clamp(pose.brightness, 0.1, 1.6);
-    const w = width * scale;
-    const h = height * scale;
-
-    ctx.save();
-    ctx.translate(centerX, centerY);
-    ctx.rotate(pose.tilt * 0.5);
-    ctx.lineWidth = Math.max(2, w * 0.08);
-    ctx.strokeStyle = this.theme.foreground;
-    ctx.fillStyle = this.theme.foreground;
-    ctx.globalAlpha *= brightness * 0.92;
-    this.drawNoseShape(this.parts.noseShape, w, h);
-    ctx.restore();
-  }
-
-  private drawNoseShape(shape: NoseShapeName, width: number, height: number): void {
-    const ctx = this.ctx;
-    if (shape === "triangle") {
-      ctx.beginPath();
-      ctx.moveTo(0, -height * 0.42);
-      ctx.lineTo(width * 0.36, height * 0.42);
-      ctx.lineTo(-width * 0.36, height * 0.42);
-      ctx.closePath();
-      ctx.stroke();
-      return;
-    }
-
-    if (shape === "bar") {
-      roundedRect(ctx, -width * 0.12, -height * 0.42, width * 0.24, height * 0.84, width * 0.08);
-      ctx.fill();
-      return;
-    }
-
-    if (shape === "dot") {
-      roundedRect(ctx, -width * 0.16, -height * 0.16, width * 0.32, height * 0.32, width * 0.12);
-      ctx.fill();
-      return;
-    }
-
-    ctx.beginPath();
-    ctx.moveTo(0, -height * 0.4);
-    ctx.lineTo(width * 0.36, 0);
-    ctx.lineTo(0, height * 0.48);
-    ctx.lineTo(-width * 0.36, 0);
-    ctx.closePath();
-    ctx.stroke();
-  }
-
-  private drawMouth(
-    centerX: number,
-    centerY: number,
-    width: number,
-    height: number,
-    pose: MouthPose,
-  ): void {
-    const ctx = this.ctx;
-    const curvature = clamp(pose.curvature, -1, 1);
-    const mouthWidth = width * clamp(pose.width, 0.2, 1.2);
-    const openness = clamp(pose.openness, 0, 1);
-    const brightness = clamp(pose.brightness, 0.1, 1.8);
-    const lift = curvature * height * 0.6;
-    const openDepth = openness * height * 0.8;
-
-    ctx.save();
-    ctx.translate(centerX, centerY);
-    ctx.rotate(pose.tilt * 0.26);
-    const closedMouth = openDepth <= 1.5;
-    ctx.lineWidth = closedMouth ? Math.max(3, height * 0.12) : Math.max(2, height * 0.08);
-    ctx.strokeStyle = this.theme.foreground;
-    ctx.fillStyle = this.theme.foreground;
-    ctx.globalAlpha *= brightness * (closedMouth ? 1.08 : 1);
-    if (closedMouth) {
-      ctx.shadowBlur *= 1.2;
-    }
-    this.drawMouthShape(this.parts.mouthShape, mouthWidth, height, lift, openDepth);
-
-    ctx.restore();
-  }
-
-  private drawMouthShape(
-    shape: MouthShapeName,
-    mouthWidth: number,
-    height: number,
-    lift: number,
-    openDepth: number,
-  ): void {
-    const ctx = this.ctx;
-
-    if (shape === "visor") {
-      const thickness = Math.max(height * 0.18, openDepth * 0.88 + height * 0.16);
-      const leftX = -mouthWidth * 0.5;
-      const rightX = mouthWidth * 0.5;
-      const endDip = lift * 0.18;
-      const centerDip = lift * 0.72;
-      const skew = Math.max(-height * 0.28, Math.min(height * 0.28, lift * 0.24));
-      const topY = -thickness * 0.5;
-      const bottomY = thickness * 0.5;
-
-      ctx.beginPath();
-      ctx.moveTo(leftX, topY + endDip - skew);
-      ctx.quadraticCurveTo(0, topY + centerDip, rightX, topY + endDip + skew);
-      ctx.lineTo(rightX, bottomY + endDip + skew);
-      ctx.quadraticCurveTo(
-        0,
-        bottomY + centerDip + openDepth * 0.12,
-        leftX,
-        bottomY + endDip - skew,
-      );
-      ctx.closePath();
-      ctx.stroke();
-      return;
-    }
-
-    if (shape === "pixel") {
-      const barHeight = Math.max(height * 0.12, openDepth * 0.8 + height * 0.08);
-      ctx.beginPath();
-      ctx.moveTo(-mouthWidth * 0.5, -barHeight * 0.35 + lift * 0.18);
-      ctx.lineTo(mouthWidth * 0.5, -barHeight * 0.35 + lift * 0.18);
-      ctx.lineTo(mouthWidth * 0.5, barHeight * 0.65 + lift * 0.34);
-      ctx.lineTo(-mouthWidth * 0.5, barHeight * 0.65 + lift * 0.02);
-      ctx.closePath();
-      ctx.stroke();
-      return;
-    }
-
-    ctx.beginPath();
-    ctx.moveTo(-mouthWidth * 0.5, 0);
-    ctx.quadraticCurveTo(0, lift, mouthWidth * 0.5, 0);
-    ctx.stroke();
-
-    if (openDepth > 1.5) {
-      ctx.globalAlpha *= 0.86;
-      ctx.beginPath();
-      ctx.moveTo(-mouthWidth * 0.44, openDepth * 0.18);
-      ctx.quadraticCurveTo(0, openDepth - lift * 0.16, mouthWidth * 0.44, openDepth * 0.18);
-      ctx.stroke();
-    }
-  }
-
   private drawBackgroundFx(
     x: number,
     y: number,
@@ -1933,129 +1579,6 @@ class RobotFaceRenderer implements RobotFace {
     return this.symbolName ?? EMOTION_SYMBOLS[this.emotionTargetName] ?? "ellipsis";
   }
 
-  private resolveLoveTransitionProgress(): number {
-    if (this.emotionTargetName !== "love") {
-      return -1;
-    }
-
-    const elapsed = this.elapsed - this.emotionFromTime;
-    if (elapsed < 0) {
-      return -1;
-    }
-
-    const durationMs = 1180;
-    if (elapsed > durationMs) {
-      return -1;
-    }
-
-    return clamp(elapsed / durationMs, 0, 1);
-  }
-
-  private resolveLoveFaceVisibility(): number {
-    const progress = this.resolveLoveTransitionProgress();
-    if (progress < 0) {
-      return 1;
-    }
-
-    if (progress < 0.14) {
-      return 1 - ease("smooth", progress / 0.14);
-    }
-
-    if (progress < 0.82) {
-      return 0;
-    }
-
-    return ease("smooth", (progress - 0.82) / 0.18);
-  }
-
-  private drawPixelGlyph(
-    pattern: readonly string[],
-    centerX: number,
-    centerY: number,
-    size: number,
-  ): void {
-    const ctx = this.ctx;
-    const firstRow = pattern[0] ?? "00000000";
-    const columns = firstRow.length || 8;
-    const rows = pattern.length || 8;
-    const cell = size / columns;
-    const originX = centerX - columns * cell * 0.5;
-    const originY = centerY - rows * cell * 0.5;
-
-    for (let row = 0; row < rows; row += 1) {
-      const line = pattern[row] ?? "";
-      for (let col = 0; col < columns; col += 1) {
-        if (line[col] !== "1") {
-          continue;
-        }
-
-        ctx.fillRect(originX + col * cell, originY + row * cell, cell, cell);
-      }
-    }
-  }
-
-  private drawHeartGlyph(centerX: number, centerY: number, size: number): void {
-    this.drawPixelGlyph(PIXEL_SYMBOL_PATTERNS.heart, centerX, centerY, size);
-  }
-
-  private drawLoveTransitionOverlay(width: number, height: number, pose: FacePose): void {
-    const progress = this.resolveLoveTransitionProgress();
-    if (progress < 0 || this.mode !== "face") {
-      return;
-    }
-
-    const ctx = this.ctx;
-    let heartAlpha = 0;
-    let swell = 0;
-
-    if (progress >= 0.08 && progress < 0.28) {
-      const t = ease("smooth", (progress - 0.08) / 0.2);
-      heartAlpha = t;
-      swell = t;
-    } else if (progress >= 0.28 && progress < 0.76) {
-      const holdPulse = 0.92 + 0.08 * (0.5 + 0.5 * wave(this.elapsed / 1000, 3.2));
-      heartAlpha = 1;
-      swell = holdPulse;
-    } else if (progress >= 0.76 && progress < 0.92) {
-      const t = 1 - ease("smooth", (progress - 0.76) / 0.16);
-      heartAlpha = t;
-      swell = 0.92 + t * 0.18;
-    }
-
-    if (heartAlpha <= 0.001) {
-      return;
-    }
-
-    const heartSize = Math.min(width, height) * (0.12 + 0.2 * swell);
-    const washAlpha = heartAlpha * 0.12;
-    const centerY = -height * 0.05 + pose.global.bob * height * 0.05;
-
-    ctx.save();
-    ctx.globalAlpha *= washAlpha;
-    ctx.fillStyle = this.theme.panel;
-    roundedRect(
-      ctx,
-      -width * 0.24,
-      -height * 0.26 + pose.global.bob * height * 0.06,
-      width * 0.48,
-      height * 0.38,
-      Math.min(width, height) * 0.06,
-    );
-    ctx.fill();
-
-    ctx.shadowColor = "#ff7b98";
-    ctx.shadowBlur = heartSize * 0.4;
-    ctx.globalAlpha = heartAlpha;
-    ctx.fillStyle = "#ff305f";
-    this.drawHeartGlyph(0, centerY, heartSize);
-
-    ctx.shadowBlur = 0;
-    ctx.globalAlpha = heartAlpha * 0.3;
-    ctx.fillStyle = "#ff9ab3";
-    this.drawHeartGlyph(0, centerY - heartSize * 0.04, heartSize * 0.62);
-    ctx.restore();
-  }
-
   private drawSymbol(symbol: SymbolName, width: number, height: number, pose: FacePose): void {
     const ctx = this.ctx;
     const scale = Math.min(width, height);
@@ -2069,7 +1592,8 @@ class RobotFaceRenderer implements RobotFace {
       for (let index = 0; index < 3; index += 1) {
         ctx.save();
         ctx.globalAlpha *= index === active ? 1 : 0.28;
-        this.drawPixelGlyph(
+        drawPixelGlyph(
+          ctx,
           PIXEL_LOADING_BAR,
           (index - 1) * scale * 0.13,
           y + scale * 0.02,
@@ -2080,7 +1604,8 @@ class RobotFaceRenderer implements RobotFace {
       return;
     }
 
-    this.drawPixelGlyph(
+    drawPixelGlyph(
+      ctx,
       PIXEL_SYMBOL_PATTERNS[symbol] ?? PIXEL_SYMBOL_PATTERNS.warning,
       0,
       y,
