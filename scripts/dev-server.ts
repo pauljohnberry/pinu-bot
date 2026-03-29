@@ -9,6 +9,39 @@ const types: Record<string, string> = {
   ".map": "application/json; charset=utf-8",
   ".css": "text/css; charset=utf-8",
   ".json": "application/json; charset=utf-8",
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".xml": "application/xml; charset=utf-8",
+  ".txt": "text/plain; charset=utf-8",
+  ".webmanifest": "application/manifest+json; charset=utf-8",
+};
+
+const sanitizeRelativePath = (pathname: string): string | null => {
+  const rawPath = pathname.startsWith("/") ? pathname.slice(1) : pathname;
+
+  let decodedPath = rawPath;
+  try {
+    decodedPath = decodeURIComponent(rawPath);
+  } catch {
+    return null;
+  }
+
+  if (decodedPath.includes("\\") || decodedPath.includes("\0")) {
+    return null;
+  }
+
+  const segments: string[] = [];
+  for (const segment of decodedPath.split("/")) {
+    if (!segment || segment === ".") {
+      continue;
+    }
+    if (segment === "..") {
+      return null;
+    }
+    segments.push(segment);
+  }
+
+  return segments.join("/");
 };
 
 const resolveCandidates = (pathname: string): string[] => {
@@ -20,16 +53,22 @@ const resolveCandidates = (pathname: string): string[] => {
     return ["showcase/index.html"];
   }
 
-  const relativePath = pathname.startsWith("/") ? pathname.slice(1) : pathname;
+  const relativePath = sanitizeRelativePath(pathname);
+  if (!relativePath) {
+    return [];
+  }
+
   if (
     relativePath.startsWith("demo/") ||
     relativePath.startsWith("dist/") ||
-    relativePath.startsWith("test/")
+    relativePath.startsWith("test/") ||
+    relativePath.startsWith("showcase/") ||
+    relativePath.startsWith("public/")
   ) {
     return [relativePath];
   }
 
-  return [relativePath, `demo/${relativePath}`];
+  return [`public/${relativePath}`, `demo/${relativePath}`];
 };
 
 const contentTypeFor = (pathname: string): string | undefined => {

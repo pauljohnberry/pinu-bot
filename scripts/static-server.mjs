@@ -1,7 +1,7 @@
 import { createReadStream, existsSync } from "node:fs";
 import { stat } from "node:fs/promises";
 import { createServer } from "node:http";
-import { extname, join, normalize } from "node:path";
+import { extname, join } from "node:path";
 
 const port = Number(process.env.PORT || "53001");
 const root = process.cwd();
@@ -12,6 +12,39 @@ const contentTypes = {
   ".js": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
   ".map": "application/json; charset=utf-8",
+  ".png": "image/png",
+  ".svg": "image/svg+xml",
+  ".txt": "text/plain; charset=utf-8",
+  ".webmanifest": "application/manifest+json; charset=utf-8",
+  ".xml": "application/xml; charset=utf-8",
+};
+
+const sanitizeRelativePath = (pathname) => {
+  const rawPath = pathname.replace(/^\/+/, "");
+
+  let decodedPath = rawPath;
+  try {
+    decodedPath = decodeURIComponent(rawPath);
+  } catch {
+    return null;
+  }
+
+  if (decodedPath.includes("\\") || decodedPath.includes("\0")) {
+    return null;
+  }
+
+  const segments = [];
+  for (const segment of decodedPath.split("/")) {
+    if (!segment || segment === ".") {
+      continue;
+    }
+    if (segment === "..") {
+      return null;
+    }
+    segments.push(segment);
+  }
+
+  return segments.join("/");
 };
 
 const resolveCandidates = (pathname) => {
@@ -23,12 +56,22 @@ const resolveCandidates = (pathname) => {
     return [join(root, "showcase/index.html")];
   }
 
-  const cleaned = normalize(pathname.replace(/^\/+/, ""));
-  if (cleaned.startsWith("demo/") || cleaned.startsWith("dist/") || cleaned.startsWith("test/")) {
+  const cleaned = sanitizeRelativePath(pathname);
+  if (!cleaned) {
+    return [];
+  }
+
+  if (
+    cleaned.startsWith("demo/") ||
+    cleaned.startsWith("dist/") ||
+    cleaned.startsWith("test/") ||
+    cleaned.startsWith("showcase/") ||
+    cleaned.startsWith("public/")
+  ) {
     return [join(root, cleaned)];
   }
 
-  return [join(root, cleaned), join(root, "demo", cleaned)];
+  return [join(root, "public", cleaned), join(root, "demo", cleaned)];
 };
 
 const server = createServer(async (request, response) => {
