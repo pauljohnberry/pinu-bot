@@ -15,6 +15,58 @@
     {
       "source": "/stress.html",
       "destination": "/demo/stress.html"
+    },
+    {
+      "source": "/robots.txt",
+      "destination": "/public/robots.txt"
+    },
+    {
+      "source": "/sitemap.xml",
+      "destination": "/public/sitemap.xml"
+    },
+    {
+      "source": "/site.webmanifest",
+      "destination": "/public/site.webmanifest"
+    },
+    {
+      "source": "/og-image.png",
+      "destination": "/public/og-image.png"
+    },
+    {
+      "source": "/favicon.svg",
+      "destination": "/public/favicon.svg"
+    },
+    {
+      "source": "/favicon-16x16.png",
+      "destination": "/public/favicon-16x16.png"
+    },
+    {
+      "source": "/favicon-32x32.png",
+      "destination": "/public/favicon-32x32.png"
+    },
+    {
+      "source": "/apple-touch-icon.png",
+      "destination": "/public/apple-touch-icon.png"
+    },
+    {
+      "source": "/icon-192.png",
+      "destination": "/public/icon-192.png"
+    },
+    {
+      "source": "/icon-512.png",
+      "destination": "/public/icon-512.png"
+    },
+    {
+      "source": "/icon-maskable-192.png",
+      "destination": "/public/icon-maskable-192.png"
+    },
+    {
+      "source": "/icon-maskable-512.png",
+      "destination": "/public/icon-maskable-512.png"
+    },
+    {
+      "source": "/safari-pinned-tab.svg",
+      "destination": "/public/safari-pinned-tab.svg"
     }
   ]
 }

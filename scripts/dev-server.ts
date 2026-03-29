@@ -9,6 +9,11 @@ const types: Record<string, string> = {
   ".map": "application/json; charset=utf-8",
   ".css": "text/css; charset=utf-8",
   ".json": "application/json; charset=utf-8",
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".xml": "application/xml; charset=utf-8",
+  ".txt": "text/plain; charset=utf-8",
+  ".webmanifest": "application/manifest+json; charset=utf-8",
 };
 
 const resolveCandidates = (pathname: string): string[] => {
@@ -24,12 +29,14 @@ const resolveCandidates = (pathname: string): string[] => {
   if (
     relativePath.startsWith("demo/") ||
     relativePath.startsWith("dist/") ||
-    relativePath.startsWith("test/")
+    relativePath.startsWith("test/") ||
+    relativePath.startsWith("showcase/") ||
+    relativePath.startsWith("public/")
   ) {
     return [relativePath];
   }
 
-  return [relativePath, `demo/${relativePath}`];
+  return [relativePath, `public/${relativePath}`, `demo/${relativePath}`];
 };
 
 const contentTypeFor = (pathname: string): string | undefined => {

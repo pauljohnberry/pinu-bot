@@ -12,6 +12,11 @@ const contentTypes = {
   ".js": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
   ".map": "application/json; charset=utf-8",
+  ".png": "image/png",
+  ".svg": "image/svg+xml",
+  ".txt": "text/plain; charset=utf-8",
+  ".webmanifest": "application/manifest+json; charset=utf-8",
+  ".xml": "application/xml; charset=utf-8",
 };
 
 const resolveCandidates = (pathname) => {
@@ -24,11 +29,17 @@ const resolveCandidates = (pathname) => {
   }
 
   const cleaned = normalize(pathname.replace(/^\/+/, ""));
-  if (cleaned.startsWith("demo/") || cleaned.startsWith("dist/") || cleaned.startsWith("test/")) {
+  if (
+    cleaned.startsWith("demo/") ||
+    cleaned.startsWith("dist/") ||
+    cleaned.startsWith("test/") ||
+    cleaned.startsWith("showcase/") ||
+    cleaned.startsWith("public/")
+  ) {
     return [join(root, cleaned)];
   }
 
-  return [join(root, cleaned), join(root, "demo", cleaned)];
+  return [join(root, cleaned), join(root, "public", cleaned), join(root, "demo", cleaned)];
 };
 
 const server = createServer(async (request, response) => {
