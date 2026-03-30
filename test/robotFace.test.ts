@@ -5,6 +5,8 @@ import {
   BUILTIN_STYLES,
   type CharacterDefinition,
   createRobotFace,
+  getCharacter,
+  registerCharacter,
 } from "../src/index";
 
 type RafCallback = (time: number) => void;
@@ -313,13 +315,13 @@ describe("createRobotFace", () => {
       },
       defaultParts: {
         eyeShape: "soft",
-        eyeWidthScale: "1",
-        eyeHeightScale: "1",
+        eyeWidthScale: 1,
+        eyeHeightScale: 1,
         noseShape: "pointed",
         mouthShape: "soft",
         browShape: "soft",
-        scanlineThickness: "1.5",
-        scanlineSpacing: "5",
+        scanlineThickness: 1.5,
+        scanlineSpacing: 5,
       },
       defaultStyle: {
         ...BUILTIN_STYLES.soft,
@@ -374,6 +376,78 @@ describe("createRobotFace", () => {
 
     expect(lastMouthOpenness).toBeGreaterThan(0.45);
     face.destroy();
+  });
+
+  test("supports registered characters by name and setCharacter string path", () => {
+    const canvas = new FakeCanvas();
+    let eyeCalls = 0;
+    let noseCalls = 0;
+
+    const namedCharacter: CharacterDefinition = {
+      name: "registry-spec-character",
+      partOptions: {
+        eyeShape: ["soft"],
+        noseShape: ["pointed"],
+        mouthShape: ["soft"],
+        browShape: ["soft"],
+      },
+      defaultParts: {
+        eyeShape: "soft",
+        eyeWidthScale: 1,
+        eyeHeightScale: 1,
+        noseShape: "pointed",
+        mouthShape: "soft",
+        browShape: "soft",
+        scanlineThickness: 1.5,
+        scanlineSpacing: 5,
+      },
+      defaultStyle: BUILTIN_STYLES.soft,
+      drawEye() {
+        eyeCalls += 1;
+      },
+      drawBrow() {},
+      drawNose() {
+        noseCalls += 1;
+      },
+      drawMouth() {},
+    };
+
+    registerCharacter(namedCharacter);
+    expect(getCharacter(namedCharacter.name)).toBe(namedCharacter);
+
+    const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
+      autoStart: false,
+      character: namedCharacter.name,
+    });
+
+    face.render();
+    expect(eyeCalls).toBeGreaterThan(0);
+
+    eyeCalls = 0;
+    noseCalls = 0;
+    face.setCharacter(namedCharacter.name).render();
+
+    expect(eyeCalls).toBeGreaterThan(0);
+    expect(noseCalls).toBeGreaterThan(0);
+  });
+
+  test("throws for unknown character names", () => {
+    const canvas = new FakeCanvas();
+
+    expect(() =>
+      createRobotFace(canvas as unknown as HTMLCanvasElement, {
+        autoStart: false,
+        character: "missing-character",
+      }),
+    ).toThrow('Unknown character: "missing-character". Register it with registerCharacter().');
+
+    const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
+      autoStart: false,
+    });
+
+    expect(() => face.setCharacter("missing-character")).toThrow(
+      'Unknown character: "missing-character". Register it with registerCharacter().',
+    );
   });
 
   test("starts, advances animation frames, and stops cleanly", () => {

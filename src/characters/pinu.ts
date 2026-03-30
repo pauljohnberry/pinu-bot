@@ -222,13 +222,13 @@ export const pinuCharacter: CharacterDefinition = {
 
   defaultParts: {
     eyeShape: "soft",
-    eyeWidthScale: "1",
-    eyeHeightScale: "1",
+    eyeWidthScale: 1,
+    eyeHeightScale: 1,
     noseShape: "bridge",
     mouthShape: "soft",
     browShape: "soft",
-    scanlineThickness: "1.5",
-    scanlineSpacing: "5",
+    scanlineThickness: 1.5,
+    scanlineSpacing: 5,
   },
 
   defaultStyle: STYLE_PRESETS.classic,
@@ -238,8 +238,8 @@ export const pinuCharacter: CharacterDefinition = {
     const { pose, side, style, features, parts } = params;
     const openness = clamp(pose.openness, 0.01, 1);
     const squint = clamp(pose.squint, 0, 1);
-    const eyeHeightScale = clamp(Number(parts.eyeHeightScale) || 1, 0.5, 1.8);
-    const eyeWidthScale = clamp(Number(parts.eyeWidthScale) || 1, 0.5, 1.8);
+    const eyeHeightScale = clamp(parts.eyeHeightScale, 0.5, 1.8);
+    const eyeWidthScale = clamp(parts.eyeWidthScale, 0.5, 1.8);
     const baseHeight = params.height * eyeHeightScale;
     const baseWidth = params.width * eyeWidthScale;
     const eyeHeight = Math.max(

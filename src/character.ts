@@ -7,6 +7,7 @@ import type {
   FacePose,
   MouthPose,
   NosePose,
+  PartStyleConfig,
   StyleDefinition,
   ThemeDefinition,
 } from "./types.js";
@@ -29,7 +30,7 @@ export interface EyeDrawParams {
   side: -1 | 1;
   style: StyleDefinition;
   features: FaceFeatures;
-  parts: Record<string, string>;
+  parts: Required<PartStyleConfig>;
 }
 
 export interface BrowDrawParams {
@@ -39,7 +40,7 @@ export interface BrowDrawParams {
   height: number;
   pose: EyePose;
   side: -1 | 1;
-  parts: Record<string, string>;
+  parts: Required<PartStyleConfig>;
 }
 
 export interface NoseDrawParams {
@@ -48,7 +49,7 @@ export interface NoseDrawParams {
   width: number;
   height: number;
   pose: NosePose;
-  parts: Record<string, string>;
+  parts: Required<PartStyleConfig>;
 }
 
 export interface MouthDrawParams {
@@ -57,7 +58,7 @@ export interface MouthDrawParams {
   width: number;
   height: number;
   pose: MouthPose;
-  parts: Record<string, string>;
+  parts: Required<PartStyleConfig>;
 }
 
 export interface CharacterDefinition {
@@ -70,7 +71,7 @@ export interface CharacterDefinition {
     browShape: string[];
   };
 
-  defaultParts: Record<string, string>;
+  defaultParts: Required<PartStyleConfig>;
   defaultStyle: StyleDefinition;
   defaultFeatures?: Partial<FaceFeatures>;
 

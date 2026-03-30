@@ -68,6 +68,12 @@
             face.render();
             window.__PINU_READY__ = true;
           }, settleMs);
+        } else {
+          window.setTimeout(() => {
+            face.stop();
+            face.render();
+            window.__PINU_READY__ = true;
+          }, 500);
         }
       }
     </script>

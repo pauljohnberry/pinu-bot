@@ -1451,13 +1451,13 @@ export const kibaCharacter: CharacterDefinition = {
 
   defaultParts: {
     eyeShape: "soft",
-    eyeWidthScale: "1",
-    eyeHeightScale: "1",
+    eyeWidthScale: 1,
+    eyeHeightScale: 1,
     noseShape: "pointed",
     mouthShape: "soft",
     browShape: "soft",
-    scanlineThickness: "5",
-    scanlineSpacing: "12",
+    scanlineThickness: 5,
+    scanlineSpacing: 12,
   },
 
   defaultStyle: kibaStyle,
@@ -1528,8 +1528,8 @@ export const kibaCharacter: CharacterDefinition = {
     const { pose, side, parts, features } = params;
     const openness = clamp(pose.openness, 0.01, 1);
     const squint = clamp(pose.squint, 0, 1);
-    const eyeHeightScale = clamp(Number(parts.eyeHeightScale) || 1, 0.5, 1.8);
-    const eyeWidthScale = clamp(Number(parts.eyeWidthScale) || 1, 0.5, 1.8);
+    const eyeHeightScale = clamp(parts.eyeHeightScale, 0.5, 1.8);
+    const eyeWidthScale = clamp(parts.eyeWidthScale, 0.5, 1.8);
     const baseHeight = params.height * eyeHeightScale;
     const baseWidth = params.width * eyeWidthScale;
     const eyeHeight = Math.max(

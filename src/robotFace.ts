@@ -234,42 +234,8 @@ const resolveCharacter = (character: CharacterDefinition | string): CharacterDef
   return character;
 };
 
-const parseCharacterPartNumber = (value: string | undefined, fallback: number): number => {
-  if (value === undefined) {
-    return fallback;
-  }
-
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
-};
-
 const resolveCharacterParts = (character: CharacterDefinition): Required<PartStyleConfig> => {
-  const parts = character.defaultParts;
-
-  return {
-    eyeShape:
-      (parts.eyeShape as Required<PartStyleConfig>["eyeShape"]) ?? PART_STYLE_DEFAULTS.eyeShape,
-    eyeWidthScale: parseCharacterPartNumber(parts.eyeWidthScale, PART_STYLE_DEFAULTS.eyeWidthScale),
-    eyeHeightScale: parseCharacterPartNumber(
-      parts.eyeHeightScale,
-      PART_STYLE_DEFAULTS.eyeHeightScale,
-    ),
-    noseShape:
-      (parts.noseShape as Required<PartStyleConfig>["noseShape"]) ?? PART_STYLE_DEFAULTS.noseShape,
-    mouthShape:
-      (parts.mouthShape as Required<PartStyleConfig>["mouthShape"]) ??
-      PART_STYLE_DEFAULTS.mouthShape,
-    browShape:
-      (parts.browShape as Required<PartStyleConfig>["browShape"]) ?? PART_STYLE_DEFAULTS.browShape,
-    scanlineThickness: parseCharacterPartNumber(
-      parts.scanlineThickness,
-      PART_STYLE_DEFAULTS.scanlineThickness,
-    ),
-    scanlineSpacing: parseCharacterPartNumber(
-      parts.scanlineSpacing,
-      PART_STYLE_DEFAULTS.scanlineSpacing,
-    ),
-  };
+  return mergeParts(PART_STYLE_DEFAULTS, character.defaultParts);
 };
 
 const DEFAULT_BACKGROUND_FX: ResolvedBackgroundFx = {
@@ -1425,27 +1391,13 @@ class RobotFaceRenderer implements RobotFace {
     };
   }
 
-  private partsAsRecord(): Record<string, string> {
-    const p = this.parts;
-    return {
-      eyeShape: p.eyeShape,
-      eyeWidthScale: String(p.eyeWidthScale),
-      eyeHeightScale: String(p.eyeHeightScale),
-      noseShape: p.noseShape,
-      mouthShape: p.mouthShape,
-      browShape: p.browShape,
-      scanlineThickness: String(p.scanlineThickness),
-      scanlineSpacing: String(p.scanlineSpacing),
-    };
-  }
-
   private drawFacePass(offsetX: number, offsetY: number, alpha: number, flicker: number): void {
     const ctx = this.ctx;
     const width = this.logicalWidth;
     const height = this.logicalHeight;
     const pose = this.currentPose;
     const dc = this.buildDrawContext();
-    const partsRecord = this.partsAsRecord();
+    const parts = this.parts;
 
     ctx.save();
     ctx.translate(offsetX, offsetY);
@@ -1494,7 +1446,7 @@ class RobotFaceRenderer implements RobotFace {
           height: height * style.browHeight,
           pose: pose.leftEye,
           side: -1,
-          parts: partsRecord,
+          parts,
         });
       }
       if (this.features.rightEye) {
@@ -1505,7 +1457,7 @@ class RobotFaceRenderer implements RobotFace {
           height: height * style.browHeight,
           pose: pose.rightEye,
           side: 1,
-          parts: partsRecord,
+          parts,
         });
       }
     }
@@ -1519,7 +1471,7 @@ class RobotFaceRenderer implements RobotFace {
         side: -1,
         style,
         features: this.features,
-        parts: partsRecord,
+        parts,
       });
     }
     if (this.features.rightEye) {
@@ -1532,7 +1484,7 @@ class RobotFaceRenderer implements RobotFace {
         side: 1,
         style,
         features: this.features,
-        parts: partsRecord,
+        parts,
       });
     }
     if (this.features.nose) {
@@ -1542,7 +1494,7 @@ class RobotFaceRenderer implements RobotFace {
         width: width * style.noseWidth,
         height: height * style.noseHeight,
         pose: pose.nose,
-        parts: partsRecord,
+        parts,
       });
     }
     if (this.features.mouth) {
@@ -1552,7 +1504,7 @@ class RobotFaceRenderer implements RobotFace {
         width: width * style.mouthWidth,
         height: height * style.mouthHeight,
         pose: pose.mouth,
-        parts: partsRecord,
+        parts,
       });
     }
     ctx.restore();
