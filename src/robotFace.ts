@@ -669,6 +669,9 @@ class RobotFaceRenderer implements RobotFace {
     this.dpr =
       options.pixelRatio ?? (typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1);
     const neutralDefinition = this.getEmotionDefinition("neutral");
+    this.emotionDurationMs = neutralDefinition.durationMs;
+    this.emotionEase = neutralDefinition.ease;
+    this.blinkDurationMs = neutralDefinition.blinkDurationMs;
     this.autoBlinkInMs = this.randomBlinkDelay(neutralDefinition);
 
     copyPose(this.currentPose, neutralDefinition.pose);
