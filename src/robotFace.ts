@@ -1514,7 +1514,7 @@ class RobotFaceRenderer implements RobotFace {
   private drawScrambleSlices(width: number, height: number, pose: FacePose, flicker: number): void {
     const scramble = this.character.getScrambleStrength
       ? this.character.getScrambleStrength(this.emotionTargetName, pose.global.distortion)
-      : pose.global.distortion * 0.7;
+      : Math.max(this.emotionTargetName === "angry" ? 0.16 : 0, pose.global.distortion * 0.7);
 
     if (scramble < 0.08 || this.mode === "symbol") {
       return;
