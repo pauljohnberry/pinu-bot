@@ -23,21 +23,25 @@
 
     <script type="module">
       import { EMOTIONS } from "../dist/emotions.js";
-      import { createRobotFace } from "../dist/index.js";
+      import { createRobotFace, kibaCharacter, pinuCharacter } from "../dist/index.js";
 
       const params = new URLSearchParams(window.location.search);
       const emotion = params.get("emotion") ?? "neutral";
+      const character = params.get("character") ?? "pinu";
       const theme = params.get("theme") ?? "cyan";
       const style = params.get("style") ?? "classic";
       const faceTheme = params.get("faceTheme");
       const mode = params.get("mode") ?? "face";
       const symbol = params.get("symbol");
       const noseShape = params.get("noseShape");
+      const characters = { pinu: pinuCharacter, kiba: kibaCharacter };
+      const activeCharacter = characters[character] ?? pinuCharacter;
 
       const canvas = document.querySelector("#face");
       const face = createRobotFace(canvas, {
-        autoStart: false,
+        autoStart: true,
         pixelRatio: 1,
+        character: activeCharacter,
         theme,
         style,
         faceTheme: faceTheme || undefined,
@@ -51,12 +55,21 @@
       face.setMode(mode);
       if (mode === "symbol" && symbol) {
         face.showSymbol(symbol);
+        face.stop();
+        face.render();
+        window.__PINU_READY__ = true;
       } else {
-        face.transitionTo(EMOTIONS[emotion].pose);
+        const resolvedEmotion = activeCharacter.emotions?.[emotion] ?? EMOTIONS[emotion];
+        if (resolvedEmotion) {
+          face.emote(emotion);
+          const settleMs = Math.max(420, resolvedEmotion.durationMs + 120);
+          window.setTimeout(() => {
+            face.stop();
+            face.render();
+            window.__PINU_READY__ = true;
+          }, settleMs);
+        }
       }
-
-      face.render();
-      window.__PINU_READY__ = true;
     </script>
   </body>
 </html>

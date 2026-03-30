@@ -87,11 +87,11 @@ const face = createRobotFace(canvas, {
     nose: false
   },
   parts: {
-    eyeShape: "capsule",
+    eyeShape: "wide",
     eyeWidthScale: 0.82,
     eyeHeightScale: 1.25,
-    browShape: "line",
-    mouthShape: "arc"
+    browShape: "soft",
+    mouthShape: "soft"
   }
 });
 
@@ -121,12 +121,12 @@ face.speak({ intensity: 0.4 });
 face.setStyle("visor");
 face.setFaceTheme(BUILTIN_FACE_THEMES.sentinel);
 face.setParts({
-  eyeShape: "pixel",
+  eyeShape: "block",
   eyeWidthScale: 0.7,
   eyeHeightScale: 1.4,
-  noseShape: "bar",
-  mouthShape: "visor",
-  browShape: "block",
+  noseShape: "bridge",
+  mouthShape: "band",
+  browShape: "bold",
   scanlineThickness: 2,
   scanlineSpacing: 5
 });
@@ -237,7 +237,7 @@ Styles:
 `classic`, `soft`, `minimal`, `visor`, `industrial`
 
 Face themes:
-`companion`, `service`, `sentinel`, `soft-smile`, `status-strip`, `caret-cheer`, `crescent-muse`, `teardrop-dream`
+`default`, `companion`, `service`, `sentinel`, `soft-smile`, `status-strip`, `caret-cheer`, `crescent-muse`, `teardrop-dream`
 
 ## Features And Shapes
 
@@ -252,11 +252,11 @@ Consumer-facing feature toggles:
 - `scanlines`
 
 Part shape options:
-- `eyeShape`: `rounded`, `capsule`, `pixel`, `chevron`, `crescent`, `tear`
+- `eyeShape`: `soft`, `wide`, `block`, `sharp`, `sleepy`, `droplet`
 - `eyeWidthScale` / `eyeHeightScale`
-- `noseShape`: `diamond`, `triangle`, `bar`, `dot`
-- `mouthShape`: `arc`, `visor`, `pixel`
-- `browShape`: `line`, `block`, `visor`
+- `noseShape`: `gem`, `pointed`, `bridge`, `button`
+- `mouthShape`: `soft`, `band`, `block`
+- `browShape`: `soft`, `bold`, `angled`
 - `scanlineThickness` / `scanlineSpacing`
 
 ## Symbol Mode

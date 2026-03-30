@@ -203,12 +203,12 @@ describe("createRobotFace", () => {
       .setStyle(BUILTIN_STYLES.soft)
       .setFaceTheme(BUILTIN_FACE_THEMES.sentinel)
       .setParts({
-        eyeShape: "pixel",
+        eyeShape: "block",
         eyeWidthScale: 0.7,
         eyeHeightScale: 1.35,
-        browShape: "block",
-        noseShape: "dot",
-        mouthShape: "visor",
+        browShape: "bold",
+        noseShape: "button",
+        mouthShape: "band",
         scanlineThickness: 2,
         scanlineSpacing: 6,
       })
@@ -306,18 +306,18 @@ describe("createRobotFace", () => {
     const customCharacter: CharacterDefinition = {
       name: "spec-character",
       partOptions: {
-        eyeShape: ["rounded"],
-        noseShape: ["triangle"],
-        mouthShape: ["arc"],
-        browShape: ["line"],
+        eyeShape: ["soft"],
+        noseShape: ["pointed"],
+        mouthShape: ["soft"],
+        browShape: ["soft"],
       },
       defaultParts: {
-        eyeShape: "rounded",
+        eyeShape: "soft",
         eyeWidthScale: "1",
         eyeHeightScale: "1",
-        noseShape: "triangle",
-        mouthShape: "arc",
-        browShape: "line",
+        noseShape: "pointed",
+        mouthShape: "soft",
+        browShape: "soft",
         scanlineThickness: "1.5",
         scanlineSpacing: "5",
       },
@@ -367,7 +367,7 @@ describe("createRobotFace", () => {
     expect(backgroundCalls).toBeGreaterThan(0);
     expect(browCalls).toBe(0);
     expect(lastEyeCenterX).toBeCloseTo(canvas.clientWidth * 0.24, 4);
-    expect(lastNoseShape).toBe("triangle");
+    expect(lastNoseShape).toBe("pointed");
     face.emote("happy");
     raf.step(400);
     raf.step(800);

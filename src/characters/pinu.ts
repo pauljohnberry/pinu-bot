@@ -8,7 +8,7 @@ import type {
 } from "../character.js";
 import { clamp, drawPixelGlyph, ease, roundedRect, wave } from "../drawUtils.js";
 import { STYLE_PRESETS } from "../styles.js";
-import type { EyeShapeName, FacePose, MouthShapeName, NoseShapeName } from "../types.js";
+import type { FacePose } from "../types.js";
 
 const PUPIL_FILL = "#000000";
 const PUPIL_FILL_ANGRY = "#565d66";
@@ -25,7 +25,7 @@ const HEART_PATTERN = [
 ];
 
 function eyeShapeSupportsPupil(shape: string): boolean {
-  return shape === "rounded" || shape === "capsule" || shape === "pixel";
+  return shape === "soft" || shape === "wide" || shape === "block";
 }
 
 function drawEyeShell(
@@ -37,14 +37,14 @@ function drawEyeShell(
   height: number,
   radius: number,
 ): void {
-  if (shape === "pixel") {
+  if (shape === "block") {
     ctx.beginPath();
     ctx.rect(x, y, width, height);
     ctx.closePath();
     return;
   }
 
-  if (shape === "capsule") {
+  if (shape === "wide") {
     roundedRect(ctx, x, y, width, height, height * 0.5);
     return;
   }
@@ -61,7 +61,7 @@ function drawGlyphEye(
   openness: number,
   squint: number,
 ): void {
-  if (shape === "chevron") {
+  if (shape === "sharp") {
     const lineWidth = Math.max(3, Math.min(width, height) * 0.18);
     const apexX = side * width * 0.04;
     const apexY = -height * (0.3 + squint * 0.08);
@@ -75,7 +75,7 @@ function drawGlyphEye(
     return;
   }
 
-  if (shape === "crescent") {
+  if (shape === "sleepy") {
     const lineWidth = Math.max(3, Math.min(width, height) * 0.2);
     const startX = -side * width * 0.08;
     const controlX = side * width * 0.42;
@@ -88,7 +88,7 @@ function drawGlyphEye(
     return;
   }
 
-  if (shape === "tear") {
+  if (shape === "droplet") {
     const topY = -height * 0.48;
     const bottomY = height * 0.48;
     const shoulderX = width * 0.28;
@@ -107,7 +107,7 @@ function drawNoseShape(
   width: number,
   height: number,
 ): void {
-  if (shape === "triangle") {
+  if (shape === "pointed") {
     ctx.beginPath();
     ctx.moveTo(0, -height * 0.42);
     ctx.lineTo(width * 0.36, height * 0.42);
@@ -117,13 +117,13 @@ function drawNoseShape(
     return;
   }
 
-  if (shape === "bar") {
+  if (shape === "bridge") {
     roundedRect(ctx, -width * 0.12, -height * 0.42, width * 0.24, height * 0.84, width * 0.08);
     ctx.fill();
     return;
   }
 
-  if (shape === "dot") {
+  if (shape === "button") {
     roundedRect(ctx, -width * 0.16, -height * 0.16, width * 0.32, height * 0.32, width * 0.12);
     ctx.fill();
     return;
@@ -146,7 +146,7 @@ function drawMouthShape(
   lift: number,
   openDepth: number,
 ): void {
-  if (shape === "visor") {
+  if (shape === "band") {
     const thickness = Math.max(height * 0.18, openDepth * 0.88 + height * 0.16);
     const leftX = -mouthWidth * 0.5;
     const rightX = mouthWidth * 0.5;
@@ -166,7 +166,7 @@ function drawMouthShape(
     return;
   }
 
-  if (shape === "pixel") {
+  if (shape === "block") {
     const barHeight = Math.max(height * 0.12, openDepth * 0.8 + height * 0.08);
     ctx.beginPath();
     ctx.moveTo(-mouthWidth * 0.5, -barHeight * 0.35 + lift * 0.18);
@@ -214,19 +214,19 @@ export const pinuCharacter: CharacterDefinition = {
   name: "pinu",
 
   partOptions: {
-    eyeShape: ["rounded", "capsule", "pixel", "chevron", "crescent", "tear"],
-    noseShape: ["diamond", "triangle", "bar", "dot"],
-    mouthShape: ["arc", "visor", "pixel"],
-    browShape: ["line", "block", "visor"],
+    eyeShape: ["soft", "wide", "block", "sharp", "sleepy", "droplet"],
+    noseShape: ["gem", "pointed", "bridge", "button"],
+    mouthShape: ["soft", "band", "block"],
+    browShape: ["soft", "bold", "angled"],
   },
 
   defaultParts: {
-    eyeShape: "rounded",
+    eyeShape: "soft",
     eyeWidthScale: "1",
     eyeHeightScale: "1",
-    noseShape: "bar",
-    mouthShape: "arc",
-    browShape: "line",
+    noseShape: "bridge",
+    mouthShape: "soft",
+    browShape: "soft",
     scanlineThickness: "1.5",
     scanlineSpacing: "5",
   },
@@ -252,8 +252,8 @@ export const pinuCharacter: CharacterDefinition = {
     const lidCut = eyeHeight * squint * 0.24;
     const brightness = clamp(pose.brightness, 0.1, 1.8);
     const strokeWidth = Math.max(2, eyeHeight * 0.08);
-    const eyeShape = parts.eyeShape ?? "rounded";
-    const glyphEye = eyeShape === "chevron" || eyeShape === "crescent" || eyeShape === "tear";
+    const eyeShape = parts.eyeShape ?? "soft";
+    const glyphEye = eyeShape === "sharp" || eyeShape === "sleepy" || eyeShape === "droplet";
 
     ctx.save();
     ctx.translate(params.centerX, params.centerY);
@@ -337,7 +337,7 @@ export const pinuCharacter: CharacterDefinition = {
   drawBrow(dc: DrawContext, params: BrowDrawParams): void {
     const { ctx, theme, emotionName } = dc;
     const { pose, side, parts } = params;
-    const shape = parts.browShape ?? "line";
+    const shape = parts.browShape ?? "soft";
     const baseAngle = pose.tilt * 0.52 + pose.squint * 0.18 * -side;
     const angle = emotionName === "confused" ? (side === -1 ? -0.2 : -0.08) : baseAngle;
     const lift = (1 - pose.openness) * params.height * 0.4;
@@ -351,7 +351,7 @@ export const pinuCharacter: CharacterDefinition = {
     ctx.globalAlpha *= brightness * 0.9;
     ctx.lineWidth = Math.max(2, params.height * 0.7);
 
-    if (shape === "line") {
+    if (shape === "soft") {
       ctx.beginPath();
       ctx.moveTo(-params.width * 0.5, 0);
       ctx.lineTo(params.width * 0.5, 0);
@@ -360,7 +360,7 @@ export const pinuCharacter: CharacterDefinition = {
       return;
     }
 
-    if (shape === "block") {
+    if (shape === "bold") {
       roundedRect(
         ctx,
         -params.width * 0.5,
@@ -399,7 +399,7 @@ export const pinuCharacter: CharacterDefinition = {
     ctx.strokeStyle = theme.foreground;
     ctx.fillStyle = theme.foreground;
     ctx.globalAlpha *= brightness * 0.92;
-    drawNoseShape(ctx, parts.noseShape ?? "diamond", w, h);
+    drawNoseShape(ctx, parts.noseShape ?? "gem", w, h);
     ctx.restore();
   },
 
@@ -426,7 +426,7 @@ export const pinuCharacter: CharacterDefinition = {
     if (closedMouth) {
       ctx.shadowBlur *= 1.2;
     }
-    drawMouthShape(ctx, parts.mouthShape ?? "arc", mouthWidth, params.height, lift, openDepth);
+    drawMouthShape(ctx, parts.mouthShape ?? "soft", mouthWidth, params.height, lift, openDepth);
 
     ctx.restore();
   },

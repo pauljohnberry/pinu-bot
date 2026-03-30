@@ -190,13 +190,27 @@ const resolveTheme = (theme: ThemeName | ThemeDefinition): ThemeDefinition =>
 const resolveStyle = (style: StylePresetName | StyleDefinition): StyleDefinition =>
   typeof style === "string" ? STYLE_PRESETS[style] : style;
 
+const normalizeFeatures = (features: FaceFeatures): FaceFeatures => {
+  const anyEyeVisible = features.leftEye || features.rightEye;
+  if (anyEyeVisible) {
+    return features;
+  }
+
+  return {
+    ...features,
+    brows: false,
+    pupils: false,
+  };
+};
+
 const mergeFeatures = (
   base: FaceFeatures,
   update: Partial<FaceFeatures> | undefined,
-): FaceFeatures => ({
-  ...base,
-  ...update,
-});
+): FaceFeatures =>
+  normalizeFeatures({
+    ...base,
+    ...update,
+  });
 
 const mergeParts = (
   base: Required<PartStyleConfig>,
@@ -967,8 +981,7 @@ class RobotFaceRenderer implements RobotFace {
 
   private applyFaceThemeDefinition(faceTheme: FaceThemeDefinition, resetProfile = false): void {
     if (resetProfile) {
-      this.features = { ...FACE_FEATURE_DEFAULTS };
-      this.parts = { ...PART_STYLE_DEFAULTS };
+      this.applyCharacterDefaults(this.character);
       this.mode = "face";
       this.symbolName = null;
       this.backgroundFx = { ...DEFAULT_BACKGROUND_FX };

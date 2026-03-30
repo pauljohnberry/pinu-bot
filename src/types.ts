@@ -29,6 +29,7 @@ export type ThemeName =
 
 export type StylePresetName = "classic" | "soft" | "minimal" | "visor" | "industrial";
 export type FaceThemeName =
+  | "default"
   | "companion"
   | "service"
   | "sentinel"
@@ -37,10 +38,10 @@ export type FaceThemeName =
   | "caret-cheer"
   | "crescent-muse"
   | "teardrop-dream";
-export type EyeShapeName = "rounded" | "capsule" | "pixel" | "chevron" | "crescent" | "tear";
-export type NoseShapeName = "diamond" | "triangle" | "bar" | "dot";
-export type MouthShapeName = "arc" | "visor" | "pixel";
-export type BrowShapeName = "line" | "block" | "visor";
+export type EyeShapeName = "soft" | "wide" | "block" | "sharp" | "sleepy" | "droplet";
+export type NoseShapeName = "gem" | "pointed" | "bridge" | "button";
+export type MouthShapeName = "soft" | "band" | "block";
+export type BrowShapeName = "soft" | "bold" | "angled";
 export type DisplayMode = "face" | "symbol";
 export type WinkSide = "left" | "right";
 export type SymbolName =

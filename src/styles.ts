@@ -12,12 +12,12 @@ export const FACE_FEATURE_DEFAULTS: FaceFeatures = {
 };
 
 export const PART_STYLE_DEFAULTS: Required<PartStyleConfig> = {
-  eyeShape: "rounded",
+  eyeShape: "soft",
   eyeWidthScale: 1,
   eyeHeightScale: 1,
-  noseShape: "diamond",
-  mouthShape: "arc",
-  browShape: "line",
+  noseShape: "gem",
+  mouthShape: "soft",
+  browShape: "soft",
   scanlineThickness: 1.5,
   scanlineSpacing: 5,
 };

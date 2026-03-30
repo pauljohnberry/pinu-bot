@@ -511,9 +511,9 @@
     scanlines: false
   },
   parts: {
-    eyeShape: "capsule",
-    noseShape: "bar",
-    mouthShape: "arc"
+    eyeShape: "wide",
+    noseShape: "bridge",
+    mouthShape: "soft"
   }
 });
 
@@ -546,8 +546,8 @@ face.lookRight(0.7);</code></pre>
             </p>
             <div class="tags">
               <span>faceTheme: companion</span>
-              <span>capsule eyes</span>
-              <span>visor brows</span>
+              <span>wide eyes</span>
+              <span>angled brows</span>
               <span>friendly idle motion</span>
             </div>
             <pre><code>const face = createRobotFace(canvas, {
@@ -558,11 +558,11 @@ face.lookRight(0.7);</code></pre>
     nose: false,
   },
   parts: {
-    eyeShape: "capsule",
+    eyeShape: "wide",
     eyeWidthScale: 0.52,
     eyeHeightScale: 1.72,
-    browShape: "visor",
-    noseShape: "bar",
+    browShape: "angled",
+    noseShape: "bridge",
     scanlineThickness: 1.75,
   },
 });
@@ -598,8 +598,8 @@ face.wink("left");</code></pre>
   style: "industrial",
   backgroundFx: "emotion",
   parts: {
-    noseShape: "bar",
-    mouthShape: "visor",
+    noseShape: "bridge",
+    mouthShape: "band",
     scanlineThickness: 2.5,
     scanlineSpacing: 5
   }
@@ -635,8 +635,8 @@ face.emote("thinking");</code></pre>
   style: "visor",
   backgroundFx: "emotion",
   parts: {
-    noseShape: "bar",
-    mouthShape: "visor"
+    noseShape: "bridge",
+    mouthShape: "band"
   }
 });
 
@@ -724,9 +724,9 @@ face.showSymbol("warning");</code></pre>
             scanlines: false,
           },
           parts: {
-            eyeShape: "capsule",
-            noseShape: "bar",
-            mouthShape: "arc",
+            eyeShape: "wide",
+            noseShape: "bridge",
+            mouthShape: "soft",
           },
         },
         (face) => {
@@ -753,11 +753,11 @@ face.showSymbol("warning");</code></pre>
             nose: false,
           },
           parts: {
-            eyeShape: "capsule",
+            eyeShape: "wide",
             eyeWidthScale: 0.52,
             eyeHeightScale: 1.72,
-            browShape: "visor",
-            noseShape: "bar",
+            browShape: "angled",
+            noseShape: "bridge",
             scanlineThickness: 1.75,
           },
         },
@@ -782,8 +782,8 @@ face.showSymbol("warning");</code></pre>
           style: "industrial",
           backgroundFx: "emotion",
           parts: {
-            noseShape: "bar",
-            mouthShape: "visor",
+            noseShape: "bridge",
+            mouthShape: "band",
             scanlineThickness: 2.5,
             scanlineSpacing: 5,
           },
@@ -809,8 +809,8 @@ face.showSymbol("warning");</code></pre>
           style: "visor",
           backgroundFx: "emotion",
           parts: {
-            noseShape: "bar",
-            mouthShape: "visor",
+            noseShape: "bridge",
+            mouthShape: "band",
           },
         },
         (face) => {
