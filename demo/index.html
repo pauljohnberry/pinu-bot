@@ -143,6 +143,8 @@
         position: sticky;
         top: 14px;
         z-index: 1;
+        display: grid;
+        gap: 12px;
         justify-self: center;
         width: min(820px, 100%);
         margin-inline: auto;
@@ -355,6 +357,7 @@
           width: min(760px, 100%);
           top: 8px;
           padding: 12px;
+          gap: 10px;
           border-radius: 22px;
         }
 
@@ -370,6 +373,59 @@
         .docs-grid {
           grid-template-columns: 1fr;
         }
+      }
+
+      .character-switcher {
+        display: flex;
+        justify-content: center;
+        gap: 6px;
+        padding: 0 4px;
+      }
+
+      .character-switcher button {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-width: 110px;
+        padding: 10px 20px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.04);
+        color: rgba(230, 247, 251, 0.6);
+        font: inherit;
+        font-size: 0.95rem;
+        letter-spacing: 0.04em;
+        cursor: pointer;
+        transition: all 180ms ease;
+      }
+
+      .character-switcher button:hover {
+        border-color: rgba(127, 244, 255, 0.28);
+        background: rgba(127, 244, 255, 0.08);
+        color: #e6f7fb;
+      }
+
+      .character-switcher button.is-active {
+        border-color: rgba(127, 244, 255, 0.5);
+        background: rgba(127, 244, 255, 0.14);
+        color: #f3fbff;
+        box-shadow: 0 0 12px rgba(127, 244, 255, 0.12);
+      }
+
+      .character-switcher .coming-soon-tag {
+        display: inline-flex;
+        align-items: center;
+        padding: 3px 7px;
+        border-radius: 999px;
+        background: rgba(255, 191, 102, 0.14);
+        border: 1px solid rgba(255, 191, 102, 0.24);
+        color: rgba(255, 221, 179, 0.92);
+        font-size: 0.62rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        white-space: nowrap;
       }
 
       @media (max-width: 640px) {
@@ -399,6 +455,10 @@
         </div>
       </header>
       <div class="stage">
+        <nav class="character-switcher" id="character-switcher">
+          <button type="button" data-character="pinu" class="is-active">pinu</button>
+          <button type="button" data-character="kiba">kiba <span class="coming-soon-tag">coming soon</span></button>
+        </nav>
         <canvas id="face" width="720" height="480"></canvas>
       </div>
       <div class="docs-grid">
@@ -458,7 +518,7 @@
                 <option value="custom">background custom</option>
               </select>
               <select id="face-theme">
-                <option value="">face theme custom</option>
+                <option value="default" selected>face theme default</option>
                 <option value="companion">face theme companion</option>
                 <option value="service">face theme service</option>
                 <option value="sentinel">face theme sentinel</option>
@@ -492,12 +552,12 @@
             <h3>Parts</h3>
             <div class="controls">
               <select id="eye-shape">
-                <option value="rounded">eye rounded</option>
-                <option value="capsule">eye capsule</option>
-                <option value="pixel">eye pixel</option>
-                <option value="chevron">eye chevron</option>
-                <option value="crescent">eye crescent</option>
-                <option value="tear">eye tear</option>
+                <option value="soft">eye soft</option>
+                <option value="wide">eye wide</option>
+                <option value="block">eye block</option>
+                <option value="sharp">eye sharp</option>
+                <option value="sleepy">eye sleepy</option>
+                <option value="droplet">eye droplet</option>
               </select>
               <select id="eye-aspect">
                 <option value="wide">eye wide</option>
@@ -506,20 +566,20 @@
                 <option value="pillar">eye pillar</option>
               </select>
               <select id="brow-shape">
-                <option value="line">brow line</option>
-                <option value="block">brow block</option>
-                <option value="visor">brow visor</option>
+                <option value="soft">brow soft</option>
+                <option value="bold">brow bold</option>
+                <option value="angled">brow angled</option>
               </select>
               <select id="nose-shape">
-                <option value="diamond">nose diamond</option>
-                <option value="triangle">nose triangle</option>
-                <option value="bar" selected>nose bar</option>
-                <option value="dot">nose dot</option>
+                <option value="gem">nose gem</option>
+                <option value="pointed">nose pointed</option>
+                <option value="bridge" selected>nose bridge</option>
+                <option value="button">nose button</option>
               </select>
               <select id="mouth-shape">
-                <option value="arc">mouth arc</option>
-                <option value="visor">mouth visor</option>
-                <option value="pixel">mouth pixel</option>
+                <option value="soft">mouth soft</option>
+                <option value="band">mouth band</option>
+                <option value="block">mouth block</option>
               </select>
               <label>scanline thickness <input id="scanline-thickness" type="range" min="1.25" max="5" step="0.25" value="5" /></label>
               <label>scanline spacing <input id="scanline-spacing" type="range" min="3" max="12" step="1" value="12" /></label>
@@ -595,8 +655,12 @@ bun add pinu-bot</pre>
                   <span class="subtle">Play cinematic display transitions.</span>
                 </div>
                 <div class="api-item">
+                  <code>face.setCharacter(nameOrDefinition)</code>
+                  <span class="subtle">Switch to a different character. Each character has its own eye, nose, mouth, and brow graphics.</span>
+                </div>
+                <div class="api-item">
                   <code>face.setTheme(nameOrDefinition) / face.setFaceTheme(nameOrDefinition)</code>
-                  <span class="subtle">Switch visual palettes or apply bundled character presets.</span>
+                  <span class="subtle">Switch visual palettes or apply bundled face-theme presets.</span>
                 </div>
                 <div class="api-item">
                   <code>face.setStyle(nameOrDefinition) / face.setBackgroundFx(...)</code>
@@ -631,7 +695,9 @@ bun add pinu-bot</pre>
         BUILTIN_FACE_THEMES,
         BUILTIN_STYLES,
         BUILTIN_THEMES,
-        createRobotFace
+        createRobotFace,
+        kibaCharacter,
+        pinuCharacter
       } from "../dist/index.js";
 
       const PACKAGE_VERSION = "0.2.0";
@@ -647,7 +713,7 @@ bun add pinu-bot</pre>
       const face = createRobotFace(canvas, {
         theme: "cyan",
         parts: {
-          noseShape: "bar",
+          noseShape: "bridge",
           scanlineThickness: 5,
           scanlineSpacing: 12
         },
@@ -665,21 +731,22 @@ bun add pinu-bot</pre>
         scanlines: true
       };
       const defaultPartState = {
-        eyeShape: "rounded",
+        eyeShape: "soft",
         eyeWidthScale: 1,
         eyeHeightScale: 1,
-        noseShape: "diamond",
-        mouthShape: "arc",
-        browShape: "line",
+        noseShape: "bridge",
+        mouthShape: "soft",
+        browShape: "soft",
         scanlineThickness: 1.5,
         scanlineSpacing: 5
       };
       const eyeAspectPresets = {
-        wide: { eyeShape: "capsule", eyeWidthScale: 1.38, eyeHeightScale: 0.72 },
-        balanced: { eyeShape: "rounded", eyeWidthScale: 1, eyeHeightScale: 1 },
-        tall: { eyeShape: "capsule", eyeWidthScale: 0.72, eyeHeightScale: 1.42 },
-        pillar: { eyeShape: "capsule", eyeWidthScale: 0.52, eyeHeightScale: 1.72 }
+        wide: { eyeShape: "wide", eyeWidthScale: 1.38, eyeHeightScale: 0.72 },
+        balanced: { eyeShape: "soft", eyeWidthScale: 1, eyeHeightScale: 1 },
+        tall: { eyeShape: "wide", eyeWidthScale: 0.72, eyeHeightScale: 1.42 },
+        pillar: { eyeShape: "wide", eyeWidthScale: 0.52, eyeHeightScale: 1.72 }
       };
+      const characterButtons = document.querySelectorAll("#character-switcher button");
       const themeSelect = document.querySelector("#theme");
       const styleSelect = document.querySelector("#style");
       const modeSelect = document.querySelector("#mode");
@@ -696,6 +763,8 @@ bun add pinu-bot</pre>
       const scanlineSpacingInput = document.querySelector("#scanline-spacing");
       const codeSample = document.querySelector("#code-sample");
       const versionBadge = document.querySelector("#package-version");
+      const characters = { pinu: pinuCharacter, kiba: kibaCharacter };
+      let activeCharacter = pinuCharacter;
       let currentActionCode = INTRO_ACTION_CODE;
       let introActive = false;
       const introTimeouts = [];
@@ -854,20 +923,74 @@ bun add pinu-bot</pre>
         symbolSelect.classList.toggle("is-disabled", !enabled);
       };
 
+      const rebuildSelect = (select, options, prefix, currentValue) => {
+        select.innerHTML = "";
+        for (const name of options) {
+          const opt = document.createElement("option");
+          opt.value = name;
+          opt.textContent = `${prefix} ${name}`;
+          select.appendChild(opt);
+        }
+        if (options.includes(currentValue)) {
+          select.value = currentValue;
+        } else {
+          select.value = options[0] ?? "";
+        }
+      };
+
+      const syncPartSelects = (character) => {
+        const po = character.partOptions;
+        const dp = character.defaultParts;
+        rebuildSelect(eyeShapeSelect, po.eyeShape, "eye", dp.eyeShape);
+        rebuildSelect(browShapeSelect, po.browShape, "brow", dp.browShape);
+        rebuildSelect(noseShapeSelect, po.noseShape, "nose", dp.noseShape);
+        rebuildSelect(mouthShapeSelect, po.mouthShape, "mouth", dp.mouthShape);
+        scanlineThicknessInput.value = String(dp.scanlineThickness);
+        scanlineSpacingInput.value = String(dp.scanlineSpacing);
+        eyeAspectSelect.value = resolveEyeAspectPresetName({
+          eyeShape: dp.eyeShape,
+          eyeWidthScale: Number(dp.eyeWidthScale),
+          eyeHeightScale: Number(dp.eyeHeightScale),
+        });
+      };
+
       const syncPackageMeta = () => {
         versionBadge.textContent = `v${PACKAGE_VERSION}`;
       };
 
-      const buildFeatureLines = () => {
-        const features = {
-          leftEye: checkboxByValue.eyes.checked,
-          rightEye: checkboxByValue.eyes.checked,
-          brows: checkboxByValue.brows.checked,
-          pupils: checkboxByValue.pupils.checked,
+      const deriveFeatureStateFromChecks = () => {
+        const eyes = checkboxByValue.eyes.checked;
+
+        return {
+          eyes,
+          brows: eyes && checkboxByValue.brows.checked,
+          pupils: eyes && checkboxByValue.pupils.checked,
           nose: checkboxByValue.nose.checked,
           mouth: checkboxByValue.mouth.checked,
           panel: checkboxByValue.panel.checked,
           scanlines: checkboxByValue.scanlines.checked
+        };
+      };
+
+      const syncDependentFeatureControls = () => {
+        const eyesEnabled = checkboxByValue.eyes.checked;
+        [checkboxByValue.brows, checkboxByValue.pupils].forEach((input) => {
+          input.disabled = !eyesEnabled;
+          input.closest("label")?.classList.toggle("is-disabled", !eyesEnabled);
+        });
+      };
+
+      const buildFeatureLines = () => {
+        const derivedFeatures = deriveFeatureStateFromChecks();
+        const features = {
+          leftEye: derivedFeatures.eyes,
+          rightEye: derivedFeatures.eyes,
+          brows: derivedFeatures.brows,
+          pupils: derivedFeatures.pupils,
+          nose: derivedFeatures.nose,
+          mouth: derivedFeatures.mouth,
+          panel: derivedFeatures.panel,
+          scanlines: derivedFeatures.scanlines
         };
 
         return Object.entries(features)
@@ -900,8 +1023,12 @@ bun add pinu-bot</pre>
 
       const syncCodeSample = () => {
         const optionLines = [];
+        const characterValue = activeCharacter.name;
         const faceThemeValue = faceThemeSelect.value;
 
+        if (characterValue && characterValue !== "pinu") {
+          optionLines.push(`  character: "${characterValue}",`);
+        }
         if (faceThemeValue) {
           optionLines.push(`  faceTheme: "${faceThemeValue}",`);
         }
@@ -978,6 +1105,34 @@ bun add pinu-bot</pre>
         }
 
         const features = { ...defaultFeatureState };
+        if (activeCharacter.defaultFeatures) {
+          if (
+            typeof activeCharacter.defaultFeatures.leftEye === "boolean" ||
+            typeof activeCharacter.defaultFeatures.rightEye === "boolean"
+          ) {
+            features.eyes = Boolean(
+              activeCharacter.defaultFeatures.leftEye ?? activeCharacter.defaultFeatures.rightEye ?? true
+            );
+          }
+          if (typeof activeCharacter.defaultFeatures.brows === "boolean") {
+            features.brows = activeCharacter.defaultFeatures.brows;
+          }
+          if (typeof activeCharacter.defaultFeatures.pupils === "boolean") {
+            features.pupils = activeCharacter.defaultFeatures.pupils;
+          }
+          if (typeof activeCharacter.defaultFeatures.nose === "boolean") {
+            features.nose = activeCharacter.defaultFeatures.nose;
+          }
+          if (typeof activeCharacter.defaultFeatures.mouth === "boolean") {
+            features.mouth = activeCharacter.defaultFeatures.mouth;
+          }
+          if (typeof activeCharacter.defaultFeatures.panel === "boolean") {
+            features.panel = activeCharacter.defaultFeatures.panel;
+          }
+          if (typeof activeCharacter.defaultFeatures.scanlines === "boolean") {
+            features.scanlines = activeCharacter.defaultFeatures.scanlines;
+          }
+        }
         if (faceTheme.features) {
           if (typeof faceTheme.features.leftEye === "boolean" || typeof faceTheme.features.rightEye === "boolean") {
             features.eyes = Boolean(faceTheme.features.leftEye ?? faceTheme.features.rightEye ?? true);
@@ -1002,7 +1157,7 @@ bun add pinu-bot</pre>
           }
         }
 
-        const parts = { ...defaultPartState, ...faceTheme.parts };
+        const parts = { ...defaultPartState, ...activeCharacter.defaultParts, ...faceTheme.parts };
 
         if (faceTheme.theme) {
           themeSelect.value =
@@ -1020,6 +1175,7 @@ bun add pinu-bot</pre>
         checkboxByValue.mouth.checked = features.mouth;
         checkboxByValue.panel.checked = features.panel;
         checkboxByValue.scanlines.checked = features.scanlines;
+        syncDependentFeatureControls();
         syncFeaturesFromChecks();
 
         eyeShapeSelect.value = parts.eyeShape;
@@ -1056,9 +1212,18 @@ bun add pinu-bot</pre>
         syncCodeSample();
       };
 
-      const syncFeaturesFromChecks = () => {
+      const syncFeaturesFromChecks = (event) => {
         markManualInteraction();
-        if ((checkboxByValue.brows.checked || checkboxByValue.pupils.checked) && !checkboxByValue.eyes.checked) {
+        const disablingEyes =
+          event?.target === checkboxByValue.eyes && !checkboxByValue.eyes.checked;
+
+        if (disablingEyes) {
+          checkboxByValue.brows.checked = false;
+          checkboxByValue.pupils.checked = false;
+        } else if (
+          (checkboxByValue.brows.checked || checkboxByValue.pupils.checked) &&
+          !checkboxByValue.eyes.checked
+        ) {
           checkboxByValue.eyes.checked = true;
         }
 
@@ -1067,16 +1232,18 @@ bun add pinu-bot</pre>
           checkboxByValue.pupils.checked = false;
         }
 
+        syncDependentFeatureControls();
+        const features = deriveFeatureStateFromChecks();
         face.configure({
           features: {
-            leftEye: checkboxByValue.eyes.checked,
-            rightEye: checkboxByValue.eyes.checked,
-            brows: checkboxByValue.brows.checked,
-            pupils: checkboxByValue.pupils.checked,
-            nose: checkboxByValue.nose.checked,
-            mouth: checkboxByValue.mouth.checked,
-            panel: checkboxByValue.panel.checked,
-            scanlines: checkboxByValue.scanlines.checked
+            leftEye: features.eyes,
+            rightEye: features.eyes,
+            brows: features.brows,
+            pupils: features.pupils,
+            nose: features.nose,
+            mouth: features.mouth,
+            panel: features.panel,
+            scanlines: features.scanlines
           }
         });
         syncCodeSample();
@@ -1150,12 +1317,30 @@ bun add pinu-bot</pre>
         currentActionCode = "face.speak({ intensity: 0.65, durationMs: 1800 });";
         syncCodeSample();
       });
+      characterButtons.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          markManualInteraction();
+          const name = btn.dataset.character;
+          const character = characters[name];
+          if (!character) {
+            return;
+          }
+          activeCharacter = character;
+          face.setCharacter(name);
+          syncPartSelects(character);
+
+          characterButtons.forEach((b) => { b.classList.remove("is-active"); });
+          btn.classList.add("is-active");
+
+          face.setFaceTheme(faceThemeSelect.value);
+          syncControlsFromFaceTheme(faceThemeSelect.value);
+
+          currentActionCode = `face.setCharacter("${name}");`;
+          syncCodeSample();
+        });
+      });
       document.querySelector("#face-theme").addEventListener("change", (event) => {
         markManualInteraction();
-        if (!event.target.value) {
-          syncCodeSample();
-          return;
-        }
         face.setFaceTheme(event.target.value);
         syncControlsFromFaceTheme(event.target.value);
       });

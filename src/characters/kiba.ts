@@ -1,0 +1,1958 @@
+import type {
+  BrowDrawParams,
+  CharacterDefinition,
+  DrawContext,
+  EyeDrawParams,
+  MouthDrawParams,
+  NoseDrawParams,
+} from "../character.js";
+import { clamp, drawPixelGlyph, roundedRect, wave } from "../drawUtils.js";
+import type { EmotionDefinition } from "../emotions.js";
+import { STYLE_PRESETS } from "../styles.js";
+import type { EmotionName, FacePose, StyleDefinition } from "../types.js";
+
+const PUPIL_FILL = "#000000";
+const LOVE_PUPIL_FILL = "#c81f4f";
+const TONGUE_FILL = "#ff8fb3";
+const TOOTH_FILL = "#f6fff7";
+const PUPIL_SHINE_FILL = "#f7ffff";
+const SURFACE_FILL_ALPHA = 0.26;
+const SURFACE_STROKE_ALPHA = 0.76;
+const DETAIL_LINE_ALPHA = 0.36;
+const PATCH_FILL_ALPHA = 0.18;
+const SOCKET_FILL_ALPHA = 0.11;
+const HEART_PATTERN = [
+  "01100110",
+  "11111111",
+  "11111111",
+  "11111111",
+  "01111110",
+  "00111100",
+  "00011000",
+  "00000000",
+];
+
+const kibaStyle: StyleDefinition = {
+  ...STYLE_PRESETS.soft,
+  eyeWidth: 0.118,
+  eyeHeight: 0.128,
+  eyeY: -0.092,
+  eyeGap: 0.146,
+  browWidth: 0.08,
+  browHeight: 0.01,
+  browY: -0.16,
+  noseWidth: 0.142,
+  noseHeight: 0.112,
+  noseY: 0.008,
+  mouthWidth: 0.304,
+  mouthHeight: 0.182,
+  mouthY: 0.188,
+  glowScale: 0.032,
+};
+
+const eye = (
+  openness: number,
+  squint: number,
+  tilt: number,
+  pupilX: number,
+  pupilY: number,
+  brightness: number,
+) => ({
+  openness,
+  squint,
+  tilt,
+  pupilX,
+  pupilY,
+  brightness,
+});
+
+const pose = (
+  leftEye: FacePose["leftEye"],
+  rightEye: FacePose["rightEye"],
+  nose: FacePose["nose"],
+  mouth: FacePose["mouth"],
+  global: FacePose["global"],
+): FacePose => ({
+  leftEye,
+  rightEye,
+  nose,
+  mouth,
+  global,
+});
+
+type EarPose = {
+  innerX: number;
+  outerX: number;
+  topY: number;
+  shoulderX: number;
+  shoulderY: number;
+  tipX: number;
+  tipY: number;
+  baseX: number;
+  baseY: number;
+};
+
+type EarPoseSet = {
+  left: EarPose;
+  right: EarPose;
+  leftBob: number;
+  rightBob: number;
+};
+
+type KibaEyeMetrics = {
+  centerX: number;
+  centerY: number;
+  width: number;
+  height: number;
+};
+
+const kibaEmotions: Partial<Record<EmotionName, EmotionDefinition>> = {
+  neutral: {
+    pose: pose(
+      eye(0.86, 0.05, 0, 0, 0, 1),
+      eye(0.86, 0.05, 0, 0, 0, 1),
+      { scale: 1, tilt: 0, brightness: 1 },
+      { openness: 0.04, curvature: 0, width: 0.9, tilt: 0, brightness: 0.98 },
+      { glow: 0.98, bob: 0.01, jitter: 0, distortion: 0, flicker: 0.01, scanline: 0.12 },
+    ),
+    durationMs: 260,
+    ease: "smooth",
+    microBob: 0.008,
+    microBobHz: 0.8,
+    microSway: 0.02,
+    blinkMinMs: 3200,
+    blinkMaxMs: 5800,
+    blinkDurationMs: 180,
+  },
+  happy: {
+    pose: pose(
+      eye(0.98, 0.02, 0, 0, -0.02, 1.08),
+      eye(0.98, 0.02, 0, 0, -0.02, 1.08),
+      { scale: 1.04, tilt: 0, brightness: 1.08 },
+      { openness: 0.36, curvature: 0.92, width: 0.96, tilt: 0, brightness: 1.1 },
+      { glow: 1.14, bob: 0.018, jitter: 0, distortion: 0, flicker: 0.02, scanline: 0.1 },
+    ),
+    durationMs: 220,
+    ease: "smooth",
+    microBob: 0.014,
+    microBobHz: 1.6,
+    microSway: 0.03,
+    blinkMinMs: 3800,
+    blinkMaxMs: 6600,
+    blinkDurationMs: 160,
+  },
+  love: {
+    pose: pose(
+      eye(0.9, 0.08, 0, 0, -0.04, 1.08),
+      eye(0.9, 0.08, 0, 0, -0.04, 1.08),
+      { scale: 1.02, tilt: 0, brightness: 1.05 },
+      { openness: 0.3, curvature: 0.82, width: 0.96, tilt: 0, brightness: 1.1 },
+      { glow: 1.18, bob: 0.016, jitter: 0, distortion: 0, flicker: 0.016, scanline: 0.1 },
+    ),
+    durationMs: 240,
+    ease: "smooth",
+    microBob: 0.014,
+    microBobHz: 1.3,
+    microSway: 0.03,
+    blinkMinMs: 4200,
+    blinkMaxMs: 7400,
+    blinkDurationMs: 170,
+  },
+  sad: {
+    pose: pose(
+      eye(0.54, 0.06, -0.18, 0, 0.14, 0.8),
+      eye(0.54, 0.06, 0.18, 0, 0.14, 0.8),
+      { scale: 0.92, tilt: 0, brightness: 0.82 },
+      { openness: 0.02, curvature: -1, width: 0.78, tilt: 0, brightness: 0.76 },
+      { glow: 0.8, bob: 0.006, jitter: 0, distortion: 0, flicker: 0.006, scanline: 0.16 },
+    ),
+    durationMs: 420,
+    ease: "gentle",
+    microBob: 0.006,
+    microBobHz: 0.45,
+    microSway: 0.02,
+    blinkMinMs: 2600,
+    blinkMaxMs: 4600,
+    blinkDurationMs: 220,
+  },
+  speaking: {
+    pose: pose(
+      eye(0.86, 0.06, 0, 0, 0, 1.04),
+      eye(0.86, 0.06, 0, 0, 0, 1.04),
+      { scale: 1.02, tilt: 0, brightness: 1.02 },
+      { openness: 0.6, curvature: 0.18, width: 0.92, tilt: 0, brightness: 1.06 },
+      { glow: 1.08, bob: 0.014, jitter: 0, distortion: 0, flicker: 0.02, scanline: 0.11 },
+    ),
+    durationMs: 180,
+    ease: "smooth",
+    microBob: 0.012,
+    microBobHz: 1.2,
+    microSway: 0.03,
+    blinkMinMs: 3600,
+    blinkMaxMs: 7000,
+    blinkDurationMs: 160,
+  },
+  excited: {
+    pose: pose(
+      eye(1, 0.02, 0, 0, -0.04, 1.14),
+      eye(1, 0.02, 0, 0, -0.04, 1.14),
+      { scale: 1.05, tilt: 0, brightness: 1.1 },
+      { openness: 0.54, curvature: 0.92, width: 1, tilt: 0, brightness: 1.16 },
+      { glow: 1.24, bob: 0.022, jitter: 0.001, distortion: 0, flicker: 0.024, scanline: 0.08 },
+    ),
+    durationMs: 160,
+    ease: "snap",
+    microBob: 0.02,
+    microBobHz: 2.2,
+    microSway: 0.04,
+    blinkMinMs: 4200,
+    blinkMaxMs: 7600,
+    blinkDurationMs: 150,
+  },
+  angry: {
+    pose: pose(
+      eye(0.46, 0.56, 0.12, 0, -0.04, 1.15),
+      eye(0.46, 0.56, -0.12, 0, -0.04, 1.15),
+      { scale: 1, tilt: 0.08, brightness: 1.05 },
+      { openness: 0.22, curvature: -0.26, width: 0.94, tilt: 0, brightness: 1.14 },
+      { glow: 1.14, bob: 0.01, jitter: 0.004, distortion: 0.18, flicker: 0.08, scanline: 0.16 },
+    ),
+    durationMs: 180,
+    ease: "snap",
+    microBob: 0.01,
+    microBobHz: 2.1,
+    microSway: 0.04,
+    blinkMinMs: 5200,
+    blinkMaxMs: 8200,
+    blinkDurationMs: 120,
+  },
+  confused: {
+    pose: pose(
+      eye(0.9, 0.08, -0.08, -0.02, 0.02, 1.04),
+      eye(0.72, 0.12, 0.04, 0.04, -0.01, 0.94),
+      { scale: 1, tilt: -0.1, brightness: 0.98 },
+      { openness: 0.04, curvature: -0.28, width: 0.84, tilt: -0.1, brightness: 0.94 },
+      { glow: 1.02, bob: 0.014, jitter: 0, distortion: 0, flicker: 0.014, scanline: 0.12 },
+    ),
+    durationMs: 260,
+    ease: "smooth",
+    microBob: 0.012,
+    microBobHz: 0.8,
+    microSway: 0.035,
+    blinkMinMs: 3600,
+    blinkMaxMs: 6200,
+    blinkDurationMs: 170,
+  },
+};
+
+function traceEarPath(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  side: -1 | 1,
+  bobY: number,
+  pose: EarPose,
+): void {
+  const earOffsetX = side * width * 0.014;
+  const topInnerX = side * width * pose.innerX + earOffsetX;
+  const topOuterX = side * width * pose.outerX + earOffsetX;
+  const ridgeY = height * pose.topY + bobY;
+  const shoulderX = side * width * pose.shoulderX + earOffsetX;
+  const shoulderY = height * pose.shoulderY + bobY;
+  const tipX = side * width * pose.tipX + earOffsetX;
+  const tipY = height * pose.tipY + bobY;
+  const baseX = side * width * pose.baseX + earOffsetX;
+  const baseY = height * pose.baseY + bobY;
+
+  ctx.beginPath();
+  ctx.moveTo(topInnerX, ridgeY);
+  ctx.bezierCurveTo(
+    side * width * (pose.innerX - 0.004),
+    ridgeY - height * 0.006,
+    side * width * (pose.outerX - 0.018),
+    ridgeY - height * 0.01,
+    topOuterX,
+    ridgeY,
+  );
+  ctx.bezierCurveTo(
+    side * width * (pose.outerX + 0.026),
+    height * (pose.topY + 0.04) + bobY,
+    side * width * (pose.shoulderX + 0.02),
+    height * (pose.shoulderY - 0.02) + bobY,
+    shoulderX,
+    shoulderY,
+  );
+  ctx.bezierCurveTo(
+    side * width * (pose.shoulderX - 0.014),
+    height * (pose.shoulderY + 0.12) + bobY,
+    side * width * (pose.tipX + 0.028),
+    height * (pose.tipY - 0.012) + bobY,
+    tipX,
+    tipY,
+  );
+  ctx.bezierCurveTo(
+    side * width * (pose.tipX - 0.026),
+    height * (pose.tipY + 0.05) + bobY,
+    side * width * (pose.baseX - 0.014),
+    height * (pose.baseY + 0.026) + bobY,
+    baseX,
+    baseY,
+  );
+  ctx.bezierCurveTo(
+    side * width * (pose.baseX - 0.016),
+    height * (pose.baseY - 0.09) + bobY,
+    side * width * (pose.innerX + 0.016),
+    height * (pose.topY + 0.092) + bobY,
+    topInnerX,
+    ridgeY,
+  );
+  ctx.closePath();
+}
+
+function resolveEarPoses(emotionName: EmotionName): EarPoseSet {
+  const neutralLeft: EarPose = {
+    innerX: 0.178,
+    outerX: 0.272,
+    topY: -0.178,
+    shoulderX: 0.298,
+    shoulderY: -0.046,
+    tipX: 0.246,
+    tipY: 0.176,
+    baseX: 0.194,
+    baseY: 0.034,
+  };
+  const neutralRight: EarPose = {
+    innerX: 0.178,
+    outerX: 0.272,
+    topY: -0.178,
+    shoulderX: 0.298,
+    shoulderY: -0.046,
+    tipX: 0.246,
+    tipY: 0.176,
+    baseX: 0.194,
+    baseY: 0.034,
+  };
+
+  if (emotionName === "excited") {
+    return {
+      left: {
+        innerX: 0.18,
+        outerX: 0.276,
+        topY: -0.204,
+        shoulderX: 0.306,
+        shoulderY: -0.08,
+        tipX: 0.248,
+        tipY: 0.124,
+        baseX: 0.196,
+        baseY: -0.004,
+      },
+      right: {
+        innerX: 0.182,
+        outerX: 0.29,
+        topY: -0.182,
+        shoulderX: 0.318,
+        shoulderY: -0.038,
+        tipX: 0.262,
+        tipY: 0.19,
+        baseX: 0.204,
+        baseY: 0.05,
+      },
+      leftBob: -0.014,
+      rightBob: 0.018,
+    };
+  }
+
+  if (emotionName === "happy") {
+    return {
+      left: {
+        innerX: 0.178,
+        outerX: 0.276,
+        topY: -0.19,
+        shoulderX: 0.304,
+        shoulderY: -0.064,
+        tipX: 0.246,
+        tipY: 0.144,
+        baseX: 0.194,
+        baseY: 0.014,
+      },
+      right: {
+        innerX: 0.178,
+        outerX: 0.276,
+        topY: -0.19,
+        shoulderX: 0.304,
+        shoulderY: -0.064,
+        tipX: 0.246,
+        tipY: 0.144,
+        baseX: 0.194,
+        baseY: 0.014,
+      },
+      leftBob: -0.004,
+      rightBob: 0.004,
+    };
+  }
+
+  if (emotionName === "love") {
+    return {
+      left: {
+        innerX: 0.176,
+        outerX: 0.282,
+        topY: -0.17,
+        shoulderX: 0.31,
+        shoulderY: -0.028,
+        tipX: 0.252,
+        tipY: 0.2,
+        baseX: 0.192,
+        baseY: 0.056,
+      },
+      right: {
+        innerX: 0.176,
+        outerX: 0.282,
+        topY: -0.17,
+        shoulderX: 0.31,
+        shoulderY: -0.028,
+        tipX: 0.252,
+        tipY: 0.2,
+        baseX: 0.192,
+        baseY: 0.056,
+      },
+      leftBob: 0.012,
+      rightBob: 0.012,
+    };
+  }
+
+  if (emotionName === "speaking") {
+    return {
+      left: {
+        ...neutralLeft,
+        topY: -0.184,
+        shoulderY: -0.052,
+        tipY: 0.184,
+        baseY: 0.04,
+      },
+      right: {
+        ...neutralRight,
+        topY: -0.184,
+        shoulderY: -0.052,
+        tipY: 0.184,
+        baseY: 0.04,
+      },
+      leftBob: 0,
+      rightBob: 0,
+    };
+  }
+
+  if (emotionName === "sleepy") {
+    return {
+      left: {
+        innerX: 0.176,
+        outerX: 0.264,
+        topY: -0.156,
+        shoulderX: 0.29,
+        shoulderY: -0.006,
+        tipX: 0.236,
+        tipY: 0.232,
+        baseX: 0.188,
+        baseY: 0.084,
+      },
+      right: {
+        innerX: 0.176,
+        outerX: 0.264,
+        topY: -0.156,
+        shoulderX: 0.29,
+        shoulderY: -0.006,
+        tipX: 0.236,
+        tipY: 0.232,
+        baseX: 0.188,
+        baseY: 0.084,
+      },
+      leftBob: 0.016,
+      rightBob: 0.016,
+    };
+  }
+
+  if (emotionName === "sad") {
+    return {
+      left: {
+        innerX: 0.176,
+        outerX: 0.266,
+        topY: -0.164,
+        shoulderX: 0.292,
+        shoulderY: -0.02,
+        tipX: 0.24,
+        tipY: 0.218,
+        baseX: 0.188,
+        baseY: 0.07,
+      },
+      right: {
+        innerX: 0.176,
+        outerX: 0.266,
+        topY: -0.164,
+        shoulderX: 0.292,
+        shoulderY: -0.02,
+        tipX: 0.24,
+        tipY: 0.218,
+        baseX: 0.188,
+        baseY: 0.07,
+      },
+      leftBob: 0.012,
+      rightBob: 0.012,
+    };
+  }
+
+  if (emotionName === "angry") {
+    return {
+      left: {
+        innerX: 0.19,
+        outerX: 0.236,
+        topY: -0.196,
+        shoulderX: 0.246,
+        shoulderY: -0.122,
+        tipX: 0.22,
+        tipY: 0.082,
+        baseX: 0.188,
+        baseY: -0.04,
+      },
+      right: {
+        innerX: 0.19,
+        outerX: 0.236,
+        topY: -0.196,
+        shoulderX: 0.246,
+        shoulderY: -0.122,
+        tipX: 0.22,
+        tipY: 0.082,
+        baseX: 0.188,
+        baseY: -0.04,
+      },
+      leftBob: -0.004,
+      rightBob: -0.004,
+    };
+  }
+
+  if (emotionName === "confused") {
+    return {
+      left: {
+        innerX: 0.168,
+        outerX: 0.246,
+        topY: -0.148,
+        shoulderX: 0.268,
+        shoulderY: 0.01,
+        tipX: 0.214,
+        tipY: 0.244,
+        baseX: 0.168,
+        baseY: 0.102,
+      },
+      right: {
+        innerX: 0.182,
+        outerX: 0.27,
+        topY: -0.186,
+        shoulderX: 0.296,
+        shoulderY: -0.054,
+        tipX: 0.244,
+        tipY: 0.16,
+        baseX: 0.194,
+        baseY: 0.024,
+      },
+      leftBob: 0.024,
+      rightBob: -0.01,
+    };
+  }
+
+  return {
+    left: neutralLeft,
+    right: neutralRight,
+    leftBob: 0,
+    rightBob: 0,
+  };
+}
+
+function drawEarFold(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  side: -1 | 1,
+  bobY: number,
+  pose: EarPose,
+): void {
+  const earOffsetX = side * width * 0.014;
+  const startX = side * width * (pose.innerX + 0.02) + earOffsetX;
+  const startY = height * (pose.topY + 0.072) + bobY;
+  const controlX = side * width * (pose.shoulderX - 0.038) + earOffsetX;
+  const controlY = height * (pose.shoulderY + 0.024) + bobY;
+  const endX = side * width * (pose.baseX + 0.014) + earOffsetX;
+  const endY = height * (pose.baseY + (pose.tipY - pose.baseY) * 0.3) + bobY;
+
+  ctx.beginPath();
+  ctx.moveTo(startX, startY);
+  ctx.quadraticCurveTo(controlX, controlY, endX, endY);
+  ctx.stroke();
+}
+
+function resolveKibaEyeMetrics(
+  width: number,
+  height: number,
+  pose: FacePose["leftEye"],
+  side: -1 | 1,
+  emotionName: EmotionName,
+): KibaEyeMetrics {
+  const openness = clamp(pose.openness, 0.01, 1);
+  const squint = clamp(pose.squint, 0, 1);
+  const baseHeight = height * kibaStyle.eyeHeight;
+  const baseWidth = width * kibaStyle.eyeWidth;
+  const eyeHeight = Math.max(
+    baseHeight * 0.1,
+    baseHeight * (0.18 + openness * 0.74) * (1 - squint * 0.52),
+  );
+  const eyeWidth = baseWidth * (0.86 + openness * 0.14);
+  const confusedTilt = emotionName === "confused";
+  const confusedScale = confusedTilt ? (side === -1 ? 1.18 : 0.94) : 1;
+  const confusedY = confusedTilt ? (side === -1 ? baseHeight * 0.1 : -baseHeight * 0.06) : 0;
+  const confusedX = confusedTilt ? (side === -1 ? -baseWidth * 0.02 : baseWidth * 0.01) : 0;
+  const excitedWide = emotionName === "excited" ? 1.14 : emotionName === "happy" ? 1.03 : 1;
+  const excitedShort = emotionName === "excited" ? 0.92 : 1;
+
+  return {
+    centerX: side * width * kibaStyle.eyeGap + confusedX,
+    centerY: height * kibaStyle.eyeY + confusedY,
+    width: eyeWidth * confusedScale * excitedWide,
+    height: eyeHeight * confusedScale * excitedShort,
+  };
+}
+
+function strokeCubicRange(
+  ctx: CanvasRenderingContext2D,
+  startT: number,
+  endT: number,
+  p0: { x: number; y: number },
+  p1: { x: number; y: number },
+  p2: { x: number; y: number },
+  p3: { x: number; y: number },
+  segments = 12,
+): void {
+  ctx.beginPath();
+  const start = cubicPoint(startT, p0, p1, p2, p3);
+  ctx.moveTo(start.x, start.y);
+  for (let index = 1; index <= segments; index += 1) {
+    const t = startT + (endT - startT) * (index / segments);
+    const point = cubicPoint(t, p0, p1, p2, p3);
+    ctx.lineTo(point.x, point.y);
+  }
+  ctx.stroke();
+}
+
+function cubicPoint(
+  t: number,
+  p0: { x: number; y: number },
+  p1: { x: number; y: number },
+  p2: { x: number; y: number },
+  p3: { x: number; y: number },
+): { x: number; y: number } {
+  const invT = 1 - t;
+  return {
+    x:
+      invT * invT * invT * p0.x +
+      3 * invT * invT * t * p1.x +
+      3 * invT * t * t * p2.x +
+      t * t * t * p3.x,
+    y:
+      invT * invT * invT * p0.y +
+      3 * invT * invT * t * p1.y +
+      3 * invT * t * t * p2.y +
+      t * t * t * p3.y,
+  };
+}
+
+function findInnerEarVisibleEndT(
+  eyeMetrics: KibaEyeMetrics,
+  p0: { x: number; y: number },
+  p1: { x: number; y: number },
+  p2: { x: number; y: number },
+  p3: { x: number; y: number },
+  height: number,
+): number {
+  const targetY = eyeMetrics.centerY + eyeMetrics.height * 0.58 + height * 0.008;
+  const samples = 40;
+
+  for (let index = 0; index <= samples; index += 1) {
+    const t = index / samples;
+    const point = cubicPoint(t, p0, p1, p2, p3);
+    if (point.y <= targetY) {
+      return clamp(t - 0.015, 0.08, 0.4);
+    }
+  }
+
+  return 0.24;
+}
+
+function strokeEarOutline(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  side: -1 | 1,
+  bobY: number,
+  pose: EarPose,
+  eyeMetrics: KibaEyeMetrics,
+): void {
+  const earOffsetX = side * width * 0.014;
+  const topInner = {
+    x: side * width * pose.innerX + earOffsetX,
+    y: height * pose.topY + bobY,
+  };
+  const topInnerCtrlA = {
+    x: side * width * (pose.innerX - 0.004) + earOffsetX,
+    y: height * pose.topY + bobY - height * 0.006,
+  };
+  const topInnerCtrlB = {
+    x: side * width * (pose.outerX - 0.018) + earOffsetX,
+    y: height * pose.topY + bobY - height * 0.01,
+  };
+  const topOuter = {
+    x: side * width * pose.outerX + earOffsetX,
+    y: height * pose.topY + bobY,
+  };
+  const shoulderCtrlA = {
+    x: side * width * (pose.outerX + 0.026) + earOffsetX,
+    y: height * (pose.topY + 0.04) + bobY,
+  };
+  const shoulderCtrlB = {
+    x: side * width * (pose.shoulderX + 0.02) + earOffsetX,
+    y: height * (pose.shoulderY - 0.02) + bobY,
+  };
+  const shoulder = {
+    x: side * width * pose.shoulderX + earOffsetX,
+    y: height * pose.shoulderY + bobY,
+  };
+  const tipCtrlA = {
+    x: side * width * (pose.shoulderX - 0.014) + earOffsetX,
+    y: height * (pose.shoulderY + 0.12) + bobY,
+  };
+  const tipCtrlB = {
+    x: side * width * (pose.tipX + 0.028) + earOffsetX,
+    y: height * (pose.tipY - 0.012) + bobY,
+  };
+  const tip = {
+    x: side * width * pose.tipX + earOffsetX,
+    y: height * pose.tipY + bobY,
+  };
+  const baseCtrlA = {
+    x: side * width * (pose.tipX - 0.026) + earOffsetX,
+    y: height * (pose.tipY + 0.05) + bobY,
+  };
+  const baseCtrlB = {
+    x: side * width * (pose.baseX - 0.014) + earOffsetX,
+    y: height * (pose.baseY + 0.026) + bobY,
+  };
+  const base = {
+    x: side * width * pose.baseX + earOffsetX,
+    y: height * pose.baseY + bobY,
+  };
+  const innerCtrlA = {
+    x: side * width * (pose.baseX - 0.016) + earOffsetX,
+    y: height * (pose.baseY - 0.09) + bobY,
+  };
+  const innerCtrlB = {
+    x: side * width * (pose.innerX + 0.016) + earOffsetX,
+    y: height * (pose.topY + 0.092) + bobY,
+  };
+
+  const innerVisibleEndT = findInnerEarVisibleEndT(
+    eyeMetrics,
+    base,
+    innerCtrlA,
+    innerCtrlB,
+    topInner,
+    height,
+  );
+
+  // Only cut the inner return. Keep the top ear border continuous.
+  strokeCubicRange(ctx, 0, 1, topInner, topInnerCtrlA, topInnerCtrlB, topOuter, 8);
+  strokeCubicRange(ctx, 0, 1, topOuter, shoulderCtrlA, shoulderCtrlB, shoulder, 10);
+  strokeCubicRange(ctx, 0, 1, shoulder, tipCtrlA, tipCtrlB, tip, 10);
+  strokeCubicRange(ctx, 0, 1, tip, baseCtrlA, baseCtrlB, base, 10);
+  strokeCubicRange(ctx, 0, innerVisibleEndT, base, innerCtrlA, innerCtrlB, topInner, 10);
+}
+
+function eyeShapeSupportsPupil(shape: string): boolean {
+  return shape === "soft" || shape === "wide" || shape === "block";
+}
+
+function drawGlyphEye(
+  ctx: CanvasRenderingContext2D,
+  shape: string,
+  width: number,
+  height: number,
+  side: number,
+  openness: number,
+  squint: number,
+): void {
+  if (shape === "sharp") {
+    const lineWidth = Math.max(1.5, Math.min(width, height) * 0.11);
+    const apexX = side * width * 0.04;
+    const apexY = -height * (0.28 + squint * 0.08);
+    const wingY = height * (0.08 + (1 - openness) * 0.12);
+    ctx.lineWidth = lineWidth;
+    ctx.beginPath();
+    ctx.moveTo(-width * 0.42, wingY);
+    ctx.lineTo(apexX, apexY);
+    ctx.lineTo(width * 0.42, wingY);
+    ctx.stroke();
+    return;
+  }
+
+  if (shape === "sleepy") {
+    const lineWidth = Math.max(1.5, Math.min(width, height) * 0.13);
+    const startX = -side * width * 0.08;
+    const controlX = side * width * 0.42;
+    const arcHeight = height * (0.42 + (1 - openness) * 0.08);
+    ctx.lineWidth = lineWidth;
+    ctx.beginPath();
+    ctx.moveTo(startX, -arcHeight);
+    ctx.quadraticCurveTo(controlX, 0, startX, arcHeight);
+    ctx.stroke();
+    return;
+  }
+
+  if (shape === "droplet") {
+    const topY = -height * 0.48;
+    const bottomY = height * 0.48;
+    const shoulderX = width * 0.28;
+    ctx.beginPath();
+    ctx.moveTo(0, topY);
+    ctx.bezierCurveTo(shoulderX, -height * 0.28, shoulderX, height * 0.16, 0, bottomY);
+    ctx.bezierCurveTo(-shoulderX, height * 0.16, -shoulderX, -height * 0.28, 0, topY);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
+function drawDogEyeShell(
+  ctx: CanvasRenderingContext2D,
+  shape: string,
+  width: number,
+  height: number,
+): void {
+  if (shape === "block") {
+    roundedRect(ctx, -width * 0.5, -height * 0.5, width, height, width * 0.14);
+    return;
+  }
+
+  if (shape === "wide") {
+    roundedRect(ctx, -width * 0.5, -height * 0.46, width, height * 0.92, height * 0.42);
+    return;
+  }
+
+  roundedRect(ctx, -width * 0.5, -height * 0.5, width, height, Math.min(width, height) * 0.5);
+}
+
+function drawDogEyeSocket(
+  ctx: CanvasRenderingContext2D,
+  shape: string,
+  width: number,
+  height: number,
+): void {
+  if (shape === "wide") {
+    roundedRect(ctx, -width * 0.54, -height * 0.48, width * 1.08, height * 0.96, height * 0.48);
+    return;
+  }
+
+  roundedRect(
+    ctx,
+    -width * 0.56,
+    -height * 0.5,
+    width * 1.12,
+    height,
+    Math.min(width, height) * 0.56,
+  );
+}
+
+function drawPupilShine(
+  ctx: CanvasRenderingContext2D,
+  pupilX: number,
+  pupilY: number,
+  pupilSize: number,
+): void {
+  const shineSize = pupilSize * 0.28;
+  roundedRect(
+    ctx,
+    pupilX - pupilSize * 0.18,
+    pupilY - pupilSize * 0.22,
+    shineSize,
+    shineSize,
+    shineSize * 0.5,
+  );
+}
+
+function drawDogTriangleNose(ctx: CanvasRenderingContext2D, width: number, height: number): void {
+  ctx.beginPath();
+  ctx.moveTo(-width * 0.18, -height * 0.18);
+  ctx.quadraticCurveTo(0, -height * 0.28, width * 0.18, -height * 0.18);
+  ctx.quadraticCurveTo(width * 0.4, -height * 0.14, width * 0.42, height * 0.02);
+  ctx.quadraticCurveTo(width * 0.4, height * 0.2, width * 0.24, height * 0.34);
+  ctx.quadraticCurveTo(width * 0.12, height * 0.44, 0, height * 0.46);
+  ctx.quadraticCurveTo(-width * 0.12, height * 0.44, -width * 0.24, height * 0.34);
+  ctx.quadraticCurveTo(-width * 0.4, height * 0.2, -width * 0.42, height * 0.02);
+  ctx.quadraticCurveTo(-width * 0.4, -height * 0.14, -width * 0.18, -height * 0.18);
+  ctx.closePath();
+}
+
+function drawDogNoseShape(
+  ctx: CanvasRenderingContext2D,
+  shape: string,
+  width: number,
+  height: number,
+): void {
+  if (shape === "bridge") {
+    roundedRect(ctx, -width * 0.42, -height * 0.16, width * 0.84, height * 0.42, height * 0.18);
+    return;
+  }
+
+  if (shape === "button") {
+    roundedRect(ctx, -width * 0.22, -height * 0.1, width * 0.44, height * 0.44, width * 0.22);
+    return;
+  }
+
+  if (shape === "gem") {
+    ctx.beginPath();
+    ctx.moveTo(0, -height * 0.26);
+    ctx.lineTo(width * 0.34, 0);
+    ctx.lineTo(0, height * 0.34);
+    ctx.lineTo(-width * 0.34, 0);
+    ctx.closePath();
+    return;
+  }
+
+  drawDogTriangleNose(ctx, width, height);
+}
+
+function drawDogNoseShine(
+  ctx: CanvasRenderingContext2D,
+  shape: string,
+  width: number,
+  height: number,
+): void {
+  if (shape === "button") {
+    const shineSize = width * 0.1;
+    roundedRect(ctx, -width * 0.1, -height * 0.05, shineSize, shineSize, shineSize * 0.5);
+    return;
+  }
+
+  if (shape === "gem") {
+    ctx.beginPath();
+    ctx.moveTo(-width * 0.12, -height * 0.09);
+    ctx.lineTo(-width * 0.04, -height * 0.13);
+    ctx.lineTo(width * 0.02, -height * 0.07);
+    ctx.lineTo(-width * 0.06, -height * 0.03);
+    ctx.closePath();
+    return;
+  }
+
+  const shineWidth = width * 0.18;
+  const shineHeight = height * 0.09;
+  const leftX = -width * 0.21;
+  const centerY = -height * 0.075;
+  const tipX = leftX + shineWidth;
+
+  ctx.beginPath();
+  ctx.moveTo(leftX + shineHeight * 0.45, centerY - shineHeight * 0.5);
+  ctx.bezierCurveTo(
+    leftX - shineHeight * 0.08,
+    centerY - shineHeight * 0.46,
+    leftX - shineHeight * 0.08,
+    centerY + shineHeight * 0.46,
+    leftX + shineHeight * 0.45,
+    centerY + shineHeight * 0.5,
+  );
+  ctx.bezierCurveTo(
+    leftX + shineWidth * 0.54,
+    centerY + shineHeight * 0.42,
+    tipX - shineWidth * 0.08,
+    centerY + shineHeight * 0.12,
+    tipX,
+    centerY,
+  );
+  ctx.bezierCurveTo(
+    tipX - shineWidth * 0.08,
+    centerY - shineHeight * 0.12,
+    leftX + shineWidth * 0.54,
+    centerY - shineHeight * 0.42,
+    leftX + shineHeight * 0.45,
+    centerY - shineHeight * 0.5,
+  );
+  ctx.closePath();
+}
+
+function drawDogArcMuzzlePad(
+  ctx: CanvasRenderingContext2D,
+  mouthWidth: number,
+  height: number,
+  curvature: number,
+  openness: number,
+): void {
+  const smileAmount = Math.max(0, curvature);
+  const frownAmount = Math.max(0, -curvature);
+  const width = mouthWidth * (0.88 + smileAmount * 0.06 - frownAmount * 0.04);
+  const topY = -height * (0.4 + smileAmount * 0.015 - openness * 0.015);
+  const upperBulgeY = -height * (0.5 + smileAmount * 0.015 - frownAmount * 0.01);
+  const cheekY = height * (0.04 - smileAmount * 0.03 + frownAmount * 0.05);
+  const lowerCheekY = height * (0.28 - smileAmount * 0.04 + openness * 0.06 + frownAmount * 0.06);
+  const bottomY = height * (0.46 - smileAmount * 0.04 + openness * 0.12 + frownAmount * 0.08);
+  const topCornerY = topY - height * (0.038 - smileAmount * 0.006);
+  const upperBridgeY = -height * (0.45 + smileAmount * 0.012 - frownAmount * 0.008);
+  const topShoulderX = width * 0.5;
+  const upperBridgeX = width * 0.34;
+
+  ctx.beginPath();
+  ctx.moveTo(-width * 0.56, topY + height * 0.02);
+  ctx.bezierCurveTo(
+    -topShoulderX,
+    topCornerY,
+    -upperBridgeX,
+    upperBridgeY,
+    -width * 0.18,
+    upperBulgeY,
+  );
+  ctx.quadraticCurveTo(0, -height * 0.4, width * 0.18, upperBulgeY);
+  ctx.bezierCurveTo(
+    upperBridgeX,
+    upperBridgeY,
+    topShoulderX,
+    topCornerY,
+    width * 0.56,
+    topY + height * 0.02,
+  );
+  ctx.quadraticCurveTo(width * 0.62, cheekY, width * 0.32, lowerCheekY);
+  ctx.quadraticCurveTo(width * 0.18, height * 0.46, 0, bottomY);
+  ctx.quadraticCurveTo(-width * 0.18, height * 0.46, -width * 0.32, lowerCheekY);
+  ctx.quadraticCurveTo(-width * 0.62, cheekY, -width * 0.56, topY + height * 0.02);
+  ctx.closePath();
+}
+
+function drawDogVisorMuzzlePad(
+  ctx: CanvasRenderingContext2D,
+  mouthWidth: number,
+  height: number,
+  curvature: number,
+  openness: number,
+): void {
+  const smileAmount = Math.max(0, curvature);
+  const frownAmount = Math.max(0, -curvature);
+  const width = mouthWidth * (0.94 + smileAmount * 0.04);
+  const topY = -height * (0.34 - openness * 0.02);
+  const bottomY = height * (0.38 + openness * 0.1 + frownAmount * 0.06);
+  const cheekY = height * (0.08 + frownAmount * 0.04);
+  const sideInset = width * 0.16;
+
+  ctx.beginPath();
+  ctx.moveTo(-width * 0.5, topY);
+  ctx.quadraticCurveTo(-width * 0.18, topY - height * 0.1, 0, topY - smileAmount * height * 0.04);
+  ctx.quadraticCurveTo(width * 0.18, topY - height * 0.1, width * 0.5, topY);
+  ctx.lineTo(width * (0.54 - sideInset / width), cheekY);
+  ctx.quadraticCurveTo(width * 0.34, bottomY, 0, bottomY + height * 0.06);
+  ctx.quadraticCurveTo(-width * 0.34, bottomY, -width * (0.54 - sideInset / width), cheekY);
+  ctx.closePath();
+}
+
+function drawDogPixelMuzzlePad(
+  ctx: CanvasRenderingContext2D,
+  mouthWidth: number,
+  height: number,
+  curvature: number,
+  openness: number,
+): void {
+  const smileAmount = Math.max(0, curvature);
+  const frownAmount = Math.max(0, -curvature);
+  const width = mouthWidth * 0.84;
+  const topY = -height * (0.32 - openness * 0.02);
+  const bottomY = height * (0.44 + openness * 0.08 + frownAmount * 0.05);
+  const centerDip = smileAmount * height * 0.03 - frownAmount * height * 0.02;
+
+  ctx.beginPath();
+  ctx.moveTo(-width * 0.56, topY + height * 0.04);
+  ctx.lineTo(-width * 0.34, topY - height * 0.08);
+  ctx.lineTo(width * 0.34, topY - height * 0.08 + centerDip);
+  ctx.lineTo(width * 0.56, topY + height * 0.04);
+  ctx.lineTo(width * 0.42, height * 0.24);
+  ctx.lineTo(width * 0.18, bottomY);
+  ctx.lineTo(-width * 0.18, bottomY);
+  ctx.lineTo(-width * 0.42, height * 0.24);
+  ctx.closePath();
+}
+
+function drawDogMuzzlePad(
+  ctx: CanvasRenderingContext2D,
+  shape: string,
+  mouthWidth: number,
+  height: number,
+  curvature: number,
+  openness: number,
+): void {
+  if (shape === "band") {
+    drawDogVisorMuzzlePad(ctx, mouthWidth, height, curvature, openness);
+    return;
+  }
+
+  if (shape === "block") {
+    drawDogPixelMuzzlePad(ctx, mouthWidth, height, curvature, openness);
+    return;
+  }
+
+  drawDogArcMuzzlePad(ctx, mouthWidth, height, curvature, openness);
+}
+
+function drawDogMouth(
+  ctx: CanvasRenderingContext2D,
+  mouthWidth: number,
+  height: number,
+  curvature: number,
+  openness: number,
+): void {
+  const { lineHalfWidth, lipY, controlY } = resolveDogMouthGeometry(
+    mouthWidth,
+    height,
+    curvature,
+    openness,
+  );
+
+  ctx.beginPath();
+  ctx.moveTo(-lineHalfWidth, lipY);
+  ctx.quadraticCurveTo(0, controlY, lineHalfWidth, lipY);
+  ctx.stroke();
+}
+
+function drawDogSpeakingChatter(
+  ctx: CanvasRenderingContext2D,
+  mouthWidth: number,
+  height: number,
+  curvature: number,
+  openness: number,
+): void {
+  const { lineHalfWidth, lipY, controlY } = resolveDogMouthGeometry(
+    mouthWidth,
+    height,
+    curvature,
+    openness,
+  );
+  const upperHalfWidth = lineHalfWidth * 0.82;
+  const lowerHalfWidth = upperHalfWidth * 0.88;
+  const lowerOpenDepth = height * (0.12 + openness * 0.92);
+  const lowerLipY = lipY + lowerOpenDepth * 0.2;
+  const lowerControlY =
+    lowerLipY +
+    lowerOpenDepth * (0.72 - Math.max(0, curvature) * 0.1 + Math.max(0, -curvature) * 0.08);
+
+  ctx.beginPath();
+  ctx.moveTo(
+    -upperHalfWidth,
+    resolveDogMouthCurveY(-upperHalfWidth, lineHalfWidth, lipY, controlY),
+  );
+  ctx.quadraticCurveTo(
+    0,
+    controlY,
+    upperHalfWidth,
+    resolveDogMouthCurveY(upperHalfWidth, lineHalfWidth, lipY, controlY),
+  );
+  ctx.stroke();
+
+  ctx.save();
+  ctx.globalAlpha *= 0.88;
+  ctx.beginPath();
+  ctx.moveTo(-lowerHalfWidth, lowerLipY);
+  ctx.quadraticCurveTo(0, lowerControlY, lowerHalfWidth, lowerLipY);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function resolveDogMouthGeometry(
+  mouthWidth: number,
+  height: number,
+  curvature: number,
+  openness: number,
+): {
+  lineHalfWidth: number;
+  tongueHalfWidth: number;
+  lipY: number;
+  controlY: number;
+  tongueBottomY: number;
+} {
+  const smileAmount = Math.max(0, curvature);
+  const frownAmount = Math.max(0, -curvature);
+  const tongueWidth = mouthWidth * (0.48 + openness * 0.18 + smileAmount * 0.12);
+  const tongueHeight = height * (0.42 + openness * 1.18 + smileAmount * 0.22);
+  const tongueTopY =
+    height * (-0.016 + openness * 0.015 - smileAmount * 0.016 + frownAmount * 0.01);
+  const smileLift = curvature * height * 0.12;
+  const tongueHalfWidth = tongueWidth * 0.46;
+  const lineHalfWidth = tongueHalfWidth * 1.42;
+  const lipY = tongueTopY - tongueHeight * 0.02 + smileLift;
+  const controlY =
+    lipY + smileAmount * height * 0.34 - frownAmount * height * (0.3 + openness * 0.02);
+  const tongueBottomY = tongueTopY + tongueHeight * 0.16 + smileLift;
+
+  return {
+    lineHalfWidth,
+    tongueHalfWidth,
+    lipY,
+    controlY,
+    tongueBottomY,
+  };
+}
+
+function resolveDogMouthCurveY(
+  x: number,
+  lineHalfWidth: number,
+  lipY: number,
+  controlY: number,
+): number {
+  if (lineHalfWidth <= 0.0001) {
+    return lipY;
+  }
+
+  const t = clamp((x + lineHalfWidth) / (lineHalfWidth * 2), 0, 1);
+  const invT = 1 - t;
+  return invT * invT * lipY + 2 * invT * t * controlY + t * t * lipY;
+}
+
+function strokeDogMouthCurveSpan(
+  ctx: CanvasRenderingContext2D,
+  lineHalfWidth: number,
+  lipY: number,
+  controlY: number,
+  startX: number,
+  endX: number,
+): void {
+  const segments = 14;
+  ctx.beginPath();
+  ctx.moveTo(startX, resolveDogMouthCurveY(startX, lineHalfWidth, lipY, controlY));
+  for (let index = 1; index <= segments; index += 1) {
+    const t = index / segments;
+    const x = startX + (endX - startX) * t;
+    ctx.lineTo(x, resolveDogMouthCurveY(x, lineHalfWidth, lipY, controlY));
+  }
+  ctx.stroke();
+}
+
+function resolveDogTongueGeometry(
+  mouthWidth: number,
+  height: number,
+  curvature: number,
+  openness: number,
+): {
+  lineHalfWidth: number;
+  tongueHalfWidth: number;
+  lipY: number;
+  controlY: number;
+  tongueBottomY: number;
+  leftTopY: number;
+  rightTopY: number;
+  centerTopY: number;
+  tipY: number;
+} {
+  const smileAmount = Math.max(0, curvature);
+  const tongueHeight = height * (0.22 + openness * 0.78 + smileAmount * 0.08);
+  const tongueTopY = height * (0.02 + openness * 0.02 - smileAmount * 0.01);
+  const smileLift = curvature * height * 0.12;
+  const { lineHalfWidth, tongueHalfWidth, lipY, controlY, tongueBottomY } = resolveDogMouthGeometry(
+    mouthWidth,
+    height,
+    curvature,
+    openness,
+  );
+  const leftTopY = resolveDogMouthCurveY(-tongueHalfWidth, lineHalfWidth, lipY, controlY);
+  const rightTopY = resolveDogMouthCurveY(tongueHalfWidth, lineHalfWidth, lipY, controlY);
+  const centerTopY = resolveDogMouthCurveY(0, lineHalfWidth, lipY, controlY);
+  const tipY = tongueTopY + tongueHeight * 1.18 + smileLift;
+
+  return {
+    lineHalfWidth,
+    tongueHalfWidth,
+    lipY,
+    controlY,
+    tongueBottomY,
+    leftTopY,
+    rightTopY,
+    centerTopY,
+    tipY,
+  };
+}
+
+function drawDogTongue(
+  ctx: CanvasRenderingContext2D,
+  mouthWidth: number,
+  height: number,
+  curvature: number,
+  openness: number,
+): void {
+  const {
+    lineHalfWidth,
+    tongueHalfWidth,
+    lipY,
+    controlY,
+    tongueBottomY,
+    leftTopY,
+    rightTopY,
+    tipY,
+  } = resolveDogTongueGeometry(mouthWidth, height, curvature, openness);
+  const topSegments = 12;
+  const stepX = (tongueHalfWidth * 2) / topSegments;
+
+  ctx.beginPath();
+  ctx.moveTo(-tongueHalfWidth, leftTopY);
+  ctx.lineTo(-tongueHalfWidth, tongueBottomY);
+  ctx.quadraticCurveTo(0, tipY, tongueHalfWidth, tongueBottomY);
+  ctx.lineTo(tongueHalfWidth, rightTopY);
+
+  for (let index = topSegments - 1; index >= 0; index -= 1) {
+    const x = -tongueHalfWidth + stepX * index;
+    ctx.lineTo(x, resolveDogMouthCurveY(x, lineHalfWidth, lipY, controlY));
+  }
+  ctx.closePath();
+}
+
+function drawDogTongueOutline(
+  ctx: CanvasRenderingContext2D,
+  mouthWidth: number,
+  height: number,
+  curvature: number,
+  openness: number,
+): void {
+  const { tongueHalfWidth, tongueBottomY, leftTopY, rightTopY, tipY } = resolveDogTongueGeometry(
+    mouthWidth,
+    height,
+    curvature,
+    openness,
+  );
+
+  ctx.beginPath();
+  ctx.moveTo(-tongueHalfWidth, leftTopY);
+  ctx.lineTo(-tongueHalfWidth, tongueBottomY);
+  ctx.quadraticCurveTo(0, tipY, tongueHalfWidth, tongueBottomY);
+  ctx.lineTo(tongueHalfWidth, rightTopY);
+}
+
+function drawDogTongueSeam(
+  ctx: CanvasRenderingContext2D,
+  mouthWidth: number,
+  height: number,
+  curvature: number,
+  openness: number,
+  topT = 0.18,
+  bottomT = 0.56,
+  offsetY = 0,
+): void {
+  const { centerTopY, tipY } = resolveDogTongueGeometry(mouthWidth, height, curvature, openness);
+  const seamTopY = centerTopY + (tipY - centerTopY) * topT + offsetY;
+  const seamBottomY = centerTopY + (tipY - centerTopY) * bottomT + offsetY;
+
+  ctx.beginPath();
+  ctx.moveTo(0, seamTopY);
+  ctx.lineTo(0, seamBottomY);
+}
+
+function drawDogMuzzleSplit(
+  ctx: CanvasRenderingContext2D,
+  mouthWidth: number,
+  height: number,
+  curvature: number,
+  openness: number,
+): void {
+  const { lineHalfWidth, lipY, controlY } = resolveDogMouthGeometry(
+    mouthWidth,
+    height,
+    curvature,
+    openness,
+  );
+  const splitTopY = -height * 0.54;
+  const narrowMouthT = clamp((height * 0.92 - mouthWidth) / (height * 0.44), 0, 1);
+  const splitBottomY =
+    resolveDogMouthCurveY(0, lineHalfWidth, lipY, controlY) +
+    height * (0.006 + narrowMouthT * 0.024);
+
+  ctx.beginPath();
+  ctx.moveTo(0, splitTopY);
+  ctx.lineTo(0, splitBottomY);
+}
+
+function drawDogTeeth(
+  ctx: CanvasRenderingContext2D,
+  mouthWidth: number,
+  height: number,
+  curvature: number,
+  openness: number,
+): void {
+  const frownAmount = Math.max(0, -curvature);
+  const upperWidth = mouthWidth * (0.98 + Math.max(0, curvature) * 0.05);
+  const upperDrop = height * (0.14 + Math.max(0, curvature) * 0.06 + frownAmount * 0.12);
+  const tongueTopY = height * (0.12 + openness * 0.05 + Math.max(0, curvature) * 0.02);
+  const smileLift = curvature * height * 0.1;
+  const cornerInset = upperWidth * 0.22;
+  const cornerY = tongueTopY - height * 0.02 + smileLift + frownAmount * height * 0.12;
+  const teethSpan = cornerInset * 2.34;
+  const toothCount = 7;
+  const toothGap = teethSpan * 0.015;
+  const toothWidth = (teethSpan - toothGap * (toothCount - 1)) / toothCount;
+  const baseDepth = height * (0.2 + openness * 0.12 + frownAmount * 0.08);
+  const leftEdge = -teethSpan * 0.5;
+  const centerIndex = (toothCount - 1) * 0.5;
+  const ridgeLift = upperDrop * 0.22 + frownAmount * height * 0.04;
+
+  ctx.beginPath();
+  for (let index = 0; index < toothCount; index += 1) {
+    const startX = leftEdge + index * (toothWidth + toothGap);
+    const endX = startX + toothWidth;
+    const tipX = (startX + endX) * 0.5;
+    const centerWeight = 1 - Math.abs(index - centerIndex) / centerIndex;
+    const startT = clamp((startX + cornerInset) / (cornerInset * 2), 0, 1);
+    const endT = clamp((endX + cornerInset) / (cornerInset * 2), 0, 1);
+    const tipT = clamp((tipX + cornerInset) / (cornerInset * 2), 0, 1);
+    const startY = cornerY - ridgeLift * (1 - Math.abs(startT * 2 - 1));
+    const endY = cornerY - ridgeLift * (1 - Math.abs(endT * 2 - 1));
+    const tipBaseY = cornerY - ridgeLift * (1 - Math.abs(tipT * 2 - 1));
+    const toothDepth = baseDepth * (0.72 + centerWeight * 0.34);
+
+    ctx.moveTo(startX, startY);
+    ctx.lineTo(endX, endY);
+    ctx.lineTo(tipX, tipBaseY + toothDepth);
+    ctx.closePath();
+  }
+}
+
+function shouldShowDogTongue(
+  emotionName: EmotionName,
+  openness: number,
+  _curvature: number,
+): boolean {
+  if (emotionName === "angry") {
+    return false;
+  }
+
+  if (emotionName === "sad" || emotionName === "sleepy" || emotionName === "confused") {
+    return false;
+  }
+
+  if (emotionName === "neutral") {
+    return false;
+  }
+
+  if (emotionName === "happy" || emotionName === "love" || emotionName === "excited") {
+    return true;
+  }
+
+  return openness > 0.22;
+}
+
+export const kibaCharacter: CharacterDefinition = {
+  name: "kiba",
+
+  partOptions: {
+    eyeShape: ["soft", "wide", "block", "sharp", "sleepy", "droplet"],
+    noseShape: ["gem", "pointed", "bridge", "button"],
+    mouthShape: ["soft", "band", "block"],
+    browShape: ["soft", "bold", "angled"],
+  },
+
+  defaultParts: {
+    eyeShape: "soft",
+    eyeWidthScale: 1,
+    eyeHeightScale: 1,
+    noseShape: "pointed",
+    mouthShape: "soft",
+    browShape: "soft",
+    scanlineThickness: 5,
+    scanlineSpacing: 12,
+  },
+
+  defaultStyle: kibaStyle,
+
+  defaultFeatures: {
+    brows: false,
+  },
+
+  emotions: kibaEmotions,
+
+  drawBackground(dc: DrawContext, width: number, height: number, pose: FacePose): void {
+    if (dc.mode !== "face") {
+      return;
+    }
+
+    const { ctx, theme } = dc;
+    const bobY = pose.global.bob * height * 0.05;
+    const earPoses = resolveEarPoses(dc.emotionName);
+    const leftEyeMetrics = resolveKibaEyeMetrics(width, height, pose.leftEye, -1, dc.emotionName);
+    const rightEyeMetrics = resolveKibaEyeMetrics(width, height, pose.rightEye, 1, dc.emotionName);
+
+    ctx.save();
+    ctx.strokeStyle = theme.foreground;
+    ctx.shadowColor = theme.glow;
+    ctx.shadowBlur = Math.max(0, width * 0.024);
+    ctx.lineWidth = Math.max(1.5, height * 0.0095);
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.save();
+    ctx.globalAlpha *= 0.08;
+    ctx.fillStyle = theme.foreground;
+    ctx.shadowBlur = 0;
+    traceEarPath(ctx, width, height, -1, bobY + height * earPoses.leftBob, earPoses.left);
+    ctx.fill();
+    traceEarPath(ctx, width, height, 1, bobY + height * earPoses.rightBob, earPoses.right);
+    ctx.fill();
+    ctx.restore();
+    strokeEarOutline(
+      ctx,
+      width,
+      height,
+      -1,
+      bobY + height * earPoses.leftBob,
+      earPoses.left,
+      leftEyeMetrics,
+    );
+    strokeEarOutline(
+      ctx,
+      width,
+      height,
+      1,
+      bobY + height * earPoses.rightBob,
+      earPoses.right,
+      rightEyeMetrics,
+    );
+    ctx.save();
+    ctx.globalAlpha *= 0.32;
+    ctx.lineWidth = Math.max(1.1, height * 0.0058);
+    ctx.shadowBlur = 0;
+    drawEarFold(ctx, width, height, -1, bobY + height * earPoses.leftBob, earPoses.left);
+    drawEarFold(ctx, width, height, 1, bobY + height * earPoses.rightBob, earPoses.right);
+    ctx.restore();
+    ctx.restore();
+  },
+
+  drawEye(dc: DrawContext, params: EyeDrawParams): void {
+    const { ctx, theme } = dc;
+    const { pose, side, parts, features } = params;
+    const openness = clamp(pose.openness, 0.01, 1);
+    const squint = clamp(pose.squint, 0, 1);
+    const eyeHeightScale = clamp(parts.eyeHeightScale, 0.5, 1.8);
+    const eyeWidthScale = clamp(parts.eyeWidthScale, 0.5, 1.8);
+    const baseHeight = params.height * eyeHeightScale;
+    const baseWidth = params.width * eyeWidthScale;
+    const eyeHeight = Math.max(
+      baseHeight * 0.1,
+      baseHeight * (0.18 + openness * 0.74) * (1 - squint * 0.52),
+    );
+    const eyeWidth = baseWidth * (0.86 + openness * 0.14);
+    const eyeShape = parts.eyeShape ?? "soft";
+    const glyphEye = eyeShape === "sharp" || eyeShape === "sleepy" || eyeShape === "droplet";
+    const brightness = clamp(pose.brightness, 0.1, 1.8);
+    const confusedTilt = dc.emotionName === "confused";
+    const confusedScale = confusedTilt ? (side === -1 ? 1.18 : 0.94) : 1;
+    const confusedY = confusedTilt
+      ? side === -1
+        ? params.height * 0.1
+        : -params.height * 0.06
+      : 0;
+    const confusedX = confusedTilt ? (side === -1 ? -params.width * 0.02 : params.width * 0.01) : 0;
+    const excitedWide = dc.emotionName === "excited" ? 1.14 : dc.emotionName === "happy" ? 1.03 : 1;
+    const excitedShort = dc.emotionName === "excited" ? 0.92 : 1;
+    const resolvedEyeWidth = eyeWidth * confusedScale * excitedWide;
+    const resolvedEyeHeight = eyeHeight * confusedScale * excitedShort;
+    const pupilSize = Math.max(10, Math.min(resolvedEyeWidth, resolvedEyeHeight) * 0.54);
+    const dogSlantBase = dc.emotionName === "sad" ? 0.26 : 0.12;
+    const dogSlant = (dc.emotionName === "angry" ? -side : side) * dogSlantBase;
+    const headTilt = confusedTilt ? -0.1 : 0;
+
+    ctx.save();
+    ctx.translate(params.centerX + confusedX, params.centerY + confusedY);
+    ctx.rotate(dogSlant + pose.tilt * 0.24 + headTilt);
+    ctx.globalAlpha *= brightness;
+
+    if (resolvedEyeHeight < params.height * 0.16) {
+      ctx.strokeStyle = theme.foreground;
+      ctx.lineWidth = Math.max(2, params.height * 0.075);
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(-resolvedEyeWidth * 0.42, 0);
+      ctx.quadraticCurveTo(0, resolvedEyeHeight * 0.18, resolvedEyeWidth * 0.42, 0);
+      ctx.stroke();
+      ctx.restore();
+      return;
+    }
+
+    ctx.fillStyle = theme.foreground;
+    ctx.strokeStyle = theme.foreground;
+    ctx.shadowColor = theme.glow;
+    ctx.shadowBlur = Math.max(0, Math.min(resolvedEyeWidth, resolvedEyeHeight) * 0.32);
+
+    if (eyeShapeSupportsPupil(eyeShape)) {
+      ctx.save();
+      ctx.globalAlpha *= SOCKET_FILL_ALPHA;
+      ctx.fillStyle = theme.foreground;
+      ctx.shadowBlur = 0;
+      drawDogEyeSocket(ctx, eyeShape, resolvedEyeWidth, resolvedEyeHeight);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    if (glyphEye) {
+      drawGlyphEye(ctx, eyeShape, eyeWidth, eyeHeight, side, openness, squint);
+      ctx.restore();
+      return;
+    }
+
+    if (side === -1) {
+      ctx.save();
+      ctx.globalAlpha *= PATCH_FILL_ALPHA;
+      ctx.fillStyle = theme.foreground;
+      ctx.shadowBlur = 0;
+      ctx.translate(resolvedEyeWidth * 0.11, 0);
+      ctx.beginPath();
+      ctx.moveTo(-resolvedEyeWidth * 0.48, -resolvedEyeHeight * 0.78);
+      ctx.quadraticCurveTo(
+        resolvedEyeWidth * 0.16,
+        -resolvedEyeHeight * 1.04,
+        resolvedEyeWidth * 0.68,
+        -resolvedEyeHeight * 0.4,
+      );
+      ctx.quadraticCurveTo(
+        resolvedEyeWidth * 0.84,
+        resolvedEyeHeight * 0.08,
+        resolvedEyeWidth * 0.26,
+        resolvedEyeHeight * 0.88,
+      );
+      ctx.quadraticCurveTo(
+        -resolvedEyeWidth * 0.22,
+        resolvedEyeHeight * 0.96,
+        -resolvedEyeWidth * 0.56,
+        resolvedEyeHeight * 0.34,
+      );
+      ctx.quadraticCurveTo(
+        -resolvedEyeWidth * 0.72,
+        -resolvedEyeHeight * 0.1,
+        -resolvedEyeWidth * 0.48,
+        -resolvedEyeHeight * 0.72,
+      );
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    drawDogEyeShell(ctx, eyeShape, resolvedEyeWidth, resolvedEyeHeight);
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha *= 0.92;
+    ctx.fillStyle = theme.accent;
+    drawDogEyeShell(ctx, eyeShape, resolvedEyeWidth * 0.82, resolvedEyeHeight * 0.82);
+    ctx.fill();
+
+    if (features.pupils && eyeShapeSupportsPupil(eyeShape)) {
+      const pupilX = clamp(pose.pupilX, -1, 1) * resolvedEyeWidth * 0.2;
+      const pupilY = clamp(pose.pupilY, -1, 1) * resolvedEyeHeight * 0.18;
+      ctx.globalAlpha = 1;
+      if (dc.emotionName === "love") {
+        const heartPulse = 0.96 + 0.06 * (0.5 + 0.5 * wave(dc.elapsed / 1000, 0.82));
+        const lovePupilSize =
+          Math.max(9, Math.min(resolvedEyeWidth, resolvedEyeHeight) * 0.62) * heartPulse;
+        ctx.save();
+        ctx.fillStyle = LOVE_PUPIL_FILL;
+        drawPixelGlyph(ctx, HEART_PATTERN, pupilX, pupilY, lovePupilSize);
+        ctx.restore();
+      } else {
+        ctx.fillStyle = PUPIL_FILL;
+        roundedRect(
+          ctx,
+          pupilX - pupilSize * 0.5,
+          pupilY - pupilSize * 0.5,
+          pupilSize,
+          pupilSize,
+          pupilSize * 0.28,
+        );
+        ctx.fill();
+      }
+      ctx.fillStyle = PUPIL_SHINE_FILL;
+      drawPupilShine(
+        ctx,
+        pupilX,
+        pupilY,
+        dc.emotionName === "love"
+          ? Math.max(9, Math.min(resolvedEyeWidth, resolvedEyeHeight) * 0.62)
+          : pupilSize,
+      );
+      ctx.fill();
+    }
+
+    ctx.restore();
+  },
+
+  drawBrow(dc: DrawContext, params: BrowDrawParams): void {
+    const { ctx, theme } = dc;
+    const { pose, parts } = params;
+    const shape = parts.browShape ?? "soft";
+
+    ctx.save();
+    ctx.translate(params.centerX, params.centerY);
+    ctx.rotate(pose.tilt * 0.05);
+    ctx.globalAlpha *= clamp(pose.brightness, 0.2, 1.2) * 0.45;
+
+    if (shape === "bold") {
+      ctx.fillStyle = theme.foreground;
+      roundedRect(
+        ctx,
+        -params.width * 0.26,
+        -params.height * 0.22,
+        params.width * 0.52,
+        params.height * 0.44,
+        params.height * 0.14,
+      );
+      ctx.fill();
+      ctx.restore();
+      return;
+    }
+
+    if (shape === "angled") {
+      ctx.fillStyle = theme.foreground;
+      ctx.beginPath();
+      ctx.moveTo(-params.width * 0.28, params.height * 0.16);
+      ctx.lineTo(-params.width * 0.08, -params.height * 0.24);
+      ctx.lineTo(params.width * 0.28, -params.height * 0.08);
+      ctx.lineTo(params.width * 0.08, params.height * 0.22);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+      return;
+    }
+
+    ctx.strokeStyle = theme.foreground;
+    ctx.lineCap = "round";
+    ctx.lineWidth = Math.max(1.25, params.height * 0.46);
+    ctx.beginPath();
+    ctx.moveTo(-params.width * 0.22, 0);
+    ctx.lineTo(params.width * 0.22, 0);
+    ctx.stroke();
+    ctx.restore();
+  },
+
+  drawNose(dc: DrawContext, params: NoseDrawParams): void {
+    const { ctx, theme } = dc;
+    const { pose, parts } = params;
+    const scale = clamp(pose.scale, 0.1, 1.5);
+    const brightness = clamp(pose.brightness, 0.1, 1.6);
+    const width = params.width * scale;
+    const height = params.height * scale;
+    const confusedTilt = dc.emotionName === "confused";
+    const noseShape = parts.noseShape ?? "pointed";
+
+    ctx.save();
+    ctx.translate(
+      params.centerX + (confusedTilt ? -params.width * 0.02 : 0),
+      params.centerY + (confusedTilt ? params.height * 0.04 : 0),
+    );
+    ctx.rotate(pose.tilt * 0.3 + (confusedTilt ? -0.1 : 0));
+    ctx.lineWidth = Math.max(1.5, params.height * 0.048);
+    ctx.strokeStyle = theme.foreground;
+    ctx.globalAlpha *= brightness;
+    ctx.lineJoin = "round";
+    ctx.shadowColor = theme.glow;
+    ctx.shadowBlur = Math.max(0, width * 0.16);
+    drawDogNoseShape(ctx, noseShape, width, height);
+    ctx.stroke();
+    ctx.save();
+    ctx.globalAlpha *= 0.42;
+    ctx.fillStyle = PUPIL_SHINE_FILL;
+    ctx.shadowBlur = 0;
+    drawDogNoseShine(ctx, noseShape, width, height);
+    ctx.fill();
+    ctx.restore();
+    ctx.restore();
+  },
+
+  drawMouth(dc: DrawContext, params: MouthDrawParams): void {
+    const { ctx, theme } = dc;
+    const { pose, parts } = params;
+    const mouthShape = parts.mouthShape ?? "soft";
+    const speakingMotion =
+      dc.emotionName === "speaking"
+        ? clamp(
+            0.02 +
+              0.98 *
+                (0.5 + 0.5 * wave(dc.elapsed / 1000, 3.6)) *
+                (0.74 + 0.26 * (0.5 + 0.5 * wave((dc.elapsed + 140) / 1000, 7.4))),
+            0,
+            1,
+          )
+        : 1;
+    const curvature = clamp(
+      pose.curvature + (dc.emotionName === "speaking" ? (speakingMotion - 0.5) * 0.08 : 0),
+      -1,
+      1,
+    );
+    const openness = clamp(
+      dc.emotionName === "speaking" ? Math.max(0.02, 0.02 + speakingMotion * 0.98) : pose.openness,
+      0,
+      1,
+    );
+    const width =
+      params.width *
+      clamp(
+        pose.width * (dc.emotionName === "speaking" ? 0.95 + speakingMotion * 0.08 : 1),
+        0.4,
+        1.16,
+      ) *
+      (mouthShape === "band" ? 1.08 : mouthShape === "block" ? 0.86 : 1);
+    const mouthHeight =
+      params.height * (mouthShape === "band" ? 0.88 : mouthShape === "block" ? 0.92 : 1);
+    const brightness = clamp(pose.brightness, 0.1, 1.8);
+    const showTeeth = dc.emotionName === "angry";
+    const showTongue =
+      dc.emotionName === "speaking"
+        ? false
+        : shouldShowDogTongue(dc.emotionName, openness, curvature);
+    const showSpeakingChatter = !showTeeth && !showTongue && openness > 0.16;
+    const pantingEmotion =
+      dc.emotionName === "happy" || dc.emotionName === "love" || dc.emotionName === "excited";
+    const tongueOpenness = showTongue && pantingEmotion ? Math.max(openness, 0.66) : openness;
+    const tongueCurvature = showTongue && pantingEmotion ? Math.max(curvature, 0.88) : curvature;
+    const confusedTilt = dc.emotionName === "confused";
+    const mouthStrokeAlpha = showTeeth ? 0 : 0.84;
+    const mouthStrokeWidth = Math.max(1.5, params.height * 0.044);
+
+    ctx.save();
+    ctx.translate(
+      params.centerX + (confusedTilt ? -params.width * 0.015 : 0),
+      params.centerY + (confusedTilt ? params.height * 0.05 : 0),
+    );
+    ctx.rotate(pose.tilt * 0.22 + (confusedTilt ? -0.08 : 0));
+    ctx.lineWidth = mouthStrokeWidth;
+    ctx.strokeStyle = theme.foreground;
+    ctx.globalAlpha *= brightness;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.shadowColor = theme.glow;
+    ctx.shadowBlur = Math.max(0, params.height * 0.12);
+    ctx.save();
+    ctx.globalAlpha *= SURFACE_FILL_ALPHA;
+    ctx.fillStyle = theme.foreground;
+    ctx.shadowBlur = 0;
+    drawDogMuzzlePad(ctx, mouthShape, width, mouthHeight, curvature, openness);
+    ctx.fill();
+    ctx.restore();
+    ctx.save();
+    ctx.globalAlpha *= SURFACE_STROKE_ALPHA;
+    ctx.shadowBlur = 0;
+    drawDogMuzzlePad(ctx, mouthShape, width, mouthHeight, curvature, openness);
+    ctx.stroke();
+    ctx.restore();
+    ctx.save();
+    ctx.globalAlpha *= DETAIL_LINE_ALPHA;
+    ctx.lineWidth = Math.max(1.25, params.height * 0.028);
+    ctx.shadowBlur = 0;
+    drawDogMuzzleSplit(
+      ctx,
+      width,
+      mouthHeight,
+      showTongue ? tongueCurvature : curvature,
+      showTongue ? tongueOpenness : openness,
+    );
+    ctx.stroke();
+    ctx.restore();
+
+    if (showTeeth) {
+      ctx.save();
+      ctx.globalAlpha *= 0.98;
+      ctx.fillStyle = TOOTH_FILL;
+      ctx.shadowBlur = 0;
+      drawDogTeeth(ctx, width, params.height, curvature, openness);
+      ctx.fill();
+      ctx.restore();
+    } else {
+      if (showSpeakingChatter) {
+        ctx.save();
+        ctx.globalAlpha *= mouthStrokeAlpha * 0.94;
+        drawDogSpeakingChatter(ctx, width, mouthHeight, curvature, openness);
+        ctx.restore();
+      } else {
+        ctx.save();
+        ctx.globalAlpha *= mouthStrokeAlpha * 0.88;
+        if (showTongue) {
+          const { lineHalfWidth, tongueHalfWidth, lipY, controlY } = resolveDogTongueGeometry(
+            width,
+            mouthHeight,
+            tongueCurvature,
+            tongueOpenness,
+          );
+          const outerMouthHalfWidth = Math.min(
+            lineHalfWidth,
+            Math.max(tongueHalfWidth + width * 0.05, lineHalfWidth * 0.82),
+          );
+          strokeDogMouthCurveSpan(
+            ctx,
+            lineHalfWidth,
+            lipY,
+            controlY,
+            -outerMouthHalfWidth,
+            -tongueHalfWidth,
+          );
+          strokeDogMouthCurveSpan(
+            ctx,
+            lineHalfWidth,
+            lipY,
+            controlY,
+            tongueHalfWidth,
+            outerMouthHalfWidth,
+          );
+        } else {
+          drawDogMouth(ctx, width, mouthHeight, curvature, openness);
+        }
+        ctx.restore();
+      }
+
+      if (showTongue) {
+        ctx.save();
+        ctx.fillStyle = TONGUE_FILL;
+        ctx.shadowBlur = 0;
+        drawDogTongue(ctx, width, mouthHeight, tongueCurvature, tongueOpenness);
+        ctx.fill();
+        ctx.restore();
+        ctx.save();
+        ctx.globalAlpha *= mouthStrokeAlpha * 0.88;
+        const { tongueHalfWidth, lineHalfWidth, lipY, controlY } = resolveDogTongueGeometry(
+          width,
+          mouthHeight,
+          tongueCurvature,
+          tongueOpenness,
+        );
+        strokeDogMouthCurveSpan(
+          ctx,
+          lineHalfWidth,
+          lipY,
+          controlY,
+          -tongueHalfWidth,
+          tongueHalfWidth,
+        );
+        ctx.restore();
+        ctx.save();
+        ctx.globalAlpha *= DETAIL_LINE_ALPHA;
+        drawDogTongueOutline(ctx, width, mouthHeight, tongueCurvature, tongueOpenness);
+        ctx.stroke();
+        ctx.globalAlpha *= 0.85;
+        drawDogTongueSeam(
+          ctx,
+          width,
+          mouthHeight,
+          tongueCurvature,
+          tongueOpenness,
+          pantingEmotion ? 0.12 : 0.18,
+          pantingEmotion ? 0.42 : 0.56,
+          pantingEmotion ? -mouthHeight * 0.008 : 0,
+        );
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+    ctx.restore();
+  },
+
+  getFaceVisibility(): number {
+    return 1;
+  },
+
+  getScrambleStrength(_emotionName, baseDistortion): number {
+    return baseDistortion * 0.3;
+  },
+};
