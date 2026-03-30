@@ -384,6 +384,10 @@
 
       .character-switcher button {
         position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
         min-width: 110px;
         padding: 10px 20px;
         border: 1px solid rgba(255, 255, 255, 0.12);
@@ -408,6 +412,20 @@
         background: rgba(127, 244, 255, 0.14);
         color: #f3fbff;
         box-shadow: 0 0 12px rgba(127, 244, 255, 0.12);
+      }
+
+      .character-switcher .coming-soon-tag {
+        display: inline-flex;
+        align-items: center;
+        padding: 3px 7px;
+        border-radius: 999px;
+        background: rgba(255, 191, 102, 0.14);
+        border: 1px solid rgba(255, 191, 102, 0.24);
+        color: rgba(255, 221, 179, 0.92);
+        font-size: 0.62rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        white-space: nowrap;
       }
 
       @media (max-width: 640px) {
@@ -439,7 +457,7 @@
       <div class="stage">
         <nav class="character-switcher" id="character-switcher">
           <button type="button" data-character="pinu" class="is-active">pinu</button>
-          <button type="button" data-character="kiba">kiba</button>
+          <button type="button" data-character="kiba">kiba <span class="coming-soon-tag">coming soon</span></button>
         </nav>
         <canvas id="face" width="720" height="480"></canvas>
       </div>
