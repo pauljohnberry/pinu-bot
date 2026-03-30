@@ -245,9 +245,7 @@ const DEFAULT_BACKGROUND_FX: ResolvedBackgroundFx = {
   pulseHz: 0.9,
 };
 
-const EMOTION_BACKGROUND_FX: Partial<
-  Record<keyof typeof EMOTIONS, Omit<ResolvedBackgroundFx, "mode">>
-> = {
+const EMOTION_BACKGROUND_FX: Partial<Record<EmotionName, Omit<ResolvedBackgroundFx, "mode">>> = {
   happy: { color: "#ffcf76", intensity: 0.18, pulseHz: 1.1 },
   love: { color: "#ff7ea8", intensity: 0.22, pulseHz: 1.2 },
   sad: { color: "#5e89d6", intensity: 0.16, pulseHz: 0.45 },
@@ -264,7 +262,7 @@ const EMOTION_BACKGROUND_FX: Partial<
   glitch: { color: "#ff789a", intensity: 0.26, pulseHz: 7 },
 };
 
-const EMOTION_SYMBOLS: Partial<Record<keyof typeof EMOTIONS, SymbolName>> = {
+const EMOTION_SYMBOLS: Partial<Record<EmotionName, SymbolName>> = {
   love: "heart",
   confused: "question",
   thinking: "ellipsis",
@@ -576,12 +574,12 @@ class RobotFaceRenderer implements RobotFace {
   private dpr = 1;
   private logicalWidth = 0;
   private logicalHeight = 0;
-  private emotionTargetName: keyof typeof EMOTIONS = "neutral";
+  private emotionTargetName: EmotionName = "neutral";
   private emotionIntensity = 1;
   private emotionFromTime = 0;
   private emotionDurationMs = EMOTIONS.neutral.durationMs;
   private emotionEase: EasingName = EMOTIONS.neutral.ease;
-  private emotionPendingPostPerformance: keyof typeof EMOTIONS | null = null;
+  private emotionPendingPostPerformance: EmotionName | null = null;
 
   private blinkProgress = 0;
   private blinkDurationMs = EMOTIONS.neutral.blinkDurationMs;
@@ -684,7 +682,7 @@ class RobotFaceRenderer implements RobotFace {
     }
   }
 
-  emote(name: keyof typeof EMOTIONS, options: EmoteOptions = {}): RobotFace {
+  emote(name: EmotionName, options: EmoteOptions = {}): RobotFace {
     const definition = this.getEmotionDefinition(name);
     this.clearManualOverrides();
     copyPose(this.fromEmotionPose, this.basePose);

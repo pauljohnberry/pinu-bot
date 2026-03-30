@@ -27,8 +27,12 @@ for (const entry of cases) {
     await page.waitForFunction(() =>
       Boolean((window as Window & { __PINU_READY__?: boolean }).__PINU_READY__),
     );
-    await expect(page).toHaveScreenshot(`${entry.name}.png`, {
-      maxDiffPixels: entry.maxDiffPixels,
-    });
+    if (entry.maxDiffPixels === undefined) {
+      await expect(page).toHaveScreenshot(`${entry.name}.png`);
+    } else {
+      await expect(page).toHaveScreenshot(`${entry.name}.png`, {
+        maxDiffPixels: entry.maxDiffPixels,
+      });
+    }
   });
 }
