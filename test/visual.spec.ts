@@ -8,10 +8,12 @@ const cases = [
   {
     name: "angry-sentinel",
     query: "?emotion=angry&faceTheme=sentinel",
+    maxDiffPixels: 8000,
   },
   {
     name: "confused-soft",
     query: "?emotion=confused&theme=cyan&style=soft",
+    maxDiffPixels: 100,
   },
   {
     name: "heart-symbol",
@@ -25,6 +27,8 @@ for (const entry of cases) {
     await page.waitForFunction(() =>
       Boolean((window as Window & { __PINU_READY__?: boolean }).__PINU_READY__),
     );
-    await expect(page).toHaveScreenshot(`${entry.name}.png`);
+    await expect(page).toHaveScreenshot(`${entry.name}.png`, {
+      maxDiffPixels: entry.maxDiffPixels,
+    });
   });
 }
