@@ -61,15 +61,16 @@ export interface MouthDrawParams {
   parts: Required<PartStyleConfig>;
 }
 
+type CharacterShapeOptionKey = "eyeShape" | "noseShape" | "mouthShape" | "browShape";
+
+export type CharacterPartOptions = {
+  [K in CharacterShapeOptionKey]: NonNullable<Required<PartStyleConfig>[K]>[];
+};
+
 export interface CharacterDefinition {
   name: string;
 
-  partOptions: {
-    eyeShape: string[];
-    noseShape: string[];
-    mouthShape: string[];
-    browShape: string[];
-  };
+  partOptions: CharacterPartOptions;
 
   defaultParts: Required<PartStyleConfig>;
   defaultStyle: StyleDefinition;

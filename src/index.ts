@@ -1,6 +1,7 @@
 export type {
   BrowDrawParams,
   CharacterDefinition,
+  CharacterPartOptions,
   DrawContext,
   EyeDrawParams,
   MouthDrawParams,
