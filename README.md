@@ -11,7 +11,7 @@
 - Canvas 2D only
 - Parametric geometry only, no sprite sheets
 - Layered runtime: base emotion + blink + lookAt + speaking + screen FX
-- Character system: swap between different face types (robot, dog, cat, anime, custom)
+- Character system: swap between different face types
 - Optional mood lighting and symbol mode
 - Built-in face-theme presets, visual themes, and style presets
 - Direct part control for eyes, mouth, and nose

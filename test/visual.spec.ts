@@ -8,7 +8,7 @@ const cases = [
   {
     name: "angry-sentinel",
     query: "?emotion=angry&faceTheme=sentinel",
-    maxDiffPixels: 8000,
+    maxDiffPixelRatio: 0.02,
   },
   {
     name: "confused-soft",
@@ -27,11 +27,12 @@ for (const entry of cases) {
     await page.waitForFunction(() =>
       Boolean((window as Window & { __PINU_READY__?: boolean }).__PINU_READY__),
     );
-    if (entry.maxDiffPixels === undefined) {
+    if (entry.maxDiffPixels === undefined && entry.maxDiffPixelRatio === undefined) {
       await expect(page).toHaveScreenshot(`${entry.name}.png`);
     } else {
       await expect(page).toHaveScreenshot(`${entry.name}.png`, {
         maxDiffPixels: entry.maxDiffPixels,
+        maxDiffPixelRatio: entry.maxDiffPixelRatio,
       });
     }
   });

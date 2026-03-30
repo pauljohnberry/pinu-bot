@@ -238,6 +238,14 @@ const resolveCharacterParts = (character: CharacterDefinition): Required<PartSty
   return mergeParts(PART_STYLE_DEFAULTS, character.defaultParts);
 };
 
+const normalizePixelRatio = (value: number | undefined): number | undefined => {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  return Math.max(1, Number.isFinite(value) ? value : 1);
+};
+
 const DEFAULT_BACKGROUND_FX: ResolvedBackgroundFx = {
   mode: "off",
   color: "#ffb36b",
@@ -665,7 +673,8 @@ class RobotFaceRenderer implements RobotFace {
     }
     this.transparentBackground = options.transparentBackground ?? false;
     this.dpr =
-      options.pixelRatio ?? (typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1);
+      normalizePixelRatio(options.pixelRatio) ??
+      (typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1);
     const neutralDefinition = this.getEmotionDefinition("neutral");
     this.emotionDurationMs = neutralDefinition.durationMs;
     this.emotionEase = neutralDefinition.ease;
@@ -862,8 +871,9 @@ class RobotFaceRenderer implements RobotFace {
     if (config.transparentBackground !== undefined) {
       this.transparentBackground = config.transparentBackground;
     }
-    if (config.pixelRatio) {
-      this.dpr = Math.max(1, config.pixelRatio);
+    const normalizedPixelRatio = normalizePixelRatio(config.pixelRatio);
+    if (normalizedPixelRatio !== undefined) {
+      this.dpr = normalizedPixelRatio;
     }
     if (characterChanged) {
       this.syncCharacterEmotionState();
