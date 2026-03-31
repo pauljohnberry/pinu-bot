@@ -1,11 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import {
+  BUILTIN_STYLES,
   type CharacterConstruction,
   createCapsule,
   createConstructionFrame,
   createConstructionLayout,
   createNotch,
   createPlate,
+  createStyleConstructionLayout,
   createWedge,
   resolveConstructionAnchors,
   resolveEyeAnchor,
@@ -181,5 +183,16 @@ describe("construction helpers", () => {
     expect(anchors.leftEyeX).toBeLessThan(anchors.centerX);
     expect(anchors.rightEyeX).toBeGreaterThan(anchors.centerX);
     expect(anchors.leftEyeX + anchors.rightEyeX).toBeCloseTo(anchors.centerX * 2, 6);
+  });
+
+  test("derives classic style anchors without changing renderer positions", () => {
+    const frame = createConstructionFrame(720, 480);
+    const layout = createStyleConstructionLayout(BUILTIN_STYLES.classic);
+    const anchors = resolveConstructionAnchors(frame, layout);
+
+    expect(anchors.leftEyeX).toBeCloseTo(-720 * BUILTIN_STYLES.classic.eyeGap, 6);
+    expect(anchors.rightEyeX).toBeCloseTo(720 * BUILTIN_STYLES.classic.eyeGap, 6);
+    expect(anchors.eyeLineY).toBeCloseTo(480 * BUILTIN_STYLES.classic.eyeY, 6);
+    expect(anchors.centerX).toBe(0);
   });
 });

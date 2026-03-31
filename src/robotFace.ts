@@ -1,6 +1,11 @@
 import type { CharacterDefinition, DrawContext } from "./character.js";
 import { getCharacter, registerCharacter } from "./character.js";
 import { kibaCharacter, pinuCharacter } from "./characters/index.js";
+import {
+  createConstructionFrame,
+  createStyleConstructionLayout,
+  resolveConstructionAnchors,
+} from "./construction.js";
 import { clamp, drawPixelGlyph, ease, roundedRect, wave } from "./drawUtils.js";
 import { EMOTIONS, type EmotionDefinition } from "./emotions.js";
 import { FACE_THEMES } from "./faceThemes.js";
@@ -1415,6 +1420,9 @@ class RobotFaceRenderer implements RobotFace {
     ctx.globalAlpha = alpha;
 
     const style = this.style;
+    const constructionFrame = createConstructionFrame(width, height);
+    const constructionLayout = createStyleConstructionLayout(style);
+    const constructionAnchors = resolveConstructionAnchors(constructionFrame, constructionLayout);
     const glow = Math.max(8, Math.min(width, height) * style.glowScale * pose.global.glow);
     const eyeHeightScale = clamp(this.parts.eyeHeightScale, 0.5, 1.8);
     const scaledEyeHeight = height * style.eyeHeight * eyeHeightScale;
@@ -1447,11 +1455,11 @@ class RobotFaceRenderer implements RobotFace {
 
     this.character.drawBackground?.(dc, width, height, pose);
 
-    const eyeBaseY = height * style.eyeY;
+    const eyeBaseY = constructionAnchors.eyeLineY;
     if (this.features.brows) {
       if (this.features.leftEye) {
         this.character.drawBrow(dc, {
-          centerX: -width * style.eyeGap,
+          centerX: constructionAnchors.leftEyeX,
           centerY: leftBrowY,
           width: width * style.browWidth,
           height: height * style.browHeight,
@@ -1462,7 +1470,7 @@ class RobotFaceRenderer implements RobotFace {
       }
       if (this.features.rightEye) {
         this.character.drawBrow(dc, {
-          centerX: width * style.eyeGap,
+          centerX: constructionAnchors.rightEyeX,
           centerY: rightBrowY,
           width: width * style.browWidth,
           height: height * style.browHeight,
@@ -1474,7 +1482,7 @@ class RobotFaceRenderer implements RobotFace {
     }
     if (this.features.leftEye) {
       this.character.drawEye(dc, {
-        centerX: -width * style.eyeGap,
+        centerX: constructionAnchors.leftEyeX,
         centerY: eyeBaseY,
         width: width * style.eyeWidth,
         height: height * style.eyeHeight,
@@ -1487,7 +1495,7 @@ class RobotFaceRenderer implements RobotFace {
     }
     if (this.features.rightEye) {
       this.character.drawEye(dc, {
-        centerX: width * style.eyeGap,
+        centerX: constructionAnchors.rightEyeX,
         centerY: eyeBaseY,
         width: width * style.eyeWidth,
         height: height * style.eyeHeight,

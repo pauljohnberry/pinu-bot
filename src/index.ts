@@ -27,6 +27,7 @@ export {
   createConstructionLayout,
   createNotch,
   createPlate,
+  createStyleConstructionLayout,
   createWedge,
   resolveConstructionAnchors,
   resolveEyeAnchor,

@@ -31,6 +31,7 @@
         createConstructionLayout,
         createPlate,
         createRobotFace,
+        createStyleConstructionLayout,
         createWedge,
         drawPixelGlyph,
         ease,
@@ -237,10 +238,7 @@
         const height = targetCanvas.height;
         const { pose, style, theme, parts, features, emotionName } = snapshot;
         const frame = createConstructionFrame(width, height);
-        const layout = createConstructionLayout({
-          eyeGap: style.eyeGap * 2,
-          eyeLineY: style.eyeY,
-        });
+        const layout = createStyleConstructionLayout(style);
         const anchors = resolveConstructionAnchors(frame, layout);
 
         const eyeHeightScale = clamp(parts.eyeHeightScale, 0.5, 1.8);

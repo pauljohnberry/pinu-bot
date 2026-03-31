@@ -6,6 +6,18 @@ import type {
   MouthDrawParams,
   NoseDrawParams,
 } from "../character.js";
+import {
+  createCapsule,
+  createPlate,
+  traceConstructionCapsule,
+  traceConstructionChevron,
+  traceConstructionCurve,
+  traceConstructionDiamond,
+  traceConstructionDroplet,
+  traceConstructionPlate,
+  traceConstructionQuad,
+  traceConstructionTriangle,
+} from "../construction.js";
 import { clamp, drawPixelGlyph, ease, roundedRect, wave } from "../drawUtils.js";
 import { STYLE_PRESETS } from "../styles.js";
 import type { FacePose } from "../types.js";
@@ -31,25 +43,19 @@ function eyeShapeSupportsPupil(shape: string): boolean {
 function drawEyeShell(
   ctx: CanvasRenderingContext2D,
   shape: string,
-  x: number,
-  y: number,
   width: number,
   height: number,
   radius: number,
 ): void {
-  if (shape === "block") {
-    ctx.beginPath();
-    ctx.rect(x, y, width, height);
-    ctx.closePath();
-    return;
-  }
-
-  if (shape === "wide") {
-    roundedRect(ctx, x, y, width, height, height * 0.5);
-    return;
-  }
-
-  roundedRect(ctx, x, y, width, height, radius);
+  traceConstructionCapsule(
+    ctx,
+    createCapsule({
+      width,
+      height,
+      y: 0,
+      radius: shape === "block" ? 0 : shape === "wide" ? 0.5 : radius / Math.max(1, height),
+    }),
+  );
 }
 
 function drawGlyphEye(
@@ -67,10 +73,7 @@ function drawGlyphEye(
     const apexY = -height * (0.3 + squint * 0.08);
     const wingY = height * (0.08 + (1 - openness) * 0.12);
     ctx.lineWidth = lineWidth;
-    ctx.beginPath();
-    ctx.moveTo(-width * 0.42, wingY);
-    ctx.lineTo(apexX, apexY);
-    ctx.lineTo(width * 0.42, wingY);
+    traceConstructionChevron(ctx, -width * 0.42, wingY, apexX, apexY, width * 0.42, wingY);
     ctx.stroke();
     return;
   }
@@ -81,22 +84,13 @@ function drawGlyphEye(
     const controlX = side * width * 0.42;
     const arcHeight = height * (0.42 + (1 - openness) * 0.08);
     ctx.lineWidth = lineWidth;
-    ctx.beginPath();
-    ctx.moveTo(startX, -arcHeight);
-    ctx.quadraticCurveTo(controlX, 0, startX, arcHeight);
+    traceConstructionCurve(ctx, startX, -arcHeight, controlX, 0, startX, arcHeight);
     ctx.stroke();
     return;
   }
 
   if (shape === "droplet") {
-    const topY = -height * 0.48;
-    const bottomY = height * 0.48;
-    const shoulderX = width * 0.28;
-    ctx.beginPath();
-    ctx.moveTo(0, topY);
-    ctx.bezierCurveTo(shoulderX, -height * 0.28, shoulderX, height * 0.16, 0, bottomY);
-    ctx.bezierCurveTo(-shoulderX, height * 0.16, -shoulderX, -height * 0.28, 0, topY);
-    ctx.closePath();
+    traceConstructionDroplet(ctx, width, height);
     ctx.fill();
   }
 }
@@ -108,33 +102,40 @@ function drawNoseShape(
   height: number,
 ): void {
   if (shape === "pointed") {
-    ctx.beginPath();
-    ctx.moveTo(0, -height * 0.42);
-    ctx.lineTo(width * 0.36, height * 0.42);
-    ctx.lineTo(-width * 0.36, height * 0.42);
-    ctx.closePath();
+    traceConstructionTriangle(ctx, width, height);
     ctx.stroke();
     return;
   }
 
   if (shape === "bridge") {
-    roundedRect(ctx, -width * 0.12, -height * 0.42, width * 0.24, height * 0.84, width * 0.08);
+    traceConstructionCapsule(
+      ctx,
+      createCapsule({
+        width: width * 0.24,
+        height: height * 0.84,
+        y: 0,
+        radius: (width * 0.08) / Math.max(1, height * 0.84),
+      }),
+    );
     ctx.fill();
     return;
   }
 
   if (shape === "button") {
-    roundedRect(ctx, -width * 0.16, -height * 0.16, width * 0.32, height * 0.32, width * 0.12);
+    traceConstructionCapsule(
+      ctx,
+      createCapsule({
+        width: width * 0.32,
+        height: height * 0.32,
+        y: 0,
+        radius: (width * 0.12) / Math.max(1, height * 0.32),
+      }),
+    );
     ctx.fill();
     return;
   }
 
-  ctx.beginPath();
-  ctx.moveTo(0, -height * 0.4);
-  ctx.lineTo(width * 0.36, 0);
-  ctx.lineTo(0, height * 0.48);
-  ctx.lineTo(-width * 0.36, 0);
-  ctx.closePath();
+  traceConstructionDiamond(ctx, width, height);
   ctx.stroke();
 }
 
@@ -156,9 +157,15 @@ function drawMouthShape(
     const topY = -thickness * 0.5;
     const bottomY = thickness * 0.5;
 
-    ctx.beginPath();
-    ctx.moveTo(leftX, topY + endDip - skew);
-    ctx.quadraticCurveTo(0, topY + centerDip, rightX, topY + endDip + skew);
+    traceConstructionCurve(
+      ctx,
+      leftX,
+      topY + endDip - skew,
+      0,
+      topY + centerDip,
+      rightX,
+      topY + endDip + skew,
+    );
     ctx.lineTo(rightX, bottomY + endDip + skew);
     ctx.quadraticCurveTo(0, bottomY + centerDip + openDepth * 0.12, leftX, bottomY + endDip - skew);
     ctx.closePath();
@@ -168,26 +175,30 @@ function drawMouthShape(
 
   if (shape === "block") {
     const barHeight = Math.max(height * 0.12, openDepth * 0.8 + height * 0.08);
-    ctx.beginPath();
-    ctx.moveTo(-mouthWidth * 0.5, -barHeight * 0.35 + lift * 0.18);
-    ctx.lineTo(mouthWidth * 0.5, -barHeight * 0.35 + lift * 0.18);
-    ctx.lineTo(mouthWidth * 0.5, barHeight * 0.65 + lift * 0.34);
-    ctx.lineTo(-mouthWidth * 0.5, barHeight * 0.65 + lift * 0.02);
-    ctx.closePath();
+    traceConstructionQuad(ctx, [
+      [-mouthWidth * 0.5, -barHeight * 0.35 + lift * 0.18],
+      [mouthWidth * 0.5, -barHeight * 0.35 + lift * 0.18],
+      [mouthWidth * 0.5, barHeight * 0.65 + lift * 0.34],
+      [-mouthWidth * 0.5, barHeight * 0.65 + lift * 0.02],
+    ]);
     ctx.stroke();
     return;
   }
 
-  ctx.beginPath();
-  ctx.moveTo(-mouthWidth * 0.5, 0);
-  ctx.quadraticCurveTo(0, lift, mouthWidth * 0.5, 0);
+  traceConstructionCurve(ctx, -mouthWidth * 0.5, 0, 0, lift, mouthWidth * 0.5, 0);
   ctx.stroke();
 
   if (openDepth > 1.5) {
     ctx.globalAlpha *= 0.86;
-    ctx.beginPath();
-    ctx.moveTo(-mouthWidth * 0.44, openDepth * 0.18);
-    ctx.quadraticCurveTo(0, openDepth - lift * 0.16, mouthWidth * 0.44, openDepth * 0.18);
+    traceConstructionCurve(
+      ctx,
+      -mouthWidth * 0.44,
+      openDepth * 0.18,
+      0,
+      openDepth - lift * 0.16,
+      mouthWidth * 0.44,
+      openDepth * 0.18,
+    );
     ctx.stroke();
   }
 }
@@ -279,22 +290,14 @@ export const pinuCharacter: CharacterDefinition = {
       return;
     }
 
-    drawEyeShell(ctx, eyeShape, -eyeWidth * 0.5, -eyeHeight * 0.5, eyeWidth, eyeHeight, radius);
+    drawEyeShell(ctx, eyeShape, eyeWidth, eyeHeight, radius);
     ctx.fill();
 
     const innerEyeWidth = eyeWidth - strokeWidth * 2;
     const innerEyeHeight = eyeHeight - strokeWidth * 2;
     if (innerEyeWidth > 0 && innerEyeHeight > 0) {
       ctx.globalAlpha *= 0.35;
-      drawEyeShell(
-        ctx,
-        eyeShape,
-        -eyeWidth * 0.5 + strokeWidth,
-        -eyeHeight * 0.5 + strokeWidth,
-        innerEyeWidth,
-        innerEyeHeight,
-        Math.max(2, radius - strokeWidth),
-      );
+      drawEyeShell(ctx, eyeShape, innerEyeWidth, innerEyeHeight, Math.max(2, radius - strokeWidth));
       ctx.fillStyle = theme.accent;
       ctx.fill();
     }
@@ -307,13 +310,16 @@ export const pinuCharacter: CharacterDefinition = {
       ctx.shadowColor = "transparent";
       const pupilX = clamp(pose.pupilX, -1, 1) * eyeWidth * 0.46;
       const pupilY = clamp(pose.pupilY, -1, 1) * eyeHeight * 0.42;
-      roundedRect(
+      traceConstructionCapsule(
         ctx,
-        pupilX - pupilSize * 0.5,
-        pupilY - pupilSize * 0.5,
-        pupilSize,
-        pupilSize * (0.85 + (1 - openness) * 0.3),
-        pupilSize * 0.28,
+        createCapsule({
+          width: pupilSize,
+          height: pupilSize * (0.85 + (1 - openness) * 0.3),
+          y: 0,
+          radius: 0.28,
+        }),
+        pupilX,
+        pupilY,
       );
       ctx.fill();
       ctx.restore();
@@ -352,34 +358,39 @@ export const pinuCharacter: CharacterDefinition = {
     ctx.lineWidth = Math.max(2, params.height * 0.7);
 
     if (shape === "soft") {
-      ctx.beginPath();
-      ctx.moveTo(-params.width * 0.5, 0);
-      ctx.lineTo(params.width * 0.5, 0);
+      traceConstructionCurve(ctx, -params.width * 0.5, 0, 0, 0, params.width * 0.5, 0);
       ctx.stroke();
       ctx.restore();
       return;
     }
 
     if (shape === "bold") {
-      roundedRect(
+      traceConstructionCapsule(
         ctx,
-        -params.width * 0.5,
-        -params.height * 0.5,
-        params.width,
-        params.height,
-        params.height * 0.3,
+        createCapsule({
+          width: params.width,
+          height: params.height,
+          y: 0,
+          radius: 0.3,
+        }),
       );
       ctx.fill();
       ctx.restore();
       return;
     }
 
-    ctx.beginPath();
-    ctx.moveTo(-params.width * 0.48, params.height * 0.35);
-    ctx.lineTo(-params.width * 0.18, -params.height * 0.45);
-    ctx.lineTo(params.width * 0.5, -params.height * 0.12);
-    ctx.lineTo(params.width * 0.2, params.height * 0.45);
-    ctx.closePath();
+    traceConstructionPlate(
+      ctx,
+      createPlate({
+        width: params.width,
+        height: params.height,
+        y: 0,
+        inset: -0.14,
+        taper: 0.3,
+        tilt: 0.18,
+        radius: 0,
+      }),
+    );
     ctx.fill();
     ctx.restore();
   },

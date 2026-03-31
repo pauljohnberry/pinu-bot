@@ -1,3 +1,6 @@
+import { roundedRect } from "./drawUtils.js";
+import type { StyleDefinition } from "./types.js";
+
 export type ConstructionSide = "left" | "right";
 
 export interface ConstructionFrame {
@@ -110,6 +113,22 @@ export function createConstructionLayout(
   };
 }
 
+export function createStyleConstructionLayout(
+  style: Pick<StyleDefinition, "eyeGap" | "eyeY">,
+  overrides: Partial<Pick<ConstructionLayout, "centerlineBias">> = {},
+): ConstructionLayout {
+  const layoutOverrides: Partial<ConstructionLayout> = {
+    eyeGap: style.eyeGap * 2,
+    eyeLineY: style.eyeY,
+  };
+
+  if (overrides.centerlineBias !== undefined) {
+    layoutOverrides.centerlineBias = overrides.centerlineBias;
+  }
+
+  return createConstructionLayout(layoutOverrides);
+}
+
 export function resolveConstructionAnchors(
   frame: ConstructionFrame,
   layout: ConstructionLayout,
@@ -185,4 +204,132 @@ export function createWedge(
     y: config.y,
     spread: config.spread ?? 0.28,
   };
+}
+
+export function traceConstructionCapsule(
+  ctx: CanvasRenderingContext2D,
+  shape: ConstructionCapsule,
+  centerX = 0,
+  centerY = 0,
+): void {
+  roundedRect(
+    ctx,
+    centerX - shape.width * 0.5,
+    centerY + shape.y - shape.height * 0.5,
+    shape.width,
+    shape.height,
+    shape.height * shape.radius,
+  );
+}
+
+export function traceConstructionPlate(
+  ctx: CanvasRenderingContext2D,
+  shape: ConstructionPlate,
+  centerX = 0,
+  centerY = 0,
+): void {
+  const halfWidth = shape.width * 0.5;
+  const halfHeight = shape.height * 0.5;
+  const taperOffset = shape.width * shape.taper * 0.5;
+  const insetOffset = shape.width * shape.inset * 0.5;
+
+  ctx.save();
+  ctx.translate(centerX, centerY + shape.y);
+  ctx.rotate(shape.tilt);
+  ctx.beginPath();
+  ctx.moveTo(-halfWidth + insetOffset, -halfHeight);
+  ctx.lineTo(halfWidth - insetOffset, -halfHeight);
+  ctx.lineTo(halfWidth - taperOffset, halfHeight);
+  ctx.lineTo(-halfWidth + taperOffset, halfHeight);
+  ctx.closePath();
+  ctx.restore();
+}
+
+export function traceConstructionCurve(
+  ctx: CanvasRenderingContext2D,
+  startX: number,
+  startY: number,
+  controlX: number,
+  controlY: number,
+  endX: number,
+  endY: number,
+): void {
+  ctx.beginPath();
+  ctx.moveTo(startX, startY);
+  ctx.quadraticCurveTo(controlX, controlY, endX, endY);
+}
+
+export function traceConstructionChevron(
+  ctx: CanvasRenderingContext2D,
+  leftX: number,
+  leftY: number,
+  apexX: number,
+  apexY: number,
+  rightX: number,
+  rightY: number,
+): void {
+  ctx.beginPath();
+  ctx.moveTo(leftX, leftY);
+  ctx.lineTo(apexX, apexY);
+  ctx.lineTo(rightX, rightY);
+}
+
+export function traceConstructionDroplet(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  shoulderXRatio = 0.28,
+): void {
+  const topY = -height * 0.48;
+  const bottomY = height * 0.48;
+  const shoulderX = width * shoulderXRatio;
+
+  ctx.beginPath();
+  ctx.moveTo(0, topY);
+  ctx.bezierCurveTo(shoulderX, -height * 0.28, shoulderX, height * 0.16, 0, bottomY);
+  ctx.bezierCurveTo(-shoulderX, height * 0.16, -shoulderX, -height * 0.28, 0, topY);
+  ctx.closePath();
+}
+
+export function traceConstructionDiamond(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+): void {
+  ctx.beginPath();
+  ctx.moveTo(0, -height * 0.4);
+  ctx.lineTo(width * 0.36, 0);
+  ctx.lineTo(0, height * 0.48);
+  ctx.lineTo(-width * 0.36, 0);
+  ctx.closePath();
+}
+
+export function traceConstructionTriangle(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  shoulderRatio = 0.36,
+): void {
+  ctx.beginPath();
+  ctx.moveTo(0, -height * 0.42);
+  ctx.lineTo(width * shoulderRatio, height * 0.42);
+  ctx.lineTo(-width * shoulderRatio, height * 0.42);
+  ctx.closePath();
+}
+
+export function traceConstructionQuad(
+  ctx: CanvasRenderingContext2D,
+  points: ReadonlyArray<readonly [number, number]>,
+): void {
+  const [firstPoint, ...restPoints] = points;
+  if (!firstPoint) {
+    return;
+  }
+
+  ctx.beginPath();
+  ctx.moveTo(firstPoint[0], firstPoint[1]);
+  for (const [x, y] of restPoints) {
+    ctx.lineTo(x, y);
+  }
+  ctx.closePath();
 }
