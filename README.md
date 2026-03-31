@@ -13,6 +13,7 @@
 - Layered runtime: base emotion + blink + lookAt + speaking + screen FX
 - Character system: swap between different face types
 - Optional construction helpers for authoring new characters
+- Shared standard-robot renderer helpers for common face families
 - Optional mood lighting and symbol mode
 - Built-in face-theme presets, visual themes, and style presets
 - Direct part control for eyes, mouth, and nose

@@ -5,7 +5,7 @@ import {
   createStandardEyeRenderer,
   createStandardMouthRenderer,
   createStandardNoseRenderer,
-} from "../standardRenderers.js";
+} from "../standardRobotRenderers.js";
 import { STYLE_PRESETS } from "../styles.js";
 import type { FacePose } from "../types.js";
 

@@ -11,7 +11,10 @@ import {
   eyeShapeSupportsPupil,
   resolveStandardEyeMetrics,
 } from "../standardFace.js";
-import { createStandardBrowRenderer, createStandardNoseRenderer } from "../standardRenderers.js";
+import {
+  createStandardBrowRenderer,
+  createStandardNoseRenderer,
+} from "../standardRobotRenderers.js";
 import { STYLE_PRESETS } from "../styles.js";
 import type { EmotionName, FacePose, StyleDefinition } from "../types.js";
 

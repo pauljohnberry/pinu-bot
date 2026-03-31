@@ -198,7 +198,7 @@ It is a three-layer split:
 - shared render and geometry recipes
   - eye metric resolution
   - glyph-eye families
-  - common brow / nose / mouth families
+  - standard robot renderers for common brow / nose / mouth families
   - construction anchor helpers
 - character-unique systems
   - `pinu` overlays and visibility tricks
@@ -206,6 +206,12 @@ It is a three-layer split:
   - any identity-specific asymmetry or silhouette systems
 
 This keeps the easy path small for developers and LLMs without forcing unlike characters into one mold.
+
+The current renderer layer should be thought of as `standard robot renderers`, not universal renderers.
+
+- `pinu` fits this family closely
+- `kiba` can reuse some pieces, but still needs custom ear / muzzle / mouth systems
+- future characters should opt into this layer only where the face language genuinely matches
 
 ## Recommended First Scope
 
