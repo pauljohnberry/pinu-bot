@@ -10,15 +10,20 @@ import {
   createCapsule,
   createPlate,
   traceConstructionCapsule,
-  traceConstructionChevron,
   traceConstructionCurve,
   traceConstructionDiamond,
-  traceConstructionDroplet,
   traceConstructionPlate,
   traceConstructionQuad,
   traceConstructionTriangle,
 } from "../construction.js";
 import { clamp, drawPixelGlyph, ease, roundedRect, wave } from "../drawUtils.js";
+import {
+  drawStandardGlyphEye,
+  eyeShapeSupportsPupil,
+  resolveStandardEyeMetrics,
+  resolveStandardMouthMetrics,
+  resolveStandardNoseMetrics,
+} from "../standardFace.js";
 import { STYLE_PRESETS } from "../styles.js";
 import type { FacePose } from "../types.js";
 
@@ -36,10 +41,6 @@ const HEART_PATTERN = [
   "00000000",
 ];
 
-function eyeShapeSupportsPupil(shape: string): boolean {
-  return shape === "soft" || shape === "wide" || shape === "block";
-}
-
 function drawEyeShell(
   ctx: CanvasRenderingContext2D,
   shape: string,
@@ -56,43 +57,6 @@ function drawEyeShell(
       radius: shape === "block" ? 0 : shape === "wide" ? 0.5 : radius / Math.max(1, height),
     }),
   );
-}
-
-function drawGlyphEye(
-  ctx: CanvasRenderingContext2D,
-  shape: string,
-  width: number,
-  height: number,
-  side: number,
-  openness: number,
-  squint: number,
-): void {
-  if (shape === "sharp") {
-    const lineWidth = Math.max(3, Math.min(width, height) * 0.18);
-    const apexX = side * width * 0.04;
-    const apexY = -height * (0.3 + squint * 0.08);
-    const wingY = height * (0.08 + (1 - openness) * 0.12);
-    ctx.lineWidth = lineWidth;
-    traceConstructionChevron(ctx, -width * 0.42, wingY, apexX, apexY, width * 0.42, wingY);
-    ctx.stroke();
-    return;
-  }
-
-  if (shape === "sleepy") {
-    const lineWidth = Math.max(3, Math.min(width, height) * 0.2);
-    const startX = -side * width * 0.08;
-    const controlX = side * width * 0.42;
-    const arcHeight = height * (0.42 + (1 - openness) * 0.08);
-    ctx.lineWidth = lineWidth;
-    traceConstructionCurve(ctx, startX, -arcHeight, controlX, 0, startX, arcHeight);
-    ctx.stroke();
-    return;
-  }
-
-  if (shape === "droplet") {
-    traceConstructionDroplet(ctx, width, height);
-    ctx.fill();
-  }
 }
 
 function drawNoseShape(
@@ -247,19 +211,22 @@ export const pinuCharacter: CharacterDefinition = {
   drawEye(dc: DrawContext, params: EyeDrawParams): void {
     const { ctx, theme, emotionName } = dc;
     const { pose, side, style, features, parts } = params;
-    const openness = clamp(pose.openness, 0.01, 1);
-    const squint = clamp(pose.squint, 0, 1);
-    const eyeHeightScale = clamp(parts.eyeHeightScale, 0.5, 1.8);
-    const eyeWidthScale = clamp(parts.eyeWidthScale, 0.5, 1.8);
-    const baseHeight = params.height * eyeHeightScale;
-    const baseWidth = params.width * eyeWidthScale;
-    const eyeHeight = Math.max(
-      baseHeight * 0.1,
-      baseHeight * (0.18 + openness * 0.74) * (1 - squint * 0.52),
-    );
+    const eyeMetrics = resolveStandardEyeMetrics({
+      width: params.width,
+      height: params.height,
+      openness: pose.openness,
+      squint: pose.squint,
+      eyeWidthScale: parts.eyeWidthScale,
+      eyeHeightScale: parts.eyeHeightScale,
+      widthBase: 0.82,
+      widthOpenFactor: 0.14,
+      pupilScale: style.pupilScale,
+    });
+    const { openness, squint } = eyeMetrics;
+    const eyeHeight = eyeMetrics.height;
     const radius = eyeHeight * style.eyeCorner;
-    const eyeWidth = baseWidth * (0.82 + openness * 0.14);
-    const pupilSize = Math.max(4, Math.min(eyeWidth, eyeHeight) * style.pupilScale);
+    const eyeWidth = eyeMetrics.width;
+    const pupilSize = eyeMetrics.pupilSize;
     const lidCut = eyeHeight * squint * 0.24;
     const brightness = clamp(pose.brightness, 0.1, 1.8);
     const strokeWidth = Math.max(2, eyeHeight * 0.08);
@@ -285,7 +252,11 @@ export const pinuCharacter: CharacterDefinition = {
     const faceAlpha = ctx.globalAlpha;
     ctx.globalAlpha *= brightness;
     if (glyphEye) {
-      drawGlyphEye(ctx, eyeShape, eyeWidth, eyeHeight, side, openness, squint);
+      drawStandardGlyphEye(ctx, eyeShape, eyeWidth, eyeHeight, side, openness, squint, {
+        lineWidthFloor: 3,
+        sharpLineScale: 0.18,
+        sleepyLineScale: 0.2,
+      });
       ctx.restore();
       return;
     }
@@ -398,10 +369,14 @@ export const pinuCharacter: CharacterDefinition = {
   drawNose(dc: DrawContext, params: NoseDrawParams): void {
     const { ctx, theme } = dc;
     const { pose, parts } = params;
-    const scale = clamp(pose.scale, 0.1, 1.5);
     const brightness = clamp(pose.brightness, 0.1, 1.6);
-    const w = params.width * scale;
-    const h = params.height * scale;
+    const noseMetrics = resolveStandardNoseMetrics({
+      width: params.width,
+      height: params.height,
+      scale: pose.scale,
+    });
+    const w = noseMetrics.width;
+    const h = noseMetrics.height;
 
     ctx.save();
     ctx.translate(params.centerX, params.centerY);
@@ -417,12 +392,17 @@ export const pinuCharacter: CharacterDefinition = {
   drawMouth(dc: DrawContext, params: MouthDrawParams): void {
     const { ctx, theme } = dc;
     const { pose, parts } = params;
-    const curvature = clamp(pose.curvature, -1, 1);
-    const mouthWidth = params.width * clamp(pose.width, 0.2, 1.2);
-    const openness = clamp(pose.openness, 0, 1);
+    const mouthMetrics = resolveStandardMouthMetrics({
+      width: params.width,
+      height: params.height,
+      openness: pose.openness,
+      curvature: pose.curvature,
+      widthScale: pose.width,
+    });
     const brightness = clamp(pose.brightness, 0.1, 1.8);
-    const lift = curvature * params.height * 0.6;
-    const openDepth = openness * params.height * 0.8;
+    const mouthWidth = mouthMetrics.width;
+    const lift = mouthMetrics.lift;
+    const openDepth = mouthMetrics.openDepth;
 
     ctx.save();
     ctx.translate(params.centerX, params.centerY);

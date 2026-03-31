@@ -184,6 +184,29 @@ Standardize translation helpers.
 - `applyBrowShapeToConstruction(...)`
 - `applyEmotionToConstruction(...)`
 
+### Current Layering Direction
+
+The most useful reuse point is not "one generic character renderer."
+
+It is a three-layer split:
+
+- shared behavior rules
+  - blink / wink compression
+  - squint influence
+  - pupil bounds
+  - mouth openness depth
+- shared render and geometry recipes
+  - eye metric resolution
+  - glyph-eye families
+  - common brow / nose / mouth families
+  - construction anchor helpers
+- character-unique systems
+  - `pinu` overlays and visibility tricks
+  - `kiba` ears, muzzle, tongue, teeth
+  - any identity-specific asymmetry or silhouette systems
+
+This keeps the easy path small for developers and LLMs without forcing unlike characters into one mold.
+
 ## Recommended First Scope
 
 Do not attempt a full generic system first.

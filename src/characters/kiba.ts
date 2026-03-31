@@ -8,6 +8,12 @@ import type {
 } from "../character.js";
 import { clamp, drawPixelGlyph, roundedRect, wave } from "../drawUtils.js";
 import type { EmotionDefinition } from "../emotions.js";
+import {
+  drawStandardGlyphEye,
+  eyeShapeSupportsPupil,
+  resolveStandardEyeMetrics,
+  resolveStandardNoseMetrics,
+} from "../standardFace.js";
 import { STYLE_PRESETS } from "../styles.js";
 import type { EmotionName, FacePose, StyleDefinition } from "../types.js";
 
@@ -594,27 +600,34 @@ function resolveKibaEyeMetrics(
   side: -1 | 1,
   emotionName: EmotionName,
 ): KibaEyeMetrics {
-  const openness = clamp(pose.openness, 0.01, 1);
-  const squint = clamp(pose.squint, 0, 1);
-  const baseHeight = height * kibaStyle.eyeHeight;
-  const baseWidth = width * kibaStyle.eyeWidth;
-  const eyeHeight = Math.max(
-    baseHeight * 0.1,
-    baseHeight * (0.18 + openness * 0.74) * (1 - squint * 0.52),
-  );
-  const eyeWidth = baseWidth * (0.86 + openness * 0.14);
+  const eyeMetrics = resolveStandardEyeMetrics({
+    width: width * kibaStyle.eyeWidth,
+    height: height * kibaStyle.eyeHeight,
+    openness: pose.openness,
+    squint: pose.squint,
+    widthBase: 0.86,
+    widthOpenFactor: 0.14,
+  });
   const confusedTilt = emotionName === "confused";
   const confusedScale = confusedTilt ? (side === -1 ? 1.18 : 0.94) : 1;
-  const confusedY = confusedTilt ? (side === -1 ? baseHeight * 0.1 : -baseHeight * 0.06) : 0;
-  const confusedX = confusedTilt ? (side === -1 ? -baseWidth * 0.02 : baseWidth * 0.01) : 0;
+  const confusedY = confusedTilt
+    ? side === -1
+      ? eyeMetrics.baseHeight * 0.1
+      : -eyeMetrics.baseHeight * 0.06
+    : 0;
+  const confusedX = confusedTilt
+    ? side === -1
+      ? -eyeMetrics.baseWidth * 0.02
+      : eyeMetrics.baseWidth * 0.01
+    : 0;
   const excitedWide = emotionName === "excited" ? 1.14 : emotionName === "happy" ? 1.03 : 1;
   const excitedShort = emotionName === "excited" ? 0.92 : 1;
 
   return {
     centerX: side * width * kibaStyle.eyeGap + confusedX,
     centerY: height * kibaStyle.eyeY + confusedY,
-    width: eyeWidth * confusedScale * excitedWide,
-    height: eyeHeight * confusedScale * excitedShort,
+    width: eyeMetrics.width * confusedScale * excitedWide,
+    height: eyeMetrics.height * confusedScale * excitedShort,
   };
 }
 
@@ -769,59 +782,6 @@ function strokeEarOutline(
   strokeCubicRange(ctx, 0, 1, shoulder, tipCtrlA, tipCtrlB, tip, 10);
   strokeCubicRange(ctx, 0, 1, tip, baseCtrlA, baseCtrlB, base, 10);
   strokeCubicRange(ctx, 0, innerVisibleEndT, base, innerCtrlA, innerCtrlB, topInner, 10);
-}
-
-function eyeShapeSupportsPupil(shape: string): boolean {
-  return shape === "soft" || shape === "wide" || shape === "block";
-}
-
-function drawGlyphEye(
-  ctx: CanvasRenderingContext2D,
-  shape: string,
-  width: number,
-  height: number,
-  side: number,
-  openness: number,
-  squint: number,
-): void {
-  if (shape === "sharp") {
-    const lineWidth = Math.max(1.5, Math.min(width, height) * 0.11);
-    const apexX = side * width * 0.04;
-    const apexY = -height * (0.28 + squint * 0.08);
-    const wingY = height * (0.08 + (1 - openness) * 0.12);
-    ctx.lineWidth = lineWidth;
-    ctx.beginPath();
-    ctx.moveTo(-width * 0.42, wingY);
-    ctx.lineTo(apexX, apexY);
-    ctx.lineTo(width * 0.42, wingY);
-    ctx.stroke();
-    return;
-  }
-
-  if (shape === "sleepy") {
-    const lineWidth = Math.max(1.5, Math.min(width, height) * 0.13);
-    const startX = -side * width * 0.08;
-    const controlX = side * width * 0.42;
-    const arcHeight = height * (0.42 + (1 - openness) * 0.08);
-    ctx.lineWidth = lineWidth;
-    ctx.beginPath();
-    ctx.moveTo(startX, -arcHeight);
-    ctx.quadraticCurveTo(controlX, 0, startX, arcHeight);
-    ctx.stroke();
-    return;
-  }
-
-  if (shape === "droplet") {
-    const topY = -height * 0.48;
-    const bottomY = height * 0.48;
-    const shoulderX = width * 0.28;
-    ctx.beginPath();
-    ctx.moveTo(0, topY);
-    ctx.bezierCurveTo(shoulderX, -height * 0.28, shoulderX, height * 0.16, 0, bottomY);
-    ctx.bezierCurveTo(-shoulderX, height * 0.16, -shoulderX, -height * 0.28, 0, topY);
-    ctx.closePath();
-    ctx.fill();
-  }
 }
 
 function drawDogEyeShell(
@@ -1526,17 +1486,20 @@ export const kibaCharacter: CharacterDefinition = {
   drawEye(dc: DrawContext, params: EyeDrawParams): void {
     const { ctx, theme } = dc;
     const { pose, side, parts, features } = params;
-    const openness = clamp(pose.openness, 0.01, 1);
-    const squint = clamp(pose.squint, 0, 1);
-    const eyeHeightScale = clamp(parts.eyeHeightScale, 0.5, 1.8);
-    const eyeWidthScale = clamp(parts.eyeWidthScale, 0.5, 1.8);
-    const baseHeight = params.height * eyeHeightScale;
-    const baseWidth = params.width * eyeWidthScale;
-    const eyeHeight = Math.max(
-      baseHeight * 0.1,
-      baseHeight * (0.18 + openness * 0.74) * (1 - squint * 0.52),
-    );
-    const eyeWidth = baseWidth * (0.86 + openness * 0.14);
+    const eyeMetrics = resolveStandardEyeMetrics({
+      width: params.width,
+      height: params.height,
+      openness: pose.openness,
+      squint: pose.squint,
+      eyeWidthScale: parts.eyeWidthScale,
+      eyeHeightScale: parts.eyeHeightScale,
+      widthBase: 0.86,
+      widthOpenFactor: 0.14,
+      pupilScale: 0.54,
+    });
+    const { openness, squint } = eyeMetrics;
+    const eyeHeight = eyeMetrics.height;
+    const eyeWidth = eyeMetrics.width;
     const eyeShape = parts.eyeShape ?? "soft";
     const glyphEye = eyeShape === "sharp" || eyeShape === "sleepy" || eyeShape === "droplet";
     const brightness = clamp(pose.brightness, 0.1, 1.8);
@@ -1552,7 +1515,10 @@ export const kibaCharacter: CharacterDefinition = {
     const excitedShort = dc.emotionName === "excited" ? 0.92 : 1;
     const resolvedEyeWidth = eyeWidth * confusedScale * excitedWide;
     const resolvedEyeHeight = eyeHeight * confusedScale * excitedShort;
-    const pupilSize = Math.max(10, Math.min(resolvedEyeWidth, resolvedEyeHeight) * 0.54);
+    const pupilSize = Math.max(
+      10,
+      eyeMetrics.pupilSize * confusedScale * Math.min(excitedWide, excitedShort),
+    );
     const dogSlantBase = dc.emotionName === "sad" ? 0.26 : 0.12;
     const dogSlant = (dc.emotionName === "angry" ? -side : side) * dogSlantBase;
     const headTilt = confusedTilt ? -0.1 : 0;
@@ -1590,7 +1556,11 @@ export const kibaCharacter: CharacterDefinition = {
     }
 
     if (glyphEye) {
-      drawGlyphEye(ctx, eyeShape, eyeWidth, eyeHeight, side, openness, squint);
+      drawStandardGlyphEye(ctx, eyeShape, eyeWidth, eyeHeight, side, openness, squint, {
+        lineWidthFloor: 1.5,
+        sharpLineScale: 0.11,
+        sleepyLineScale: 0.13,
+      });
       ctx.restore();
       return;
     }
@@ -1731,10 +1701,14 @@ export const kibaCharacter: CharacterDefinition = {
   drawNose(dc: DrawContext, params: NoseDrawParams): void {
     const { ctx, theme } = dc;
     const { pose, parts } = params;
-    const scale = clamp(pose.scale, 0.1, 1.5);
     const brightness = clamp(pose.brightness, 0.1, 1.6);
-    const width = params.width * scale;
-    const height = params.height * scale;
+    const noseMetrics = resolveStandardNoseMetrics({
+      width: params.width,
+      height: params.height,
+      scale: pose.scale,
+    });
+    const width = noseMetrics.width;
+    const height = noseMetrics.height;
     const confusedTilt = dc.emotionName === "confused";
     const noseShape = parts.noseShape ?? "pointed";
 
