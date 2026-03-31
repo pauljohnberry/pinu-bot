@@ -102,8 +102,13 @@ face.emote("sad", { intensity: 0.8 });
 face.emote("love");
 face.emote("angry");
 
-face.perform("bootUp");
-face.perform("glitch");
+face.think({ persistent: true });
+face.listen({ durationMs: 1800 });
+face.sleep({ persistent: true });
+face.goOffline({ persistent: true });
+face.bootUp();
+face.glitch();
+face.reset();
 
 face.lookAt(0.2, -0.1);
 face.lookLeft(0.7);
@@ -154,7 +159,16 @@ face.configure({
   Options include `character`, `theme`, `style`, `features`, `parts`, `mode`, `symbol`, `backgroundFx`, `transparentBackground`, `autoStart`, and `pixelRatio`.
 - `face.setCharacter(nameOrDefinition)`
 - `face.emote(name, options?)`
-- `face.perform(name)`
+- `face.think(options?)`
+- `face.listen(options?)`
+- `face.sleep(options?)`
+- `face.goOffline(options?)`
+- `face.bootUp(options?)`
+- `face.glitch(options?)`
+- `face.reset()`
+
+`emote()` is for emotional baselines only. `reset()` returns the face to the original creation-time baseline: the initial emotion, mode, and symbol set when you created the face.
+
 - `face.transitionTo(state)`
 - `face.lookAt(x, y)`
 - `face.lookLeft(amount?)`
@@ -234,7 +248,7 @@ registerCharacter(myCharacter);
 const face = createRobotFace(canvas, { character: "my-character" });
 ```
 
-Characters can optionally provide `drawOverlay`, `drawBackground`, `getFaceVisibility`, `getScrambleStrength`, and per-character `emotions` overrides. See [`src/character.ts`](./src/character.ts) for the full interface and [`src/characters/pinu.ts`](./src/characters/pinu.ts) for a reference implementation.
+Characters can optionally provide `drawOverlay`, `drawBackground`, `getFaceVisibility`, `getScrambleStrength`, and per-character `emotions` or `states` overrides. See [`src/character.ts`](./src/character.ts) for the full interface and [`src/characters/pinu.ts`](./src/characters/pinu.ts) for a reference implementation.
 
 ## Construction Helpers
 
@@ -283,7 +297,10 @@ These helpers are intended to lock composition and anchors before low-level draw
 ## Built-In Presets
 
 Emotions:
-`neutral`, `happy`, `love`, `sad`, `angry`, `surprised`, `confused`, `thinking`, `sleepy`, `excited`, `listening`, `speaking`, `offline`, `booting`, `glitch`
+`neutral`, `happy`, `love`, `sad`, `angry`, `surprised`, `confused`, `excited`
+
+States:
+`thinking`, `listening`, `sleeping`, `offline`, `booting`, `glitch`
 
 Themes:
 `amber`, `cyan`, `green-crt`, `white`, `red-alert`, `ice-blue`, `sunset`, `violet`

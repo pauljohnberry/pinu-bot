@@ -463,12 +463,51 @@ describe("createRobotFace", () => {
     raf.step(16);
     expect(canvas.context.operations.includes("clearRect")).toBe(true);
 
-    face.perform("glitch");
+    face.glitch();
     raf.step(32);
     raf.step(48);
 
     face.stop();
     expect(raf.queued()).toBe(0);
+  });
+
+  test("emotion changes cancel persistent non-emotional states", () => {
+    const canvas = new FakeCanvas();
+    const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
+      autoStart: false,
+    });
+
+    face.think({ persistent: true });
+    expect((face as unknown as { displayStateName: string }).displayStateName).toBe("thinking");
+
+    face.emote("sad");
+
+    expect((face as unknown as { displayStateName: string }).displayStateName).toBe("sad");
+    expect((face as unknown as { activeStateName: string | null }).activeStateName).toBeNull();
+  });
+
+  test("reset restores the creation-time baseline state", () => {
+    const canvas = new FakeCanvas();
+    const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
+      autoStart: false,
+      mode: "symbol",
+      symbol: "warning",
+    });
+
+    face
+      .showFace()
+      .emote("happy")
+      .think({ persistent: true })
+      .lookLeft(0.7)
+      .speak({ intensity: 0.5, durationMs: 1200 });
+
+    face.reset();
+
+    expect((face as unknown as { displayStateName: string }).displayStateName).toBe("neutral");
+    expect((face as unknown as { emotionTargetName: string }).emotionTargetName).toBe("neutral");
+    expect((face as unknown as { activeStateName: string | null }).activeStateName).toBeNull();
+    expect((face as unknown as { mode: string }).mode).toBe("symbol");
+    expect((face as unknown as { symbolName: string | null }).symbolName).toBe("warning");
   });
 
   test("destroy stops the raf loop", () => {

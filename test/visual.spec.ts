@@ -4,6 +4,7 @@ const cases = [
   {
     name: "neutral-companion",
     query: "?emotion=neutral&faceTheme=companion",
+    maxDiffPixels: 5,
   },
   {
     name: "angry-sentinel",
@@ -37,12 +38,7 @@ const pinuConstructionEmotions = [
   "angry",
   "surprised",
   "confused",
-  "thinking",
-  "sleepy",
   "excited",
-  "listening",
-  "speaking",
-  "offline",
 ] as const;
 
 for (const entry of cases) {

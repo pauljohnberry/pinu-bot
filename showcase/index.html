@@ -517,7 +517,7 @@
   }
 });
 
-face.emote("listening");
+face.listen({ persistent: true });
 face.lookRight(0.7);</code></pre>
           </div>
         </article>
@@ -605,7 +605,7 @@ face.wink("left");</code></pre>
   }
 });
 
-face.emote("thinking");</code></pre>
+face.think({ persistent: true });</code></pre>
           </div>
         </article>
 
@@ -641,7 +641,7 @@ face.emote("thinking");</code></pre>
 });
 
 face.emote("angry");
-face.perform("glitch");</code></pre>
+face.glitch();</code></pre>
           </div>
         </article>
 
@@ -730,13 +730,13 @@ face.showSymbol("warning");</code></pre>
           },
         },
         (face) => {
-          face.emote("listening");
+          face.listen({ persistent: true });
           face.lookRight(0.55);
           const loop = () => {
             face.lookLeft(0.75);
             later(() => face.lookRight(0.78), 1400);
             later(() => face.smile(0.5, { open: false }), 2400);
-            later(() => face.emote("listening"), 3600);
+            later(() => face.listen({ persistent: true }), 3600);
           };
           loop();
           every(loop, 4600);
@@ -789,12 +789,12 @@ face.showSymbol("warning");</code></pre>
           },
         },
         (face) => {
-          face.emote("thinking");
+          face.think({ persistent: true });
           const loop = () => {
             face.lookLeft(0.42);
             later(() => face.lookRight(0.42), 1200);
             later(() => face.emote("confused"), 2100);
-            later(() => face.emote("thinking"), 3500);
+            later(() => face.think({ persistent: true }), 3500);
           };
           loop();
           every(loop, 4800);
@@ -816,7 +816,7 @@ face.showSymbol("warning");</code></pre>
         (face) => {
           face.emote("angry");
           const loop = () => {
-            face.perform("glitch");
+            face.glitch();
             later(() => face.lookLeft(0.68), 600);
             later(() => face.lookRight(0.68), 1300);
             later(() => face.emote("angry"), 2600);

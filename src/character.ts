@@ -1,13 +1,15 @@
-import type { EmotionDefinition } from "./emotions.js";
+import type { FaceStateDefinition } from "./stateDefinitions.js";
 import type {
   DisplayMode,
   EmotionName,
   EyePose,
   FaceFeatures,
   FacePose,
+  FaceStateName,
   MouthPose,
   NosePose,
   PartStyleConfig,
+  StateName,
   StyleDefinition,
   ThemeDefinition,
 } from "./types.js";
@@ -16,9 +18,11 @@ export interface DrawContext {
   ctx: CanvasRenderingContext2D;
   theme: ThemeDefinition;
   emotionName: EmotionName;
+  stateName: FaceStateName;
   elapsed: number;
   emotionFromTime: number;
   mode: DisplayMode;
+  speakingAmount: number;
 }
 
 export interface EyeDrawParams {
@@ -76,7 +80,8 @@ export interface CharacterDefinition {
   defaultStyle: StyleDefinition;
   defaultFeatures?: Partial<FaceFeatures>;
 
-  emotions?: Partial<Record<EmotionName, EmotionDefinition>>;
+  emotions?: Partial<Record<EmotionName, FaceStateDefinition>>;
+  states?: Partial<Record<StateName, FaceStateDefinition>>;
 
   drawEye(dc: DrawContext, params: EyeDrawParams): void;
   drawBrow(dc: DrawContext, params: BrowDrawParams): void;
@@ -86,7 +91,7 @@ export interface CharacterDefinition {
   drawOverlay?(dc: DrawContext, width: number, height: number, pose: FacePose): void;
   drawBackground?(dc: DrawContext, width: number, height: number, pose: FacePose): void;
   getFaceVisibility?(dc: DrawContext): number;
-  getScrambleStrength?(emotionName: EmotionName, baseDistortion: number): number;
+  getScrambleStrength?(stateName: FaceStateName, baseDistortion: number): number;
 }
 
 const registry = new Map<string, CharacterDefinition>();
