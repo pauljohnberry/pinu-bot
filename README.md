@@ -241,11 +241,11 @@ For composition-first character work, the package also exports additive construc
 
 ```ts
 import {
-  createBeak,
   createCapsule,
   createConstructionFrame,
   createConstructionLayout,
   createPlate,
+  createWedge,
   resolveConstructionAnchors,
 } from "pinu-bot";
 
@@ -270,7 +270,7 @@ const eyeShell = createCapsule({
   y: anchors.eyeLineY,
 });
 
-const beak = createBeak({
+const centerWedge = createWedge({
   width: 0.08,
   height: 0.14,
   y: 0.03,

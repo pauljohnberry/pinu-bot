@@ -23,9 +23,27 @@
 
     <script type="module">
       import { EMOTIONS } from "../dist/emotions.js";
-      import { createRobotFace, kibaCharacter, pinuCharacter } from "../dist/index.js";
+      import {
+        BUILTIN_THEMES,
+        clamp,
+        createCapsule,
+        createConstructionFrame,
+        createConstructionLayout,
+        createPlate,
+        createRobotFace,
+        createWedge,
+        drawPixelGlyph,
+        ease,
+        kibaCharacter,
+        pinuCharacter,
+        resolveConstructionAnchors,
+        roundedRect,
+        wave,
+      } from "../dist/index.js";
 
       const params = new URLSearchParams(window.location.search);
+      const construction = params.get("construction");
+      const compareConstruction = params.get("compareConstruction");
       const emotion = params.get("emotion") ?? "neutral";
       const character = params.get("character") ?? "pinu";
       const theme = params.get("theme") ?? "cyan";
@@ -38,42 +56,653 @@
       const activeCharacter = characters[character] ?? pinuCharacter;
 
       const canvas = document.querySelector("#face");
-      const face = createRobotFace(canvas, {
-        autoStart: true,
-        pixelRatio: 1,
-        character: activeCharacter,
-        theme,
-        style,
-        faceTheme: faceTheme || undefined,
-        parts: noseShape
-          ? {
-              noseShape
-            }
-          : undefined
-      });
+      const HEART_PATTERN = [
+        "01100110",
+        "11111111",
+        "11111111",
+        "11111111",
+        "01111110",
+        "00111100",
+        "00011000",
+        "00000000",
+      ];
 
-      face.setMode(mode);
-      if (mode === "symbol" && symbol) {
-        face.showSymbol(symbol);
+      const waitMs = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
+      const cloneValue = (value) => JSON.parse(JSON.stringify(value));
+      const getConstructionEmotion = (recipeName) =>
+        recipeName.startsWith("pinu-") ? recipeName.slice("pinu-".length) : null;
+      const resolveEmotionDefinition = (emotionName) =>
+        pinuCharacter.emotions?.[emotionName] ?? EMOTIONS[emotionName];
+
+      const createSizedCanvas = () => {
+        const offscreen = document.createElement("canvas");
+        offscreen.width = canvas.width;
+        offscreen.height = canvas.height;
+        return offscreen;
+      };
+
+      const drawLocalCapsule = (ctx, shape, centerX = 0, centerY = 0) => {
+        roundedRect(
+          ctx,
+          centerX - shape.width * 0.5,
+          centerY + shape.y - shape.height * 0.5,
+          shape.width,
+          shape.height,
+          shape.height * shape.radius,
+        );
+      };
+
+      const resolveLoveTransitionProgress = (snapshot) => {
+        if (snapshot.emotionName !== "love") {
+          return -1;
+        }
+
+        const elapsed = snapshot.elapsed - snapshot.emotionFromTime;
+        if (elapsed < 0) {
+          return -1;
+        }
+
+        const durationMs = 1180;
+        if (elapsed > durationMs) {
+          return -1;
+        }
+
+        return clamp(elapsed / durationMs, 0, 1);
+      };
+
+      const getPinuFaceVisibility = (snapshot) => {
+        const progress = resolveLoveTransitionProgress(snapshot);
+        if (progress < 0) {
+          return 1;
+        }
+
+        if (progress < 0.14) {
+          return 1 - ease("smooth", progress / 0.14);
+        }
+
+        if (progress < 0.82) {
+          return 0;
+        }
+
+        return ease("smooth", (progress - 0.82) / 0.18);
+      };
+
+      const renderPinuSnapshot = async (targetCanvas, emotionName) => {
+        const face = createRobotFace(targetCanvas, {
+          autoStart: true,
+          pixelRatio: 1,
+          character: pinuCharacter,
+          theme: "cyan",
+          style: "classic",
+          transparentBackground: true,
+          backgroundFx: "off",
+          features: {
+            panel: false,
+            scanlines: false,
+          },
+        });
+        const definition = resolveEmotionDefinition(emotionName);
+
+        if (definition) {
+          face.emote(emotionName, { intensity: 1 });
+          await waitMs(Math.max(420, definition.durationMs + 120));
+        }
+
         face.stop();
         face.render();
+
+        const snapshot = {
+          pose: cloneValue(face.currentPose),
+          style: cloneValue(face.style),
+          theme: cloneValue(face.theme),
+          parts: cloneValue(face.parts),
+          features: cloneValue(face.features),
+          emotionName: face.emotionTargetName ?? emotionName,
+          elapsed: face.elapsed ?? 0,
+          emotionFromTime: face.emotionFromTime ?? 0,
+          mode: face.mode ?? "face",
+        };
+
+        face.destroy();
+        return snapshot;
+      };
+
+      const drawPinuLoveOverlay = (ctx, width, height, snapshot) => {
+        const progress = resolveLoveTransitionProgress(snapshot);
+        if (progress < 0 || snapshot.mode !== "face") {
+          return;
+        }
+
+        let heartAlpha = 0;
+        let swell = 0;
+
+        if (progress >= 0.08 && progress < 0.28) {
+          const t = ease("smooth", (progress - 0.08) / 0.2);
+          heartAlpha = t;
+          swell = t;
+        } else if (progress >= 0.28 && progress < 0.76) {
+          const holdPulse = 0.92 + 0.08 * (0.5 + 0.5 * wave(snapshot.elapsed / 1000, 3.2));
+          heartAlpha = 1;
+          swell = holdPulse;
+        } else if (progress >= 0.76 && progress < 0.92) {
+          const t = 1 - ease("smooth", (progress - 0.76) / 0.16);
+          heartAlpha = t;
+          swell = 0.92 + t * 0.18;
+        }
+
+        if (heartAlpha <= 0.001) {
+          return;
+        }
+
+        const pose = snapshot.pose;
+        const theme = snapshot.theme;
+        const heartSize = Math.min(width, height) * (0.12 + 0.2 * swell);
+        const washAlpha = heartAlpha * 0.12;
+        const centerY = -height * 0.05 + pose.global.bob * height * 0.05;
+
+        ctx.save();
+        ctx.translate(width * 0.5, height * 0.5);
+        ctx.globalAlpha *= washAlpha;
+        ctx.fillStyle = theme.panel;
+        roundedRect(
+          ctx,
+          -width * 0.24,
+          -height * 0.26 + pose.global.bob * height * 0.06,
+          width * 0.48,
+          height * 0.38,
+          Math.min(width, height) * 0.06,
+        );
+        ctx.fill();
+
+        ctx.shadowColor = "#ff7b98";
+        ctx.shadowBlur = heartSize * 0.4;
+        ctx.globalAlpha = heartAlpha;
+        ctx.fillStyle = "#ff305f";
+        drawPixelGlyph(ctx, HEART_PATTERN, 0, centerY, heartSize);
+
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = heartAlpha * 0.3;
+        ctx.fillStyle = "#ff9ab3";
+        drawPixelGlyph(ctx, HEART_PATTERN, 0, centerY - heartSize * 0.04, heartSize * 0.62);
+        ctx.restore();
+      };
+
+      const drawPinuConstruction = (snapshot, targetCanvas = canvas) => {
+        const ctx = targetCanvas.getContext("2d");
+        if (!ctx) {
+          return;
+        }
+
+        const width = targetCanvas.width;
+        const height = targetCanvas.height;
+        const { pose, style, theme, parts, features, emotionName } = snapshot;
+        const frame = createConstructionFrame(width, height);
+        const layout = createConstructionLayout({
+          eyeGap: style.eyeGap * 2,
+          eyeLineY: style.eyeY,
+        });
+        const anchors = resolveConstructionAnchors(frame, layout);
+
+        const eyeHeightScale = clamp(parts.eyeHeightScale, 0.5, 1.8);
+        const scaledEyeHeight = height * style.eyeHeight * eyeHeightScale;
+        const defaultEyeTopY = height * (style.eyeY - style.eyeHeight * 0.5);
+        const defaultBrowY = height * style.browY;
+        const browOffsetFromEyeTop = defaultBrowY - defaultEyeTopY;
+        const browExtraLift = Math.max(0, eyeHeightScale - 1) * scaledEyeHeight * 0.18;
+        const dynamicBrowY =
+          height * style.eyeY - scaledEyeHeight * 0.5 + browOffsetFromEyeTop - browExtraLift;
+        const confusedBrowRaise = emotionName === "confused" ? height * 0.024 : 0;
+        const leftBrowY = dynamicBrowY - confusedBrowRaise;
+        const rightBrowY = dynamicBrowY + confusedBrowRaise * 0.22;
+        const dc = {
+          ctx,
+          theme,
+          emotionName,
+          elapsed: snapshot.elapsed,
+          emotionFromTime: snapshot.emotionFromTime,
+          mode: snapshot.mode,
+        };
+        const jitterAmount = pose.global.jitter;
+        const flicker =
+          1 -
+          pose.global.flicker *
+            (0.35 + 0.65 * (0.5 + 0.5 * wave(snapshot.elapsed / 1000, 18.5)));
+        const faceOffsetY = pose.global.bob * height;
+        const jitterX = jitterAmount * width * wave((snapshot.elapsed + 20) / 1000, 17.3);
+        const jitterY = jitterAmount * height * wave((snapshot.elapsed + 60) / 1000, 14.1);
+
+        ctx.clearRect(0, 0, width, height);
+        ctx.save();
+        ctx.translate(width * 0.5 + jitterX, height * 0.5 + faceOffsetY + jitterY);
+        ctx.save();
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.strokeStyle = theme.foreground;
+        ctx.fillStyle = theme.foreground;
+        ctx.shadowColor = theme.glow;
+        ctx.shadowBlur = Math.max(8, Math.min(width, height) * style.glowScale * pose.global.glow);
+        ctx.globalAlpha *= flicker;
+        if (snapshot.mode === "face") {
+          ctx.globalAlpha *= pinuCharacter.getFaceVisibility?.(dc) ?? 1;
+        }
+
+        if (features.brows) {
+          if (features.leftEye) {
+            pinuCharacter.drawBrow(dc, {
+              centerX: anchors.leftEyeX,
+              centerY: leftBrowY,
+              width: width * style.browWidth,
+              height: height * style.browHeight,
+              pose: pose.leftEye,
+              side: -1,
+              parts,
+            });
+          }
+          if (features.rightEye) {
+            pinuCharacter.drawBrow(dc, {
+              centerX: anchors.rightEyeX,
+              centerY: rightBrowY,
+              width: width * style.browWidth,
+              height: height * style.browHeight,
+              pose: pose.rightEye,
+              side: 1,
+              parts,
+            });
+          }
+        }
+        if (features.leftEye) {
+          pinuCharacter.drawEye(dc, {
+            centerX: anchors.leftEyeX,
+            centerY: anchors.eyeLineY,
+            width: width * style.eyeWidth,
+            height: height * style.eyeHeight,
+            pose: pose.leftEye,
+            side: -1,
+            style,
+            features,
+            parts,
+          });
+        }
+        if (features.rightEye) {
+          pinuCharacter.drawEye(dc, {
+            centerX: anchors.rightEyeX,
+            centerY: anchors.eyeLineY,
+            width: width * style.eyeWidth,
+            height: height * style.eyeHeight,
+            pose: pose.rightEye,
+            side: 1,
+            style,
+            features,
+            parts,
+          });
+        }
+        if (features.nose) {
+          pinuCharacter.drawNose(dc, {
+            centerX: 0,
+            centerY: height * style.noseY,
+            width: width * style.noseWidth,
+            height: height * style.noseHeight,
+            pose: pose.nose,
+            parts,
+          });
+        }
+        if (features.mouth) {
+          pinuCharacter.drawMouth(dc, {
+            centerX: 0,
+            centerY: height * style.mouthY,
+            width: width * style.mouthWidth,
+            height: height * style.mouthHeight,
+            pose: pose.mouth,
+            parts,
+          });
+        }
+        ctx.restore();
+        pinuCharacter.drawOverlay?.(dc, width, height, pose);
+        ctx.restore();
+      };
+
+      const drawConstructionPreview = async (recipeName, targetCanvas = canvas, snapshot = null) => {
+        const ctx = targetCanvas.getContext("2d");
+        if (!ctx) {
+          return;
+        }
+
+        const width = targetCanvas.width;
+        const height = targetCanvas.height;
+        const frame = createConstructionFrame(width * 0.62, height * 0.42);
+        const layout = createConstructionLayout({
+          eyeGap: 0.26,
+          eyeLineY: 0.04,
+        });
+        const anchors = resolveConstructionAnchors(frame, layout);
+
+        const drawPlate = (shape, side) => {
+          const centerX = width * 0.5 + (side === "left" ? -frame.width * 0.18 : frame.width * 0.18);
+          const centerY = height * 0.5 + shape.y;
+          const halfWidth = shape.width * 0.5;
+          const halfHeight = shape.height * 0.5;
+          const taperOffset = shape.width * shape.taper * 0.5;
+
+          ctx.save();
+          ctx.translate(centerX, centerY);
+          ctx.rotate(shape.tilt);
+          ctx.beginPath();
+          ctx.moveTo(-halfWidth, -halfHeight);
+          ctx.lineTo(halfWidth, -halfHeight);
+          ctx.lineTo(halfWidth - taperOffset, halfHeight);
+          ctx.lineTo(-halfWidth + taperOffset, halfHeight);
+          ctx.closePath();
+          ctx.fill();
+          ctx.restore();
+        };
+
+        const drawCapsule = (shape, x) => {
+          roundedRect(
+            ctx,
+            x - shape.width * 0.5,
+            height * 0.5 + shape.y - shape.height * 0.5,
+            shape.width,
+            shape.height,
+            shape.height * shape.radius,
+          );
+          ctx.fill();
+        };
+
+        const drawWedge = (shape) => {
+          const centerX = width * 0.5;
+          const centerY = height * 0.5 + shape.y;
+          ctx.beginPath();
+          ctx.moveTo(centerX - shape.width * 0.18, centerY - shape.height * 0.35);
+          ctx.lineTo(centerX, centerY + shape.height * 0.5);
+          ctx.lineTo(centerX + shape.width * 0.18, centerY - shape.height * 0.35);
+          ctx.stroke();
+        };
+
+        ctx.clearRect(0, 0, width, height);
+
+        if (recipeName === "owl-mask") {
+          const leftMask = createPlate({
+            width: frame.width * 0.44,
+            height: frame.height * 0.34,
+            y: anchors.eyeLineY - frame.height * 0.08,
+            taper: 0.14,
+            tilt: -0.08,
+          });
+          const rightMask = createPlate({
+            width: frame.width * 0.44,
+            height: frame.height * 0.34,
+            y: anchors.eyeLineY - frame.height * 0.08,
+            taper: 0.14,
+            tilt: 0.08,
+          });
+          const eyeShell = createCapsule({
+            width: frame.width * 0.14,
+            height: frame.height * 0.11,
+            y: anchors.eyeLineY + frame.height * 0.02,
+          });
+          const centerWedge = createWedge({
+            width: frame.width * 0.06,
+            height: frame.height * 0.18,
+            y: anchors.eyeLineY + frame.height * 0.08,
+          });
+
+          ctx.fillStyle = "#79dbe8";
+          ctx.shadowColor = "#79dbe8";
+          ctx.shadowBlur = 18;
+          drawPlate(leftMask, "left");
+          drawPlate(rightMask, "right");
+
+          ctx.shadowBlur = 14;
+          ctx.fillStyle = "#eff8fb";
+          drawCapsule(eyeShell, width * 0.5 + anchors.leftEyeX);
+          drawCapsule(eyeShell, width * 0.5 + anchors.rightEyeX);
+
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = "#091016";
+          roundedRect(
+            ctx,
+            width * 0.5 + anchors.leftEyeX - eyeShell.width * 0.06,
+            height * 0.5 + eyeShell.y - eyeShell.height * 0.08,
+            eyeShell.width * 0.12,
+            eyeShell.height * 0.16,
+            eyeShell.height * 0.06,
+          );
+          ctx.fill();
+          roundedRect(
+            ctx,
+            width * 0.5 + anchors.rightEyeX - eyeShell.width * 0.06,
+            height * 0.5 + eyeShell.y - eyeShell.height * 0.08,
+            eyeShell.width * 0.12,
+            eyeShell.height * 0.16,
+            eyeShell.height * 0.06,
+          );
+          ctx.fill();
+
+          ctx.strokeStyle = "#79dbe8";
+          ctx.lineWidth = Math.max(6, frame.width * 0.01);
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+          ctx.shadowBlur = 18;
+          drawWedge(centerWedge);
+        }
+
+        const pinuEmotion = getConstructionEmotion(recipeName);
+        if (pinuEmotion) {
+          const activeSnapshot = snapshot ?? (await renderPinuSnapshot(createSizedCanvas(), pinuEmotion));
+          drawPinuConstruction(activeSnapshot, targetCanvas);
+        }
+      };
+
+      const renderReferenceFace = async (targetCanvas, emotionName) =>
+        renderPinuSnapshot(targetCanvas, emotionName);
+
+      const computeCanvasDiff = (referenceCanvas, constructionCanvas) => {
+        const refCtx = referenceCanvas.getContext("2d");
+        const constructionCtx = constructionCanvas.getContext("2d");
+        if (!refCtx || !constructionCtx) {
+          return null;
+        }
+
+        const diffCanvas = createSizedCanvas();
+        const diffCtx = diffCanvas.getContext("2d");
+        if (!diffCtx) {
+          return null;
+        }
+
+        const width = referenceCanvas.width;
+        const height = referenceCanvas.height;
+        const refImage = refCtx.getImageData(0, 0, width, height);
+        const constructionImage = constructionCtx.getImageData(0, 0, width, height);
+        const diffImage = diffCtx.createImageData(width, height);
+        let diffPixels = 0;
+        let referencePixels = 0;
+        let constructionPixels = 0;
+        let overlapPixels = 0;
+
+        for (let i = 0; i < refImage.data.length; i += 4) {
+          const refAlpha = refImage.data[i + 3];
+          const constructionAlpha = constructionImage.data[i + 3];
+          const refActive = refAlpha > 18;
+          const constructionActive = constructionAlpha > 18;
+
+          if (refActive) {
+            referencePixels += 1;
+          }
+          if (constructionActive) {
+            constructionPixels += 1;
+          }
+
+          if (refActive && constructionActive) {
+            overlapPixels += 1;
+            diffImage.data[i] = 8;
+            diffImage.data[i + 1] = 16;
+            diffImage.data[i + 2] = 20;
+            diffImage.data[i + 3] = 255;
+            continue;
+          }
+
+          if (refActive !== constructionActive) {
+            diffPixels += 1;
+            diffImage.data[i] = refActive ? 255 : 88;
+            diffImage.data[i + 1] = refActive ? 92 : 188;
+            diffImage.data[i + 2] = refActive ? 108 : 255;
+            diffImage.data[i + 3] = 255;
+          } else {
+            diffImage.data[i] = 8;
+            diffImage.data[i + 1] = 16;
+            diffImage.data[i + 2] = 20;
+            diffImage.data[i + 3] = 255;
+          }
+        }
+
+        diffCtx.putImageData(diffImage, 0, 0);
+
+        const unionPixels = referencePixels + constructionPixels - overlapPixels;
+
+        return {
+          diffCanvas,
+          metrics: {
+            diffPixels,
+            diffRatio: diffPixels / (width * height),
+            referencePixels,
+            constructionPixels,
+            overlapPixels,
+            unionPixels,
+            iou: unionPixels > 0 ? overlapPixels / unionPixels : 1,
+          },
+        };
+      };
+
+      const drawComparisonPreview = async (recipeName) => {
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          window.__PINU_READY__ = true;
+          return;
+        }
+
+        const referenceCanvas = createSizedCanvas();
+        const constructionCanvas = createSizedCanvas();
+        const emotionName = getConstructionEmotion(recipeName) ?? "neutral";
+        const snapshot = await renderReferenceFace(referenceCanvas, emotionName);
+        await drawConstructionPreview(recipeName, constructionCanvas, snapshot);
+
+        const diffResult = computeCanvasDiff(referenceCanvas, constructionCanvas);
+        if (!diffResult) {
+          window.__PINU_READY__ = true;
+          return;
+        }
+
+        const { diffCanvas, metrics } = diffResult;
+        window.__PINU_CONSTRUCTION_DIFF__ = metrics;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#05080b";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const paneWidth = canvas.width / 3;
+        const labelHeight = 28;
+        const labelPaddingX = 10;
+        const metricBandHeight = 26;
+
+        ctx.drawImage(referenceCanvas, 0, 0, paneWidth, canvas.height);
+        ctx.drawImage(constructionCanvas, paneWidth, 0, paneWidth, canvas.height);
+        ctx.drawImage(diffCanvas, paneWidth * 2, 0, paneWidth, canvas.height);
+
+        ctx.save();
+        ctx.strokeStyle = "rgba(121, 219, 232, 0.3)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(paneWidth, 0);
+        ctx.lineTo(paneWidth, canvas.height);
+        ctx.moveTo(paneWidth * 2, 0);
+        ctx.lineTo(paneWidth * 2, canvas.height);
+        ctx.stroke();
+
+        const drawLabel = (x, title, subtitle = "") => {
+          ctx.fillStyle = "rgba(5, 8, 11, 0.76)";
+          ctx.fillRect(x, 0, paneWidth, labelHeight);
+
+          ctx.fillStyle = "#79dbe8";
+          ctx.font = "600 13px ui-monospace, SFMono-Regular, Menlo, monospace";
+          ctx.textBaseline = "middle";
+          ctx.fillText(title, x + labelPaddingX, labelHeight * 0.5);
+
+          if (subtitle) {
+            ctx.fillStyle = "rgba(239, 248, 251, 0.85)";
+            ctx.font = "12px ui-monospace, SFMono-Regular, Menlo, monospace";
+            const subtitleWidth = ctx.measureText(subtitle).width;
+            ctx.fillText(subtitle, x + paneWidth - labelPaddingX - subtitleWidth, labelHeight * 0.5);
+          }
+        };
+
+        const drawMetricBand = () => {
+          const metricsText = [
+            `emotion ${emotionName}`,
+            `iou ${(metrics.iou * 100).toFixed(1)}%`,
+            `diff ${(metrics.diffRatio * 100).toFixed(2)}%`,
+            `overlap ${metrics.overlapPixels}/${metrics.unionPixels}`,
+          ].join("  ·  ");
+
+          ctx.fillStyle = "rgba(5, 8, 11, 0.82)";
+          ctx.fillRect(0, canvas.height - metricBandHeight, canvas.width, metricBandHeight);
+          ctx.fillStyle = "#eff8fb";
+          ctx.font = "12px ui-monospace, SFMono-Regular, Menlo, monospace";
+          ctx.textBaseline = "middle";
+          ctx.fillText(metricsText, 10, canvas.height - metricBandHeight * 0.5);
+        };
+
+        drawLabel(0, "real pinu", emotionName);
+        drawLabel(paneWidth, "construction", recipeName);
+        drawLabel(paneWidth * 2, "diff", "occupancy");
+        drawMetricBand();
+        ctx.restore();
+
+        window.__PINU_READY__ = true;
+      };
+
+      if (compareConstruction) {
+        await drawComparisonPreview(compareConstruction);
+      } else if (construction) {
+        await drawConstructionPreview(construction);
         window.__PINU_READY__ = true;
       } else {
-        const resolvedEmotion = activeCharacter.emotions?.[emotion] ?? EMOTIONS[emotion];
-        if (resolvedEmotion) {
-          face.emote(emotion);
-          const settleMs = Math.max(420, resolvedEmotion.durationMs + 120);
-          window.setTimeout(() => {
-            face.stop();
-            face.render();
-            window.__PINU_READY__ = true;
-          }, settleMs);
+        const face = createRobotFace(canvas, {
+          autoStart: true,
+          pixelRatio: 1,
+          character: activeCharacter,
+          theme,
+          style,
+          faceTheme: faceTheme || undefined,
+          parts: noseShape
+            ? {
+                noseShape,
+              }
+            : undefined,
+        });
+
+        face.setMode(mode);
+        if (mode === "symbol" && symbol) {
+          face.showSymbol(symbol);
+          face.stop();
+          face.render();
+          window.__PINU_READY__ = true;
         } else {
-          window.setTimeout(() => {
-            face.stop();
-            face.render();
-            window.__PINU_READY__ = true;
-          }, 500);
+          const resolvedEmotion = activeCharacter.emotions?.[emotion] ?? EMOTIONS[emotion];
+          if (resolvedEmotion) {
+            face.emote(emotion);
+            const settleMs = Math.max(420, resolvedEmotion.durationMs + 120);
+            window.setTimeout(() => {
+              face.stop();
+              face.render();
+              window.__PINU_READY__ = true;
+            }, settleMs);
+          } else {
+            window.setTimeout(() => {
+              face.stop();
+              face.render();
+              window.__PINU_READY__ = true;
+            }, 500);
+          }
         }
       }
     </script>

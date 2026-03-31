@@ -1,11 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import {
-  createBeak,
+  type CharacterConstruction,
   createCapsule,
   createConstructionFrame,
   createConstructionLayout,
   createNotch,
   createPlate,
+  createWedge,
   resolveConstructionAnchors,
   resolveEyeAnchor,
 } from "../src/index";
@@ -81,6 +82,7 @@ describe("construction helpers", () => {
       height: 0.1,
       y: 0.04,
       tilt: 0,
+      radius: 0.5,
     });
 
     expect(
@@ -97,17 +99,87 @@ describe("construction helpers", () => {
     });
 
     expect(
-      createBeak({
+      createWedge({
         width: 0.08,
         height: 0.15,
         y: 0.03,
       }),
     ).toEqual({
-      kind: "beak",
+      kind: "wedge",
       width: 0.08,
       height: 0.15,
       y: 0.03,
       spread: 0.28,
     });
+  });
+
+  test("supports a composition-first face recipe with shared anchors", () => {
+    const frame = createConstructionFrame(1, 1);
+    const layout = createConstructionLayout({
+      eyeGap: 0.26,
+      eyeLineY: 0.04,
+    });
+    const anchors = resolveConstructionAnchors(frame, layout);
+
+    const construction: CharacterConstruction = {
+      layout,
+      mask: {
+        upper: createPlate({
+          width: 0.74,
+          height: 0.24,
+          y: -0.04,
+          taper: 0.14,
+        }),
+      },
+      eyes: {
+        socket: createPlate({
+          width: 0.22,
+          height: 0.14,
+          y: anchors.eyeLineY,
+          inset: 0.08,
+          taper: 0.06,
+        }),
+        shell: createCapsule({
+          width: 0.18,
+          height: 0.1,
+          y: anchors.eyeLineY,
+        }),
+        pupil: createNotch({
+          width: 0.04,
+          height: 0.06,
+          y: anchors.eyeLineY,
+        }),
+      },
+      nose: createWedge({
+        width: 0.08,
+        height: 0.14,
+        y: 0.05,
+      }),
+      mouth: {
+        anchorY: 0.18,
+        width: 0.16,
+      },
+    };
+
+    expect(construction.mask?.upper).toMatchObject({
+      kind: "plate",
+      width: 0.74,
+      y: -0.04,
+    });
+    expect(construction.eyes.socket).toMatchObject({
+      kind: "plate",
+      y: anchors.eyeLineY,
+    });
+    expect(construction.eyes.shell).toMatchObject({
+      kind: "capsule",
+      y: anchors.eyeLineY,
+    });
+    expect(construction.nose).toMatchObject({
+      kind: "wedge",
+      y: 0.05,
+    });
+    expect(anchors.leftEyeX).toBeLessThan(anchors.centerX);
+    expect(anchors.rightEyeX).toBeGreaterThan(anchors.centerX);
+    expect(anchors.leftEyeX + anchors.rightEyeX).toBeCloseTo(anchors.centerX * 2, 6);
   });
 });

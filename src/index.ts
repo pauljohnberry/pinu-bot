@@ -12,7 +12,6 @@ export { kibaCharacter, pinuCharacter } from "./characters/index.js";
 export type {
   CharacterConstruction,
   ConstructionAnchors,
-  ConstructionBeak,
   ConstructionCapsule,
   ConstructionFrame,
   ConstructionLayout,
@@ -20,14 +19,15 @@ export type {
   ConstructionPlate,
   ConstructionShape,
   ConstructionSide,
+  ConstructionWedge,
 } from "./construction.js";
 export {
-  createBeak,
   createCapsule,
   createConstructionFrame,
   createConstructionLayout,
   createNotch,
   createPlate,
+  createWedge,
   resolveConstructionAnchors,
   resolveEyeAnchor,
 } from "./construction.js";

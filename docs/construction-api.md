@@ -110,10 +110,11 @@ type ConstructionShape =
       tilt?: number;
     }
   | {
-      kind: "notch";
+      kind: "notch" | "wedge";
       width: number;
       height: number;
       y: number;
+      spread?: number;
     };
 
 type CharacterConstruction = {
@@ -163,7 +164,7 @@ Do this incrementally.
 
 Add optional construction helpers only.
 
-- helper functions for `plate`, `capsule`, `notch`, `beak`
+- helper functions for `plate`, `capsule`, `notch`, `wedge`
 - helper layout functions for eye anchors and centerline alignment
 
 Characters may still custom draw, but can use the helpers.
@@ -193,7 +194,7 @@ Start with these:
 - eye socket helper
 - eye shell helper
 - pupil bounds helper
-- center notch / beak helper
+- center notch / wedge helper
 
 That would already remove most of the overlapping-part mistakes.
 
@@ -243,6 +244,6 @@ Current exports:
 - `createPlate(...)`
 - `createCapsule(...)`
 - `createNotch(...)`
-- `createBeak(...)`
+- `createWedge(...)`
 
 This is intentionally small. It gives future character work stable composition anchors and semantic shape primitives without changing the existing renderer.

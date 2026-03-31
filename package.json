@@ -47,7 +47,7 @@
     "lint:fix": "biome lint --write .",
     "check:code": "biome check .",
     "check:code:fix": "biome check --write .",
-    "test": "./scripts/run-bun.sh test test/robotFace.test.ts",
+    "test": "./scripts/run-bun.sh test test/*.test.ts",
     "test:visual": "playwright test",
     "check": "./scripts/check.sh",
     "pack:dry-run": "npm pack --dry-run --cache .npm-cache",

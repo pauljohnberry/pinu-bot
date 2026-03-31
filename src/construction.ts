@@ -38,6 +38,7 @@ export interface ConstructionCapsule {
   height: number;
   y: number;
   tilt: number;
+  radius: number;
 }
 
 export interface ConstructionNotch {
@@ -47,8 +48,8 @@ export interface ConstructionNotch {
   y: number;
 }
 
-export interface ConstructionBeak {
-  kind: "beak";
+export interface ConstructionWedge {
+  kind: "wedge";
   width: number;
   height: number;
   y: number;
@@ -59,7 +60,7 @@ export type ConstructionShape =
   | ConstructionPlate
   | ConstructionCapsule
   | ConstructionNotch
-  | ConstructionBeak;
+  | ConstructionWedge;
 
 export interface CharacterConstruction {
   layout: ConstructionLayout;
@@ -152,7 +153,8 @@ export function createPlate(
 }
 
 export function createCapsule(
-  config: Omit<ConstructionCapsule, "kind" | "tilt"> & Partial<Pick<ConstructionCapsule, "tilt">>,
+  config: Omit<ConstructionCapsule, "kind" | "tilt" | "radius"> &
+    Partial<Pick<ConstructionCapsule, "tilt" | "radius">>,
 ): ConstructionCapsule {
   return {
     kind: "capsule",
@@ -160,6 +162,7 @@ export function createCapsule(
     height: config.height,
     y: config.y,
     tilt: config.tilt ?? 0,
+    radius: config.radius ?? 0.5,
   };
 }
 
@@ -172,11 +175,11 @@ export function createNotch(config: Omit<ConstructionNotch, "kind">): Constructi
   };
 }
 
-export function createBeak(
-  config: Omit<ConstructionBeak, "kind" | "spread"> & Partial<Pick<ConstructionBeak, "spread">>,
-): ConstructionBeak {
+export function createWedge(
+  config: Omit<ConstructionWedge, "kind" | "spread"> & Partial<Pick<ConstructionWedge, "spread">>,
+): ConstructionWedge {
   return {
-    kind: "beak",
+    kind: "wedge",
     width: config.width,
     height: config.height,
     y: config.y,
