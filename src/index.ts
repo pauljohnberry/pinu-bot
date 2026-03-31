@@ -43,6 +43,15 @@ export {
   resolveStandardMouthMetrics,
   resolveStandardNoseMetrics,
 } from "./standardFace.js";
+export {
+  createStandardBrowRenderer,
+  createStandardEyeRenderer,
+  createStandardMouthRenderer,
+  createStandardNoseRenderer,
+  drawStandardEyeShell,
+  drawStandardMouthShape,
+  drawStandardNoseShape,
+} from "./standardRenderers.js";
 export { FACE_FEATURE_DEFAULTS, STYLE_PRESETS as BUILTIN_STYLES } from "./styles.js";
 export { THEMES as BUILTIN_THEMES } from "./themes.js";
 export type {

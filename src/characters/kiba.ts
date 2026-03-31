@@ -1,10 +1,8 @@
 import type {
-  BrowDrawParams,
   CharacterDefinition,
   DrawContext,
   EyeDrawParams,
   MouthDrawParams,
-  NoseDrawParams,
 } from "../character.js";
 import { clamp, drawPixelGlyph, roundedRect, wave } from "../drawUtils.js";
 import type { EmotionDefinition } from "../emotions.js";
@@ -12,8 +10,8 @@ import {
   drawStandardGlyphEye,
   eyeShapeSupportsPupil,
   resolveStandardEyeMetrics,
-  resolveStandardNoseMetrics,
 } from "../standardFace.js";
+import { createStandardBrowRenderer, createStandardNoseRenderer } from "../standardRenderers.js";
 import { STYLE_PRESETS } from "../styles.js";
 import type { EmotionName, FacePose, StyleDefinition } from "../types.js";
 
@@ -695,6 +693,69 @@ function findInnerEarVisibleEndT(
 
   return 0.24;
 }
+
+const drawKibaBrow = createStandardBrowRenderer({
+  defaultShape: "soft",
+  resolveAngle: (_dc, params) => params.pose.tilt * 0.05,
+  resolveLift: () => 0,
+  resolveBrightness: (_dc, params) => clamp(params.pose.brightness, 0.2, 1.2) * 0.45,
+  renderSoft: (ctx, params) => {
+    ctx.lineCap = "round";
+    ctx.lineWidth = Math.max(1.25, params.height * 0.46);
+    ctx.beginPath();
+    ctx.moveTo(-params.width * 0.22, 0);
+    ctx.lineTo(params.width * 0.22, 0);
+    ctx.stroke();
+  },
+  renderBold: (ctx, params) => {
+    roundedRect(
+      ctx,
+      -params.width * 0.26,
+      -params.height * 0.22,
+      params.width * 0.52,
+      params.height * 0.44,
+      params.height * 0.14,
+    );
+    ctx.fill();
+  },
+  renderAngled: (ctx, params) => {
+    ctx.beginPath();
+    ctx.moveTo(-params.width * 0.28, params.height * 0.16);
+    ctx.lineTo(-params.width * 0.08, -params.height * 0.24);
+    ctx.lineTo(params.width * 0.28, -params.height * 0.08);
+    ctx.lineTo(params.width * 0.08, params.height * 0.22);
+    ctx.closePath();
+    ctx.fill();
+  },
+});
+
+const drawKibaNose = createStandardNoseRenderer({
+  defaultShape: "pointed",
+  resolveBrightness: (_dc, params) => clamp(params.pose.brightness, 0.1, 1.6),
+  resolveOffset: (dc, params) => ({
+    x: dc.emotionName === "confused" ? -params.width * 0.02 : 0,
+    y: dc.emotionName === "confused" ? params.height * 0.04 : 0,
+  }),
+  resolveRotation: (dc, params) =>
+    params.pose.tilt * 0.3 + (dc.emotionName === "confused" ? -0.1 : 0),
+  configureContext: (ctx, dc, params, width) => {
+    ctx.lineWidth = Math.max(1.5, params.height * 0.048);
+    ctx.lineJoin = "round";
+    ctx.shadowColor = dc.theme.glow;
+    ctx.shadowBlur = Math.max(0, width * 0.16);
+  },
+  renderShape: (ctx, shape, width, height) => {
+    drawDogNoseShape(ctx, shape, width, height);
+    ctx.stroke();
+    ctx.save();
+    ctx.globalAlpha *= 0.42;
+    ctx.fillStyle = PUPIL_SHINE_FILL;
+    ctx.shadowBlur = 0;
+    drawDogNoseShine(ctx, shape, width, height);
+    ctx.fill();
+    ctx.restore();
+  },
+});
 
 function strokeEarOutline(
   ctx: CanvasRenderingContext2D,
@@ -1650,91 +1711,9 @@ export const kibaCharacter: CharacterDefinition = {
     ctx.restore();
   },
 
-  drawBrow(dc: DrawContext, params: BrowDrawParams): void {
-    const { ctx, theme } = dc;
-    const { pose, parts } = params;
-    const shape = parts.browShape ?? "soft";
+  drawBrow: drawKibaBrow,
 
-    ctx.save();
-    ctx.translate(params.centerX, params.centerY);
-    ctx.rotate(pose.tilt * 0.05);
-    ctx.globalAlpha *= clamp(pose.brightness, 0.2, 1.2) * 0.45;
-
-    if (shape === "bold") {
-      ctx.fillStyle = theme.foreground;
-      roundedRect(
-        ctx,
-        -params.width * 0.26,
-        -params.height * 0.22,
-        params.width * 0.52,
-        params.height * 0.44,
-        params.height * 0.14,
-      );
-      ctx.fill();
-      ctx.restore();
-      return;
-    }
-
-    if (shape === "angled") {
-      ctx.fillStyle = theme.foreground;
-      ctx.beginPath();
-      ctx.moveTo(-params.width * 0.28, params.height * 0.16);
-      ctx.lineTo(-params.width * 0.08, -params.height * 0.24);
-      ctx.lineTo(params.width * 0.28, -params.height * 0.08);
-      ctx.lineTo(params.width * 0.08, params.height * 0.22);
-      ctx.closePath();
-      ctx.fill();
-      ctx.restore();
-      return;
-    }
-
-    ctx.strokeStyle = theme.foreground;
-    ctx.lineCap = "round";
-    ctx.lineWidth = Math.max(1.25, params.height * 0.46);
-    ctx.beginPath();
-    ctx.moveTo(-params.width * 0.22, 0);
-    ctx.lineTo(params.width * 0.22, 0);
-    ctx.stroke();
-    ctx.restore();
-  },
-
-  drawNose(dc: DrawContext, params: NoseDrawParams): void {
-    const { ctx, theme } = dc;
-    const { pose, parts } = params;
-    const brightness = clamp(pose.brightness, 0.1, 1.6);
-    const noseMetrics = resolveStandardNoseMetrics({
-      width: params.width,
-      height: params.height,
-      scale: pose.scale,
-    });
-    const width = noseMetrics.width;
-    const height = noseMetrics.height;
-    const confusedTilt = dc.emotionName === "confused";
-    const noseShape = parts.noseShape ?? "pointed";
-
-    ctx.save();
-    ctx.translate(
-      params.centerX + (confusedTilt ? -params.width * 0.02 : 0),
-      params.centerY + (confusedTilt ? params.height * 0.04 : 0),
-    );
-    ctx.rotate(pose.tilt * 0.3 + (confusedTilt ? -0.1 : 0));
-    ctx.lineWidth = Math.max(1.5, params.height * 0.048);
-    ctx.strokeStyle = theme.foreground;
-    ctx.globalAlpha *= brightness;
-    ctx.lineJoin = "round";
-    ctx.shadowColor = theme.glow;
-    ctx.shadowBlur = Math.max(0, width * 0.16);
-    drawDogNoseShape(ctx, noseShape, width, height);
-    ctx.stroke();
-    ctx.save();
-    ctx.globalAlpha *= 0.42;
-    ctx.fillStyle = PUPIL_SHINE_FILL;
-    ctx.shadowBlur = 0;
-    drawDogNoseShine(ctx, noseShape, width, height);
-    ctx.fill();
-    ctx.restore();
-    ctx.restore();
-  },
+  drawNose: drawKibaNose,
 
   drawMouth(dc: DrawContext, params: MouthDrawParams): void {
     const { ctx, theme } = dc;
