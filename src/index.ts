@@ -9,6 +9,28 @@ export type {
 } from "./character.js";
 export { getCharacter, registerCharacter } from "./character.js";
 export { kibaCharacter, pinuCharacter } from "./characters/index.js";
+export type {
+  CharacterConstruction,
+  ConstructionAnchors,
+  ConstructionBeak,
+  ConstructionCapsule,
+  ConstructionFrame,
+  ConstructionLayout,
+  ConstructionNotch,
+  ConstructionPlate,
+  ConstructionShape,
+  ConstructionSide,
+} from "./construction.js";
+export {
+  createBeak,
+  createCapsule,
+  createConstructionFrame,
+  createConstructionLayout,
+  createNotch,
+  createPlate,
+  resolveConstructionAnchors,
+  resolveEyeAnchor,
+} from "./construction.js";
 export { clamp, drawPixelGlyph, ease, roundedRect, wave } from "./drawUtils.js";
 export { EMOTIONS as BUILTIN_EMOTIONS } from "./emotions.js";
 export { FACE_THEMES as BUILTIN_FACE_THEMES } from "./faceThemes.js";

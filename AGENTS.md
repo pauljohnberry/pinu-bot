@@ -33,6 +33,17 @@ The public docs surface is the live demo page and the showcase page.
 - Pixel/8-bit symbols should feel consistent as a set.
 - Demo and showcase visuals should feel polished, not like test harnesses.
 
+## Character Work
+
+- When creating or refactoring a character, follow `docs/character-creation.md`.
+- Start major character work from `docs/character-brief-template.md` before coding.
+- If composition keeps drifting, use `docs/construction-api.md` as the recovery path instead of continuing to patch local shapes.
+- Solve character work as a face-composition problem first, not a collection of local part tweaks.
+- Start from a stable neutral model and treat every emotion as a deliberate delta from that base.
+- Keep new characters in the same product language as `pinu`: robot display first, reference cues second.
+- Keep shared API behavior (`parts`, `features`, `faceTheme`, `emotions`) working across characters unless there is a strong character-specific reason not to.
+- Validate character work in `test/visual.html` and avoid shipping characters that only look correct in one state.
+
 ## Release Flow
 
 - Keep feature work and version bumps in separate PRs.
