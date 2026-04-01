@@ -8,14 +8,13 @@ export type EmotionName =
   | "angry"
   | "surprised"
   | "confused"
-  | "thinking"
-  | "sleepy"
-  | "excited"
-  | "listening"
-  | "speaking"
-  | "offline"
-  | "booting"
-  | "glitch";
+  | "excited";
+
+export type ReplaceActionName = "thinking" | "listening" | "sleeping" | "offline";
+export type OverlayActionName = "bootUp" | "glitch";
+export type ActionName = ReplaceActionName | OverlayActionName;
+
+export type DisplayName = EmotionName | ReplaceActionName;
 
 export type ThemeName =
   | "amber"
@@ -53,8 +52,6 @@ export type SymbolName =
   | "loading"
   | "warning";
 export type BackgroundFxMode = "off" | "emotion" | "custom";
-
-export type PerformanceName = "bootUp" | "glitch";
 
 export interface ThemeDefinition {
   background: string;
@@ -180,6 +177,15 @@ export interface EmoteOptions {
   intensity?: number;
 }
 
+export interface ActionOptions {
+  durationMs?: number;
+  persistent?: boolean;
+}
+
+export interface TimedActionOptions {
+  durationMs?: number;
+}
+
 export interface SpeakOptions {
   intensity?: number;
   cadence?: number;
@@ -248,7 +254,13 @@ export interface NoseControlApi<TDone> {
 export interface RobotFace {
   setCharacter(character: CharacterDefinition | string): RobotFace;
   emote(name: EmotionName, options?: EmoteOptions): RobotFace;
-  perform(name: PerformanceName): RobotFace;
+  think(options?: ActionOptions): RobotFace;
+  listen(options?: ActionOptions): RobotFace;
+  sleep(options?: ActionOptions): RobotFace;
+  goOffline(options?: ActionOptions): RobotFace;
+  bootUp(options?: TimedActionOptions): RobotFace;
+  glitch(options?: TimedActionOptions): RobotFace;
+  reset(): RobotFace;
   transitionTo(state: PartialFacePose): RobotFace;
   lookAt(x: number, y: number): RobotFace;
   lookLeft(amount?: number): RobotFace;

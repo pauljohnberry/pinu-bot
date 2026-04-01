@@ -475,14 +475,18 @@
               <button type="button" data-emote="love">love</button>
               <button type="button" data-emote="sad">sad</button>
               <button type="button" data-emote="angry">angry</button>
+              <button type="button" data-emote="surprised">surprised</button>
               <button type="button" data-emote="confused">confused</button>
-              <button type="button" data-emote="sleepy">sleepy</button>
               <button type="button" data-emote="excited">excited</button>
             </div>
           </div>
           <div class="group">
             <h3>Actions</h3>
             <div class="controls">
+              <button type="button" id="think">think</button>
+              <button type="button" id="listen">listen</button>
+              <button type="button" id="sleep">sleep</button>
+              <button type="button" id="offline">offline</button>
               <button type="button" id="smile">smile</button>
               <button type="button" id="frown">frown</button>
               <button type="button" id="pout">pout</button>
@@ -492,6 +496,7 @@
               <button type="button" id="look-right">look right</button>
               <button type="button" id="look-up">look up</button>
               <button type="button" id="look-down">look down</button>
+              <button type="button" id="boot-up">boot up</button>
               <button type="button" id="glitch">glitch</button>
               <button type="button" id="speak">speak</button>
             </div>
@@ -620,11 +625,23 @@ bun add pinu-bot</pre>
                 </div>
                 <div class="api-item">
                   <code>face.emote(name, options?)</code>
-                  <span class="subtle">Animate to a named emotion.</span>
+                  <span class="subtle">Set the persistent emotional baseline.</span>
                 </div>
                 <div class="api-item">
-                  <code>face.perform(name) / face.transitionTo(state)</code>
-                  <span class="subtle">Run a cinematic sequence or push direct pose overrides.</span>
+                  <code>face.think(options?) / face.listen(options?) / face.sleep(options?) / face.goOffline(options?)</code>
+                  <span class="subtle">Run face actions. Use <code>{ durationMs }</code> for a timed action or <code>{ persistent: true }</code> when you want it to hold until <code>face.reset()</code> or a later emotion or action change.</span>
+                </div>
+                <div class="api-item">
+                  <code>face.bootUp(options?) / face.glitch(options?)</code>
+                  <span class="subtle">Run short timed actions on top of the current emotion or action.</span>
+                </div>
+                <div class="api-item">
+                  <code>face.reset()</code>
+                  <span class="subtle">Return behavior back to the original creation-time baseline.</span>
+                </div>
+                <div class="api-item">
+                  <code>face.transitionTo(state)</code>
+                  <span class="subtle">Push direct pose overrides when you need low-level control.</span>
                 </div>
                 <div class="api-item">
                   <code>face.lookAt(x, y)</code>
@@ -644,15 +661,11 @@ bun add pinu-bot</pre>
                 </div>
                 <div class="api-item">
                   <code>face.blink() / face.wink(side)</code>
-                  <span class="subtle">Trigger quick eye overlays.</span>
+                  <span class="subtle">Trigger quick eye actions.</span>
                 </div>
                 <div class="api-item">
                   <code>face.speak({ intensity, cadence, durationMs })</code>
-                  <span class="subtle">Layer speaking animation on top of the current emotion.</span>
-                </div>
-                <div class="api-item">
-                  <code>face.perform("bootUp" | "glitch")</code>
-                  <span class="subtle">Play cinematic display transitions.</span>
+                  <span class="subtle">Layer speaking animation on top of the current face.</span>
                 </div>
                 <div class="api-item">
                   <code>face.setCharacter(nameOrDefinition)</code>
@@ -702,8 +715,7 @@ bun add pinu-bot</pre>
 
       const PACKAGE_VERSION = "0.2.0";
       const INTRO_ACTION_CODE = [
-        'face.perform("bootUp");',
-        'setTimeout(() => face.emote("neutral"), 1500);',
+        "face.bootUp();",
         "setTimeout(() => face.lookLeft(0.62), 1820);",
         "setTimeout(() => face.lookRight(0.58), 2140);",
         'setTimeout(() => face.wink("right"), 2440);',
@@ -1265,6 +1277,30 @@ bun add pinu-bot</pre>
         });
       });
 
+      document.querySelector("#think").addEventListener("click", () => {
+        markManualInteraction();
+        face.think({ persistent: true });
+        currentActionCode = "face.think({ persistent: true });";
+        syncCodeSample();
+      });
+      document.querySelector("#listen").addEventListener("click", () => {
+        markManualInteraction();
+        face.listen({ persistent: true });
+        currentActionCode = "face.listen({ persistent: true });";
+        syncCodeSample();
+      });
+      document.querySelector("#sleep").addEventListener("click", () => {
+        markManualInteraction();
+        face.sleep({ persistent: true });
+        currentActionCode = "face.sleep({ persistent: true });";
+        syncCodeSample();
+      });
+      document.querySelector("#offline").addEventListener("click", () => {
+        markManualInteraction();
+        face.goOffline({ persistent: true });
+        currentActionCode = "face.goOffline({ persistent: true });";
+        syncCodeSample();
+      });
       document.querySelector("#smile").addEventListener("click", () => {
         markManualInteraction();
         runExpressionAction("face.smile(1, { open: false });", () => face.smile(1, { open: false }));
@@ -1305,10 +1341,16 @@ bun add pinu-bot</pre>
         markManualInteraction();
         runLookAction("face.lookDown(0.5);", () => face.lookDown(0.5));
       });
+      document.querySelector("#boot-up").addEventListener("click", () => {
+        markManualInteraction();
+        face.bootUp();
+        currentActionCode = "face.bootUp();";
+        syncCodeSample();
+      });
       document.querySelector("#glitch").addEventListener("click", () => {
         markManualInteraction();
-        face.perform("glitch");
-        currentActionCode = 'face.perform("glitch");';
+        face.glitch();
+        currentActionCode = "face.glitch();";
         syncCodeSample();
       });
       document.querySelector("#speak").addEventListener("click", () => {
@@ -1458,7 +1500,7 @@ bun add pinu-bot</pre>
         cancelIntro();
         clearActionReset();
         introActive = true;
-        face.perform("bootUp");
+        face.bootUp();
         queueIntroStep(1500, () => setActiveEmotion("neutral", 1, false));
         queueIntroStep(1820, () => face.lookLeft(0.62));
         queueIntroStep(2140, () => face.lookRight(0.58));

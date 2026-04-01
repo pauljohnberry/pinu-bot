@@ -1,13 +1,20 @@
 import type {
-  BrowDrawParams,
   CharacterDefinition,
   DrawContext,
   EyeDrawParams,
   MouthDrawParams,
-  NoseDrawParams,
 } from "../character.js";
-import { clamp, drawPixelGlyph, roundedRect, wave } from "../drawUtils.js";
-import type { EmotionDefinition } from "../emotions.js";
+import { clamp, drawPixelGlyph, HEART_PATTERN, roundedRect, wave } from "../drawUtils.js";
+import {
+  drawStandardGlyphEye,
+  eyeShapeSupportsPupil,
+  resolveStandardEyeMetrics,
+} from "../standardFace.js";
+import {
+  createStandardBrowRenderer,
+  createStandardNoseRenderer,
+} from "../standardRobotRenderers.js";
+import { eye, type FaceStateDefinition, pose } from "../stateDefinitions.js";
 import { STYLE_PRESETS } from "../styles.js";
 import type { EmotionName, FacePose, StyleDefinition } from "../types.js";
 
@@ -21,16 +28,6 @@ const SURFACE_STROKE_ALPHA = 0.76;
 const DETAIL_LINE_ALPHA = 0.36;
 const PATCH_FILL_ALPHA = 0.18;
 const SOCKET_FILL_ALPHA = 0.11;
-const HEART_PATTERN = [
-  "01100110",
-  "11111111",
-  "11111111",
-  "11111111",
-  "01111110",
-  "00111100",
-  "00011000",
-  "00000000",
-];
 
 const kibaStyle: StyleDefinition = {
   ...STYLE_PRESETS.soft,
@@ -49,36 +46,6 @@ const kibaStyle: StyleDefinition = {
   mouthY: 0.188,
   glowScale: 0.032,
 };
-
-const eye = (
-  openness: number,
-  squint: number,
-  tilt: number,
-  pupilX: number,
-  pupilY: number,
-  brightness: number,
-) => ({
-  openness,
-  squint,
-  tilt,
-  pupilX,
-  pupilY,
-  brightness,
-});
-
-const pose = (
-  leftEye: FacePose["leftEye"],
-  rightEye: FacePose["rightEye"],
-  nose: FacePose["nose"],
-  mouth: FacePose["mouth"],
-  global: FacePose["global"],
-): FacePose => ({
-  leftEye,
-  rightEye,
-  nose,
-  mouth,
-  global,
-});
 
 type EarPose = {
   innerX: number;
@@ -106,7 +73,7 @@ type KibaEyeMetrics = {
   height: number;
 };
 
-const kibaEmotions: Partial<Record<EmotionName, EmotionDefinition>> = {
+const kibaEmotions: Partial<Record<EmotionName, FaceStateDefinition>> = {
   neutral: {
     pose: pose(
       eye(0.86, 0.05, 0, 0, 0, 1),
@@ -174,23 +141,6 @@ const kibaEmotions: Partial<Record<EmotionName, EmotionDefinition>> = {
     blinkMinMs: 2600,
     blinkMaxMs: 4600,
     blinkDurationMs: 220,
-  },
-  speaking: {
-    pose: pose(
-      eye(0.86, 0.06, 0, 0, 0, 1.04),
-      eye(0.86, 0.06, 0, 0, 0, 1.04),
-      { scale: 1.02, tilt: 0, brightness: 1.02 },
-      { openness: 0.6, curvature: 0.18, width: 0.92, tilt: 0, brightness: 1.06 },
-      { glow: 1.08, bob: 0.014, jitter: 0, distortion: 0, flicker: 0.02, scanline: 0.11 },
-    ),
-    durationMs: 180,
-    ease: "smooth",
-    microBob: 0.012,
-    microBobHz: 1.2,
-    microSway: 0.03,
-    blinkMinMs: 3600,
-    blinkMaxMs: 7000,
-    blinkDurationMs: 160,
   },
   excited: {
     pose: pose(
@@ -309,7 +259,79 @@ function traceEarPath(
   ctx.closePath();
 }
 
-function resolveEarPoses(emotionName: EmotionName): EarPoseSet {
+function traceRaisedListeningEarPath(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  side: -1 | 1,
+  bobY: number,
+  _pose: EarPose,
+): void {
+  const earOffsetX = side * width * 0.014;
+  const innerBaseX = side * width * 0.194 + earOffsetX;
+  const innerBaseY = height * 0.014 + bobY;
+  const topInnerX = side * width * 0.202 + earOffsetX;
+  const topInnerY = -height * 0.17 + bobY;
+  const apexX = side * width * 0.238 + earOffsetX;
+  const apexY = -height * 0.286 + bobY;
+  const upperOuterX = side * width * 0.262 + earOffsetX;
+  const upperOuterY = -height * 0.172 + bobY;
+  const midOuterX = side * width * 0.278 + earOffsetX;
+  const midOuterY = -height * 0.002 + bobY;
+  const lowerOuterX = side * width * 0.258 + earOffsetX;
+  const lowerOuterY = height * 0.098 + bobY;
+  const baseX = side * width * 0.224 + earOffsetX;
+  const baseY = height * 0.042 + bobY;
+
+  ctx.beginPath();
+  ctx.moveTo(innerBaseX, innerBaseY);
+  ctx.quadraticCurveTo(
+    side * width * 0.19 + earOffsetX,
+    -height * 0.074 + bobY,
+    topInnerX,
+    topInnerY,
+  );
+  ctx.quadraticCurveTo(side * width * 0.212 + earOffsetX, -height * 0.224 + bobY, apexX, apexY);
+  ctx.quadraticCurveTo(
+    side * width * 0.25 + earOffsetX,
+    -height * 0.236 + bobY,
+    upperOuterX,
+    upperOuterY,
+  );
+  ctx.bezierCurveTo(
+    side * width * 0.282 + earOffsetX,
+    -height * 0.102 + bobY,
+    side * width * 0.288 + earOffsetX,
+    height * 0.018 + bobY,
+    midOuterX,
+    midOuterY,
+  );
+  ctx.bezierCurveTo(
+    side * width * 0.274 + earOffsetX,
+    height * 0.054 + bobY,
+    side * width * 0.268 + earOffsetX,
+    height * 0.084 + bobY,
+    lowerOuterX,
+    lowerOuterY,
+  );
+  ctx.bezierCurveTo(
+    side * width * 0.244 + earOffsetX,
+    height * 0.084 + bobY,
+    side * width * 0.232 + earOffsetX,
+    height * 0.06 + bobY,
+    baseX,
+    baseY,
+  );
+  ctx.quadraticCurveTo(
+    side * width * 0.204 + earOffsetX,
+    height * 0.024 + bobY,
+    innerBaseX,
+    innerBaseY,
+  );
+  ctx.closePath();
+}
+
+function resolveEarPoses(displayName: EmotionName): EarPoseSet {
   const neutralLeft: EarPose = {
     innerX: 0.178,
     outerX: 0.272,
@@ -333,8 +355,8 @@ function resolveEarPoses(emotionName: EmotionName): EarPoseSet {
     baseY: 0.034,
   };
 
-  if (emotionName === "excited") {
-    return {
+  if (displayName === "excited") {
+    return applyPointedEarShape({
       left: {
         innerX: 0.18,
         outerX: 0.276,
@@ -359,11 +381,11 @@ function resolveEarPoses(emotionName: EmotionName): EarPoseSet {
       },
       leftBob: -0.014,
       rightBob: 0.018,
-    };
+    });
   }
 
-  if (emotionName === "happy") {
-    return {
+  if (displayName === "happy") {
+    return applyPointedEarShape({
       left: {
         innerX: 0.178,
         outerX: 0.276,
@@ -388,11 +410,11 @@ function resolveEarPoses(emotionName: EmotionName): EarPoseSet {
       },
       leftBob: -0.004,
       rightBob: 0.004,
-    };
+    });
   }
 
-  if (emotionName === "love") {
-    return {
+  if (displayName === "love") {
+    return applyPointedEarShape({
       left: {
         innerX: 0.176,
         outerX: 0.282,
@@ -417,61 +439,11 @@ function resolveEarPoses(emotionName: EmotionName): EarPoseSet {
       },
       leftBob: 0.012,
       rightBob: 0.012,
-    };
+    });
   }
 
-  if (emotionName === "speaking") {
-    return {
-      left: {
-        ...neutralLeft,
-        topY: -0.184,
-        shoulderY: -0.052,
-        tipY: 0.184,
-        baseY: 0.04,
-      },
-      right: {
-        ...neutralRight,
-        topY: -0.184,
-        shoulderY: -0.052,
-        tipY: 0.184,
-        baseY: 0.04,
-      },
-      leftBob: 0,
-      rightBob: 0,
-    };
-  }
-
-  if (emotionName === "sleepy") {
-    return {
-      left: {
-        innerX: 0.176,
-        outerX: 0.264,
-        topY: -0.156,
-        shoulderX: 0.29,
-        shoulderY: -0.006,
-        tipX: 0.236,
-        tipY: 0.232,
-        baseX: 0.188,
-        baseY: 0.084,
-      },
-      right: {
-        innerX: 0.176,
-        outerX: 0.264,
-        topY: -0.156,
-        shoulderX: 0.29,
-        shoulderY: -0.006,
-        tipX: 0.236,
-        tipY: 0.232,
-        baseX: 0.188,
-        baseY: 0.084,
-      },
-      leftBob: 0.016,
-      rightBob: 0.016,
-    };
-  }
-
-  if (emotionName === "sad") {
-    return {
+  if (displayName === "sad") {
+    return applyPointedEarShape({
       left: {
         innerX: 0.176,
         outerX: 0.266,
@@ -496,11 +468,11 @@ function resolveEarPoses(emotionName: EmotionName): EarPoseSet {
       },
       leftBob: 0.012,
       rightBob: 0.012,
-    };
+    });
   }
 
-  if (emotionName === "angry") {
-    return {
+  if (displayName === "angry") {
+    return applyPointedEarShape({
       left: {
         innerX: 0.19,
         outerX: 0.236,
@@ -525,11 +497,11 @@ function resolveEarPoses(emotionName: EmotionName): EarPoseSet {
       },
       leftBob: -0.004,
       rightBob: -0.004,
-    };
+    });
   }
 
-  if (emotionName === "confused") {
-    return {
+  if (displayName === "confused") {
+    return applyPointedEarShape({
       left: {
         innerX: 0.168,
         outerX: 0.246,
@@ -554,14 +526,70 @@ function resolveEarPoses(emotionName: EmotionName): EarPoseSet {
       },
       leftBob: 0.024,
       rightBob: -0.01,
-    };
+    });
   }
 
-  return {
+  return applyPointedEarShape({
     left: neutralLeft,
     right: neutralRight,
     leftBob: 0,
     rightBob: 0,
+  });
+}
+
+function applyPointedEarShape(earPoses: EarPoseSet): EarPoseSet {
+  return {
+    left: {
+      ...earPoses.left,
+      innerX: earPoses.left.innerX + 0.008,
+      outerX: earPoses.left.outerX - 0.026,
+      shoulderX: earPoses.left.shoulderX - 0.03,
+      tipX: earPoses.left.tipX - 0.056,
+    },
+    right: {
+      ...earPoses.right,
+      innerX: earPoses.right.innerX + 0.008,
+      outerX: earPoses.right.outerX - 0.024,
+      shoulderX: earPoses.right.shoulderX - 0.028,
+      tipX: earPoses.right.tipX - 0.054,
+    },
+    leftBob: earPoses.leftBob,
+    rightBob: earPoses.rightBob,
+  };
+}
+
+function createUprightListeningEar(base: EarPose): EarPose {
+  return {
+    ...base,
+    topY: base.topY - 0.052,
+    shoulderY: base.shoulderY - 0.074,
+    tipY: base.baseY - 0.004,
+    baseY: base.baseY - 0.008,
+    innerX: base.innerX + 0.014,
+    outerX: base.outerX - 0.018,
+    shoulderX: base.shoulderX - 0.024,
+    tipX: base.baseX + 0.006,
+    baseX: base.baseX - 0.002,
+  };
+}
+
+function applyListeningEarLift(earPoses: EarPoseSet): EarPoseSet {
+  return {
+    left: {
+      ...earPoses.left,
+      topY: earPoses.left.topY - 0.008,
+      shoulderY: earPoses.left.shoulderY - 0.01,
+      tipY: earPoses.left.tipY - 0.018,
+      baseY: earPoses.left.baseY - 0.006,
+      innerX: earPoses.left.innerX + 0.003,
+      outerX: earPoses.left.outerX - 0.004,
+      shoulderX: earPoses.left.shoulderX - 0.004,
+      tipX: earPoses.left.tipX - 0.008,
+      baseX: earPoses.left.baseX - 0.002,
+    },
+    right: createUprightListeningEar(earPoses.right),
+    leftBob: earPoses.leftBob - 0.002,
+    rightBob: earPoses.rightBob - 0.008,
   };
 }
 
@@ -587,34 +615,63 @@ function drawEarFold(
   ctx.stroke();
 }
 
+function drawRaisedListeningEarFold(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  side: -1 | 1,
+  bobY: number,
+  _pose: EarPose,
+): void {
+  const earOffsetX = side * width * 0.014;
+  const startX = side * width * 0.22 + earOffsetX;
+  const startY = -height * 0.138 + bobY;
+  const controlX = side * width * 0.244 + earOffsetX;
+  const controlY = -height * 0.194 + bobY;
+  const endX = side * width * 0.228 + earOffsetX;
+  const endY = height * 0.016 + bobY;
+
+  ctx.beginPath();
+  ctx.moveTo(startX, startY);
+  ctx.quadraticCurveTo(controlX, controlY, endX, endY);
+  ctx.stroke();
+}
+
 function resolveKibaEyeMetrics(
   width: number,
   height: number,
   pose: FacePose["leftEye"],
   side: -1 | 1,
-  emotionName: EmotionName,
+  displayName: EmotionName,
 ): KibaEyeMetrics {
-  const openness = clamp(pose.openness, 0.01, 1);
-  const squint = clamp(pose.squint, 0, 1);
-  const baseHeight = height * kibaStyle.eyeHeight;
-  const baseWidth = width * kibaStyle.eyeWidth;
-  const eyeHeight = Math.max(
-    baseHeight * 0.1,
-    baseHeight * (0.18 + openness * 0.74) * (1 - squint * 0.52),
-  );
-  const eyeWidth = baseWidth * (0.86 + openness * 0.14);
-  const confusedTilt = emotionName === "confused";
+  const eyeMetrics = resolveStandardEyeMetrics({
+    width: width * kibaStyle.eyeWidth,
+    height: height * kibaStyle.eyeHeight,
+    openness: pose.openness,
+    squint: pose.squint,
+    widthBase: 0.86,
+    widthOpenFactor: 0.14,
+  });
+  const confusedTilt = displayName === "confused";
   const confusedScale = confusedTilt ? (side === -1 ? 1.18 : 0.94) : 1;
-  const confusedY = confusedTilt ? (side === -1 ? baseHeight * 0.1 : -baseHeight * 0.06) : 0;
-  const confusedX = confusedTilt ? (side === -1 ? -baseWidth * 0.02 : baseWidth * 0.01) : 0;
-  const excitedWide = emotionName === "excited" ? 1.14 : emotionName === "happy" ? 1.03 : 1;
-  const excitedShort = emotionName === "excited" ? 0.92 : 1;
+  const confusedY = confusedTilt
+    ? side === -1
+      ? eyeMetrics.baseHeight * 0.1
+      : -eyeMetrics.baseHeight * 0.06
+    : 0;
+  const confusedX = confusedTilt
+    ? side === -1
+      ? -eyeMetrics.baseWidth * 0.02
+      : eyeMetrics.baseWidth * 0.01
+    : 0;
+  const excitedWide = displayName === "excited" ? 1.14 : displayName === "happy" ? 1.03 : 1;
+  const excitedShort = displayName === "excited" ? 0.92 : 1;
 
   return {
     centerX: side * width * kibaStyle.eyeGap + confusedX,
     centerY: height * kibaStyle.eyeY + confusedY,
-    width: eyeWidth * confusedScale * excitedWide,
-    height: eyeHeight * confusedScale * excitedShort,
+    width: eyeMetrics.width * confusedScale * excitedWide,
+    height: eyeMetrics.height * confusedScale * excitedShort,
   };
 }
 
@@ -682,6 +739,86 @@ function findInnerEarVisibleEndT(
 
   return 0.24;
 }
+
+const drawKibaBrow = createStandardBrowRenderer({
+  defaultShape: "soft",
+  resolveAngle: (dc, params) => {
+    const baseAngle = params.pose.tilt * 0.05;
+    if (dc.actionName === "thinking" && params.side === 1) {
+      return baseAngle + 0.05;
+    }
+    return baseAngle;
+  },
+  resolveLift: (dc, params) => {
+    if (dc.actionName === "thinking" && params.side === 1) {
+      return params.height * 0.36;
+    }
+    return 0;
+  },
+  resolveBrightness: (_dc, params) => clamp(params.pose.brightness, 0.2, 1.2) * 0.45,
+  renderSoft: (ctx, params) => {
+    ctx.lineCap = "round";
+    ctx.lineWidth = Math.max(1.25, params.height * 0.46);
+    ctx.beginPath();
+    ctx.moveTo(-params.width * 0.22, 0);
+    ctx.lineTo(params.width * 0.22, 0);
+    ctx.stroke();
+  },
+  renderBold: (ctx, params) => {
+    roundedRect(
+      ctx,
+      -params.width * 0.26,
+      -params.height * 0.22,
+      params.width * 0.52,
+      params.height * 0.44,
+      params.height * 0.14,
+    );
+    ctx.fill();
+  },
+  renderAngled: (ctx, params) => {
+    ctx.beginPath();
+    ctx.moveTo(-params.width * 0.28, params.height * 0.16);
+    ctx.lineTo(-params.width * 0.08, -params.height * 0.24);
+    ctx.lineTo(params.width * 0.28, -params.height * 0.08);
+    ctx.lineTo(params.width * 0.08, params.height * 0.22);
+    ctx.closePath();
+    ctx.fill();
+  },
+});
+
+const drawKibaNose = createStandardNoseRenderer({
+  defaultShape: "pointed",
+  resolveBrightness: (_dc, params) => clamp(params.pose.brightness, 0.1, 1.6),
+  resolveOffset: (dc, params) => ({
+    x:
+      (dc.emotionName === "confused" ? -params.width * 0.02 : 0) +
+      (dc.actionName === "listening" ? -params.width * 0.04 : 0),
+    y:
+      (dc.emotionName === "confused" ? params.height * 0.04 : 0) +
+      (dc.actionName === "listening" ? -params.height * 0.02 : 0),
+  }),
+  resolveRotation: (dc, params) =>
+    params.pose.tilt * 0.3 +
+    (dc.emotionName === "confused" ? -0.1 : 0) +
+    (dc.actionName === "listening" ? -0.08 : 0),
+  configureContext: (ctx, dc, params, width) => {
+    ctx.lineWidth = Math.max(1.5, params.height * 0.048);
+    ctx.lineJoin = "round";
+    ctx.shadowColor = dc.theme.glow;
+    ctx.shadowBlur = Math.max(0, width * 0.16);
+  },
+  renderShape: (ctx, shape, width, height) => {
+    drawDogNoseShape(ctx, shape, width, height);
+    ctx.stroke();
+    ctx.save();
+    ctx.globalAlpha *= 0.42;
+    ctx.fillStyle = PUPIL_SHINE_FILL;
+    ctx.shadowBlur = 0;
+    drawDogNoseShine(ctx, shape, width, height);
+    ctx.fill();
+    ctx.restore();
+  },
+});
 
 function strokeEarOutline(
   ctx: CanvasRenderingContext2D,
@@ -769,59 +906,6 @@ function strokeEarOutline(
   strokeCubicRange(ctx, 0, 1, shoulder, tipCtrlA, tipCtrlB, tip, 10);
   strokeCubicRange(ctx, 0, 1, tip, baseCtrlA, baseCtrlB, base, 10);
   strokeCubicRange(ctx, 0, innerVisibleEndT, base, innerCtrlA, innerCtrlB, topInner, 10);
-}
-
-function eyeShapeSupportsPupil(shape: string): boolean {
-  return shape === "soft" || shape === "wide" || shape === "block";
-}
-
-function drawGlyphEye(
-  ctx: CanvasRenderingContext2D,
-  shape: string,
-  width: number,
-  height: number,
-  side: number,
-  openness: number,
-  squint: number,
-): void {
-  if (shape === "sharp") {
-    const lineWidth = Math.max(1.5, Math.min(width, height) * 0.11);
-    const apexX = side * width * 0.04;
-    const apexY = -height * (0.28 + squint * 0.08);
-    const wingY = height * (0.08 + (1 - openness) * 0.12);
-    ctx.lineWidth = lineWidth;
-    ctx.beginPath();
-    ctx.moveTo(-width * 0.42, wingY);
-    ctx.lineTo(apexX, apexY);
-    ctx.lineTo(width * 0.42, wingY);
-    ctx.stroke();
-    return;
-  }
-
-  if (shape === "sleepy") {
-    const lineWidth = Math.max(1.5, Math.min(width, height) * 0.13);
-    const startX = -side * width * 0.08;
-    const controlX = side * width * 0.42;
-    const arcHeight = height * (0.42 + (1 - openness) * 0.08);
-    ctx.lineWidth = lineWidth;
-    ctx.beginPath();
-    ctx.moveTo(startX, -arcHeight);
-    ctx.quadraticCurveTo(controlX, 0, startX, arcHeight);
-    ctx.stroke();
-    return;
-  }
-
-  if (shape === "droplet") {
-    const topY = -height * 0.48;
-    const bottomY = height * 0.48;
-    const shoulderX = width * 0.28;
-    ctx.beginPath();
-    ctx.moveTo(0, topY);
-    ctx.bezierCurveTo(shoulderX, -height * 0.28, shoulderX, height * 0.16, 0, bottomY);
-    ctx.bezierCurveTo(-shoulderX, height * 0.16, -shoulderX, -height * 0.28, 0, topY);
-    ctx.closePath();
-    ctx.fill();
-  }
 }
 
 function drawDogEyeShell(
@@ -1416,23 +1500,23 @@ function drawDogTeeth(
 }
 
 function shouldShowDogTongue(
-  emotionName: EmotionName,
+  displayName: EmotionName,
   openness: number,
   _curvature: number,
 ): boolean {
-  if (emotionName === "angry") {
+  if (displayName === "angry") {
     return false;
   }
 
-  if (emotionName === "sad" || emotionName === "sleepy" || emotionName === "confused") {
+  if (displayName === "sad" || displayName === "confused") {
     return false;
   }
 
-  if (emotionName === "neutral") {
+  if (displayName === "neutral") {
     return false;
   }
 
-  if (emotionName === "happy" || emotionName === "love" || emotionName === "excited") {
+  if (displayName === "happy" || displayName === "love" || displayName === "excited") {
     return true;
   }
 
@@ -1474,25 +1558,50 @@ export const kibaCharacter: CharacterDefinition = {
     }
 
     const { ctx, theme } = dc;
+    const expressionName = dc.emotionName;
     const bobY = pose.global.bob * height * 0.05;
-    const earPoses = resolveEarPoses(dc.emotionName);
-    const leftEyeMetrics = resolveKibaEyeMetrics(width, height, pose.leftEye, -1, dc.emotionName);
-    const rightEyeMetrics = resolveKibaEyeMetrics(width, height, pose.rightEye, 1, dc.emotionName);
+    const bootUpFade =
+      dc.overlayActionName === "bootUp" ? clamp((pose.global.glow - 0.2) / 0.9, 0, 1) : 1;
+    const earVisibility =
+      (dc.actionName === "offline" ? 0.22 : dc.actionName === "sleeping" ? 0.68 : 1) * bootUpFade;
+    const earGlow =
+      (dc.actionName === "offline" ? 0.28 : 1) * Math.max(0, pose.global.glow) * bootUpFade;
+    const earPoses =
+      dc.actionName === "listening"
+        ? applyListeningEarLift(resolveEarPoses(expressionName))
+        : resolveEarPoses(expressionName);
+    const leftEyeMetrics = resolveKibaEyeMetrics(width, height, pose.leftEye, -1, expressionName);
+    const rightEyeMetrics = resolveKibaEyeMetrics(width, height, pose.rightEye, 1, expressionName);
 
     ctx.save();
+    if (dc.actionName === "listening") {
+      ctx.rotate(-0.11);
+    }
     ctx.strokeStyle = theme.foreground;
     ctx.shadowColor = theme.glow;
-    ctx.shadowBlur = Math.max(0, width * 0.024);
+    ctx.shadowBlur = Math.max(0, width * 0.024 * earGlow);
     ctx.lineWidth = Math.max(1.5, height * 0.0095);
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
+    ctx.globalAlpha *= earVisibility;
     ctx.save();
     ctx.globalAlpha *= 0.08;
     ctx.fillStyle = theme.foreground;
     ctx.shadowBlur = 0;
     traceEarPath(ctx, width, height, -1, bobY + height * earPoses.leftBob, earPoses.left);
     ctx.fill();
-    traceEarPath(ctx, width, height, 1, bobY + height * earPoses.rightBob, earPoses.right);
+    if (dc.actionName === "listening") {
+      traceRaisedListeningEarPath(
+        ctx,
+        width,
+        height,
+        1,
+        bobY + height * earPoses.rightBob,
+        earPoses.right,
+      );
+    } else {
+      traceEarPath(ctx, width, height, 1, bobY + height * earPoses.rightBob, earPoses.right);
+    }
     ctx.fill();
     ctx.restore();
     strokeEarOutline(
@@ -1504,21 +1613,44 @@ export const kibaCharacter: CharacterDefinition = {
       earPoses.left,
       leftEyeMetrics,
     );
-    strokeEarOutline(
-      ctx,
-      width,
-      height,
-      1,
-      bobY + height * earPoses.rightBob,
-      earPoses.right,
-      rightEyeMetrics,
-    );
+    if (dc.actionName === "listening") {
+      traceRaisedListeningEarPath(
+        ctx,
+        width,
+        height,
+        1,
+        bobY + height * earPoses.rightBob,
+        earPoses.right,
+      );
+      ctx.stroke();
+    } else {
+      strokeEarOutline(
+        ctx,
+        width,
+        height,
+        1,
+        bobY + height * earPoses.rightBob,
+        earPoses.right,
+        rightEyeMetrics,
+      );
+    }
     ctx.save();
     ctx.globalAlpha *= 0.32;
     ctx.lineWidth = Math.max(1.1, height * 0.0058);
     ctx.shadowBlur = 0;
     drawEarFold(ctx, width, height, -1, bobY + height * earPoses.leftBob, earPoses.left);
-    drawEarFold(ctx, width, height, 1, bobY + height * earPoses.rightBob, earPoses.right);
+    if (dc.actionName === "listening") {
+      drawRaisedListeningEarFold(
+        ctx,
+        width,
+        height,
+        1,
+        bobY + height * earPoses.rightBob,
+        earPoses.right,
+      );
+    } else {
+      drawEarFold(ctx, width, height, 1, bobY + height * earPoses.rightBob, earPoses.right);
+    }
     ctx.restore();
     ctx.restore();
   },
@@ -1526,21 +1658,34 @@ export const kibaCharacter: CharacterDefinition = {
   drawEye(dc: DrawContext, params: EyeDrawParams): void {
     const { ctx, theme } = dc;
     const { pose, side, parts, features } = params;
-    const openness = clamp(pose.openness, 0.01, 1);
-    const squint = clamp(pose.squint, 0, 1);
-    const eyeHeightScale = clamp(parts.eyeHeightScale, 0.5, 1.8);
-    const eyeWidthScale = clamp(parts.eyeWidthScale, 0.5, 1.8);
-    const baseHeight = params.height * eyeHeightScale;
-    const baseWidth = params.width * eyeWidthScale;
-    const eyeHeight = Math.max(
-      baseHeight * 0.1,
-      baseHeight * (0.18 + openness * 0.74) * (1 - squint * 0.52),
-    );
-    const eyeWidth = baseWidth * (0.86 + openness * 0.14);
+    const expressionName = dc.emotionName;
+    const thinkingEyeTilt = dc.actionName === "thinking" && side === 1 ? 0.04 : 0;
+    const thinkingEyeShiftY =
+      dc.actionName === "thinking" && side === 1 ? -params.height * 0.022 : 0;
+    const thinkingEyeShiftX = dc.actionName === "thinking" && side === 1 ? params.width * 0.008 : 0;
+    const thinkingEyeHeightScale = dc.actionName === "thinking" && side === 1 ? 1.08 : 1;
+    const thinkingEyeWidthScale = dc.actionName === "thinking" && side === -1 ? 0.94 : 1;
+    const listeningTilt = dc.actionName === "listening" ? -0.08 : 0;
+    const listeningShiftX = dc.actionName === "listening" ? -params.width * 0.05 : 0;
+    const listeningShiftY = dc.actionName === "listening" ? -params.height * 0.02 : 0;
+    const eyeMetrics = resolveStandardEyeMetrics({
+      width: params.width,
+      height: params.height,
+      openness: pose.openness,
+      squint: pose.squint,
+      eyeWidthScale: parts.eyeWidthScale,
+      eyeHeightScale: parts.eyeHeightScale,
+      widthBase: 0.86,
+      widthOpenFactor: 0.14,
+      pupilScale: 0.54,
+    });
+    const { openness, squint } = eyeMetrics;
+    const eyeHeight = eyeMetrics.height;
+    const eyeWidth = eyeMetrics.width;
     const eyeShape = parts.eyeShape ?? "soft";
     const glyphEye = eyeShape === "sharp" || eyeShape === "sleepy" || eyeShape === "droplet";
     const brightness = clamp(pose.brightness, 0.1, 1.8);
-    const confusedTilt = dc.emotionName === "confused";
+    const confusedTilt = expressionName === "confused";
     const confusedScale = confusedTilt ? (side === -1 ? 1.18 : 0.94) : 1;
     const confusedY = confusedTilt
       ? side === -1
@@ -1548,18 +1693,24 @@ export const kibaCharacter: CharacterDefinition = {
         : -params.height * 0.06
       : 0;
     const confusedX = confusedTilt ? (side === -1 ? -params.width * 0.02 : params.width * 0.01) : 0;
-    const excitedWide = dc.emotionName === "excited" ? 1.14 : dc.emotionName === "happy" ? 1.03 : 1;
-    const excitedShort = dc.emotionName === "excited" ? 0.92 : 1;
-    const resolvedEyeWidth = eyeWidth * confusedScale * excitedWide;
-    const resolvedEyeHeight = eyeHeight * confusedScale * excitedShort;
-    const pupilSize = Math.max(10, Math.min(resolvedEyeWidth, resolvedEyeHeight) * 0.54);
-    const dogSlantBase = dc.emotionName === "sad" ? 0.26 : 0.12;
-    const dogSlant = (dc.emotionName === "angry" ? -side : side) * dogSlantBase;
+    const excitedWide = expressionName === "excited" ? 1.14 : expressionName === "happy" ? 1.03 : 1;
+    const excitedShort = expressionName === "excited" ? 0.92 : 1;
+    const resolvedEyeWidth = eyeWidth * confusedScale * excitedWide * thinkingEyeWidthScale;
+    const resolvedEyeHeight = eyeHeight * confusedScale * excitedShort * thinkingEyeHeightScale;
+    const pupilSize = Math.max(
+      10,
+      eyeMetrics.pupilSize * confusedScale * Math.min(excitedWide, excitedShort),
+    );
+    const dogSlantBase = expressionName === "sad" ? 0.26 : 0.12;
+    const dogSlant = (expressionName === "angry" ? -side : side) * dogSlantBase;
     const headTilt = confusedTilt ? -0.1 : 0;
 
     ctx.save();
-    ctx.translate(params.centerX + confusedX, params.centerY + confusedY);
-    ctx.rotate(dogSlant + pose.tilt * 0.24 + headTilt);
+    ctx.translate(
+      params.centerX + confusedX + listeningShiftX + thinkingEyeShiftX,
+      params.centerY + confusedY + listeningShiftY + thinkingEyeShiftY,
+    );
+    ctx.rotate(dogSlant + pose.tilt * 0.24 + headTilt + listeningTilt + thinkingEyeTilt);
     ctx.globalAlpha *= brightness;
 
     if (resolvedEyeHeight < params.height * 0.16) {
@@ -1590,7 +1741,11 @@ export const kibaCharacter: CharacterDefinition = {
     }
 
     if (glyphEye) {
-      drawGlyphEye(ctx, eyeShape, eyeWidth, eyeHeight, side, openness, squint);
+      drawStandardGlyphEye(ctx, eyeShape, eyeWidth, eyeHeight, side, openness, squint, {
+        lineWidthFloor: 1.5,
+        sharpLineScale: 0.11,
+        sleepyLineScale: 0.13,
+      });
       ctx.restore();
       return;
     }
@@ -1644,8 +1799,12 @@ export const kibaCharacter: CharacterDefinition = {
     if (features.pupils && eyeShapeSupportsPupil(eyeShape)) {
       const pupilX = clamp(pose.pupilX, -1, 1) * resolvedEyeWidth * 0.2;
       const pupilY = clamp(pose.pupilY, -1, 1) * resolvedEyeHeight * 0.18;
+      const thinkingPupilX =
+        dc.actionName === "thinking" && side === 1 ? -resolvedEyeWidth * 0.035 : 0;
+      const thinkingPupilY =
+        dc.actionName === "thinking" && side === 1 ? -resolvedEyeHeight * 0.05 : 0;
       ctx.globalAlpha = 1;
-      if (dc.emotionName === "love") {
+      if (expressionName === "love") {
         const heartPulse = 0.96 + 0.06 * (0.5 + 0.5 * wave(dc.elapsed / 1000, 0.82));
         const lovePupilSize =
           Math.max(9, Math.min(resolvedEyeWidth, resolvedEyeHeight) * 0.62) * heartPulse;
@@ -1657,8 +1816,8 @@ export const kibaCharacter: CharacterDefinition = {
         ctx.fillStyle = PUPIL_FILL;
         roundedRect(
           ctx,
-          pupilX - pupilSize * 0.5,
-          pupilY - pupilSize * 0.5,
+          pupilX + thinkingPupilX - pupilSize * 0.5,
+          pupilY + thinkingPupilY - pupilSize * 0.5,
           pupilSize,
           pupilSize,
           pupilSize * 0.28,
@@ -1668,9 +1827,9 @@ export const kibaCharacter: CharacterDefinition = {
       ctx.fillStyle = PUPIL_SHINE_FILL;
       drawPupilShine(
         ctx,
-        pupilX,
-        pupilY,
-        dc.emotionName === "love"
+        pupilX + (expressionName === "love" ? 0 : thinkingPupilX),
+        pupilY + (expressionName === "love" ? 0 : thinkingPupilY),
+        expressionName === "love"
           ? Math.max(9, Math.min(resolvedEyeWidth, resolvedEyeHeight) * 0.62)
           : pupilSize,
       );
@@ -1680,94 +1839,18 @@ export const kibaCharacter: CharacterDefinition = {
     ctx.restore();
   },
 
-  drawBrow(dc: DrawContext, params: BrowDrawParams): void {
-    const { ctx, theme } = dc;
-    const { pose, parts } = params;
-    const shape = parts.browShape ?? "soft";
+  drawBrow: drawKibaBrow,
 
-    ctx.save();
-    ctx.translate(params.centerX, params.centerY);
-    ctx.rotate(pose.tilt * 0.05);
-    ctx.globalAlpha *= clamp(pose.brightness, 0.2, 1.2) * 0.45;
-
-    if (shape === "bold") {
-      ctx.fillStyle = theme.foreground;
-      roundedRect(
-        ctx,
-        -params.width * 0.26,
-        -params.height * 0.22,
-        params.width * 0.52,
-        params.height * 0.44,
-        params.height * 0.14,
-      );
-      ctx.fill();
-      ctx.restore();
-      return;
-    }
-
-    if (shape === "angled") {
-      ctx.fillStyle = theme.foreground;
-      ctx.beginPath();
-      ctx.moveTo(-params.width * 0.28, params.height * 0.16);
-      ctx.lineTo(-params.width * 0.08, -params.height * 0.24);
-      ctx.lineTo(params.width * 0.28, -params.height * 0.08);
-      ctx.lineTo(params.width * 0.08, params.height * 0.22);
-      ctx.closePath();
-      ctx.fill();
-      ctx.restore();
-      return;
-    }
-
-    ctx.strokeStyle = theme.foreground;
-    ctx.lineCap = "round";
-    ctx.lineWidth = Math.max(1.25, params.height * 0.46);
-    ctx.beginPath();
-    ctx.moveTo(-params.width * 0.22, 0);
-    ctx.lineTo(params.width * 0.22, 0);
-    ctx.stroke();
-    ctx.restore();
-  },
-
-  drawNose(dc: DrawContext, params: NoseDrawParams): void {
-    const { ctx, theme } = dc;
-    const { pose, parts } = params;
-    const scale = clamp(pose.scale, 0.1, 1.5);
-    const brightness = clamp(pose.brightness, 0.1, 1.6);
-    const width = params.width * scale;
-    const height = params.height * scale;
-    const confusedTilt = dc.emotionName === "confused";
-    const noseShape = parts.noseShape ?? "pointed";
-
-    ctx.save();
-    ctx.translate(
-      params.centerX + (confusedTilt ? -params.width * 0.02 : 0),
-      params.centerY + (confusedTilt ? params.height * 0.04 : 0),
-    );
-    ctx.rotate(pose.tilt * 0.3 + (confusedTilt ? -0.1 : 0));
-    ctx.lineWidth = Math.max(1.5, params.height * 0.048);
-    ctx.strokeStyle = theme.foreground;
-    ctx.globalAlpha *= brightness;
-    ctx.lineJoin = "round";
-    ctx.shadowColor = theme.glow;
-    ctx.shadowBlur = Math.max(0, width * 0.16);
-    drawDogNoseShape(ctx, noseShape, width, height);
-    ctx.stroke();
-    ctx.save();
-    ctx.globalAlpha *= 0.42;
-    ctx.fillStyle = PUPIL_SHINE_FILL;
-    ctx.shadowBlur = 0;
-    drawDogNoseShine(ctx, noseShape, width, height);
-    ctx.fill();
-    ctx.restore();
-    ctx.restore();
-  },
+  drawNose: drawKibaNose,
 
   drawMouth(dc: DrawContext, params: MouthDrawParams): void {
     const { ctx, theme } = dc;
     const { pose, parts } = params;
+    const expressionName = dc.emotionName;
+    const suppressTongue = dc.actionName === "sleeping" || dc.actionName === "offline";
     const mouthShape = parts.mouthShape ?? "soft";
     const speakingMotion =
-      dc.emotionName === "speaking"
+      dc.speakingAmount > 0.001
         ? clamp(
             0.02 +
               0.98 *
@@ -1775,22 +1858,20 @@ export const kibaCharacter: CharacterDefinition = {
                 (0.74 + 0.26 * (0.5 + 0.5 * wave((dc.elapsed + 140) / 1000, 7.4))),
             0,
             1,
-          )
-        : 1;
-    const curvature = clamp(
-      pose.curvature + (dc.emotionName === "speaking" ? (speakingMotion - 0.5) * 0.08 : 0),
-      -1,
-      1,
-    );
+          ) * dc.speakingAmount
+        : 0;
+    const curvature = clamp(pose.curvature + speakingMotion * 0.08, -1, 1);
     const openness = clamp(
-      dc.emotionName === "speaking" ? Math.max(0.02, 0.02 + speakingMotion * 0.98) : pose.openness,
+      dc.speakingAmount > 0.001
+        ? Math.max(0.02, pose.openness + speakingMotion * 0.98)
+        : pose.openness,
       0,
       1,
     );
     const width =
       params.width *
       clamp(
-        pose.width * (dc.emotionName === "speaking" ? 0.95 + speakingMotion * 0.08 : 1),
+        pose.width * (dc.speakingAmount > 0.001 ? 0.95 + speakingMotion * 0.08 : 1),
         0.4,
         1.16,
       ) *
@@ -1798,26 +1879,32 @@ export const kibaCharacter: CharacterDefinition = {
     const mouthHeight =
       params.height * (mouthShape === "band" ? 0.88 : mouthShape === "block" ? 0.92 : 1);
     const brightness = clamp(pose.brightness, 0.1, 1.8);
-    const showTeeth = dc.emotionName === "angry";
+    const showTeeth = expressionName === "angry";
     const showTongue =
-      dc.emotionName === "speaking"
+      dc.speakingAmount > 0.001 || suppressTongue
         ? false
-        : shouldShowDogTongue(dc.emotionName, openness, curvature);
+        : shouldShowDogTongue(expressionName, openness, curvature);
     const showSpeakingChatter = !showTeeth && !showTongue && openness > 0.16;
     const pantingEmotion =
-      dc.emotionName === "happy" || dc.emotionName === "love" || dc.emotionName === "excited";
+      expressionName === "happy" || expressionName === "love" || expressionName === "excited";
     const tongueOpenness = showTongue && pantingEmotion ? Math.max(openness, 0.66) : openness;
     const tongueCurvature = showTongue && pantingEmotion ? Math.max(curvature, 0.88) : curvature;
-    const confusedTilt = dc.emotionName === "confused";
+    const confusedTilt = expressionName === "confused";
     const mouthStrokeAlpha = showTeeth ? 0 : 0.84;
     const mouthStrokeWidth = Math.max(1.5, params.height * 0.044);
 
     ctx.save();
     ctx.translate(
-      params.centerX + (confusedTilt ? -params.width * 0.015 : 0),
-      params.centerY + (confusedTilt ? params.height * 0.05 : 0),
+      params.centerX +
+        (confusedTilt ? -params.width * 0.015 : 0) +
+        (dc.actionName === "listening" ? -params.width * 0.035 : 0),
+      params.centerY +
+        (confusedTilt ? params.height * 0.05 : 0) +
+        (dc.actionName === "listening" ? -params.height * 0.015 : 0),
     );
-    ctx.rotate(pose.tilt * 0.22 + (confusedTilt ? -0.08 : 0));
+    ctx.rotate(
+      pose.tilt * 0.22 + (confusedTilt ? -0.08 : 0) + (dc.actionName === "listening" ? -0.08 : 0),
+    );
     ctx.lineWidth = mouthStrokeWidth;
     ctx.strokeStyle = theme.foreground;
     ctx.globalAlpha *= brightness;
@@ -1952,7 +2039,7 @@ export const kibaCharacter: CharacterDefinition = {
     return 1;
   },
 
-  getScrambleStrength(_emotionName, baseDistortion): number {
+  getScrambleStrength(_displayName, baseDistortion): number {
     return baseDistortion * 0.3;
   },
 };

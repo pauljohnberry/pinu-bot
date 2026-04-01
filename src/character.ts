@@ -1,13 +1,16 @@
-import type { EmotionDefinition } from "./emotions.js";
+import type { FaceStateDefinition } from "./stateDefinitions.js";
 import type {
   DisplayMode,
+  DisplayName,
   EmotionName,
   EyePose,
   FaceFeatures,
   FacePose,
   MouthPose,
   NosePose,
+  OverlayActionName,
   PartStyleConfig,
+  ReplaceActionName,
   StyleDefinition,
   ThemeDefinition,
 } from "./types.js";
@@ -16,9 +19,13 @@ export interface DrawContext {
   ctx: CanvasRenderingContext2D;
   theme: ThemeDefinition;
   emotionName: EmotionName;
+  actionName: ReplaceActionName | null;
+  overlayActionName: OverlayActionName | null;
+  displayName: DisplayName;
   elapsed: number;
   emotionFromTime: number;
   mode: DisplayMode;
+  speakingAmount: number;
 }
 
 export interface EyeDrawParams {
@@ -62,6 +69,7 @@ export interface MouthDrawParams {
 }
 
 type CharacterShapeOptionKey = "eyeShape" | "noseShape" | "mouthShape" | "browShape";
+type CharacterActionName = ReplaceActionName;
 
 export type CharacterPartOptions = {
   [K in CharacterShapeOptionKey]: NonNullable<Required<PartStyleConfig>[K]>[];
@@ -76,7 +84,8 @@ export interface CharacterDefinition {
   defaultStyle: StyleDefinition;
   defaultFeatures?: Partial<FaceFeatures>;
 
-  emotions?: Partial<Record<EmotionName, EmotionDefinition>>;
+  emotions?: Partial<Record<EmotionName, FaceStateDefinition>>;
+  actions?: Partial<Record<CharacterActionName, FaceStateDefinition>>;
 
   drawEye(dc: DrawContext, params: EyeDrawParams): void;
   drawBrow(dc: DrawContext, params: BrowDrawParams): void;
@@ -86,7 +95,7 @@ export interface CharacterDefinition {
   drawOverlay?(dc: DrawContext, width: number, height: number, pose: FacePose): void;
   drawBackground?(dc: DrawContext, width: number, height: number, pose: FacePose): void;
   getFaceVisibility?(dc: DrawContext): number;
-  getScrambleStrength?(emotionName: EmotionName, baseDistortion: number): number;
+  getScrambleStrength?(displayName: DisplayName, baseDistortion: number): number;
 }
 
 const registry = new Map<string, CharacterDefinition>();

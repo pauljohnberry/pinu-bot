@@ -1,48 +1,7 @@
-import type { EmotionName, FacePose } from "./types.js";
+import { eye, type FaceStateDefinition, pose } from "./stateDefinitions.js";
+import type { EmotionName } from "./types.js";
 
-export interface EmotionDefinition {
-  pose: FacePose;
-  durationMs: number;
-  ease: "smooth" | "snap" | "gentle";
-  microBob: number;
-  microBobHz: number;
-  microSway: number;
-  blinkMinMs: number;
-  blinkMaxMs: number;
-  blinkDurationMs: number;
-}
-
-const eye = (
-  openness: number,
-  squint: number,
-  tilt: number,
-  pupilX: number,
-  pupilY: number,
-  brightness: number,
-) => ({
-  openness,
-  squint,
-  tilt,
-  pupilX,
-  pupilY,
-  brightness,
-});
-
-const pose = (
-  leftEye: FacePose["leftEye"],
-  rightEye: FacePose["rightEye"],
-  nose: FacePose["nose"],
-  mouth: FacePose["mouth"],
-  global: FacePose["global"],
-): FacePose => ({
-  leftEye,
-  rightEye,
-  nose,
-  mouth,
-  global,
-});
-
-export const EMOTIONS: Record<EmotionName, EmotionDefinition> = {
+export const EMOTIONS: Record<EmotionName, FaceStateDefinition> = {
   neutral: {
     pose: pose(
       eye(0.84, 0.08, -0.02, 0, 0, 1),
@@ -162,40 +121,6 @@ export const EMOTIONS: Record<EmotionName, EmotionDefinition> = {
     blinkMaxMs: 5200,
     blinkDurationMs: 200,
   },
-  thinking: {
-    pose: pose(
-      eye(0.7, 0.16, 0.1, 0.06, -0.1, 0.95),
-      eye(0.62, 0.2, -0.16, 0.12, -0.14, 0.88),
-      { scale: 0.94, tilt: -0.08, brightness: 0.9 },
-      { openness: 0.03, curvature: -0.08, width: 0.68, tilt: 0.12, brightness: 0.88 },
-      { glow: 0.9, bob: 0.008, jitter: 0, distortion: 0, flicker: 0.01, scanline: 0.14 },
-    ),
-    durationMs: 340,
-    ease: "gentle",
-    microBob: 0.007,
-    microBobHz: 0.6,
-    microSway: 0.07,
-    blinkMinMs: 2600,
-    blinkMaxMs: 5200,
-    blinkDurationMs: 200,
-  },
-  sleepy: {
-    pose: pose(
-      eye(0.28, 0.28, 0.06, 0, 0.08, 0.56),
-      eye(0.28, 0.28, -0.06, 0, 0.08, 0.56),
-      { scale: 0.82, tilt: 0, brightness: 0.5 },
-      { openness: 0.01, curvature: -0.12, width: 0.7, tilt: 0, brightness: 0.54 },
-      { glow: 0.52, bob: 0.004, jitter: 0, distortion: 0, flicker: 0.002, scanline: 0.22 },
-    ),
-    durationMs: 520,
-    ease: "gentle",
-    microBob: 0.005,
-    microBobHz: 0.35,
-    microSway: 0.015,
-    blinkMinMs: 1800,
-    blinkMaxMs: 3400,
-    blinkDurationMs: 340,
-  },
   excited: {
     pose: pose(
       eye(0.98, 0.06, -0.06, 0, -0.06, 1.28),
@@ -212,90 +137,5 @@ export const EMOTIONS: Record<EmotionName, EmotionDefinition> = {
     blinkMinMs: 4200,
     blinkMaxMs: 7600,
     blinkDurationMs: 150,
-  },
-  listening: {
-    pose: pose(
-      eye(0.8, 0.06, -0.02, 0, 0, 1.02),
-      eye(0.8, 0.06, 0.02, 0, 0, 1.02),
-      { scale: 0.96, tilt: 0, brightness: 0.98 },
-      { openness: 0.03, curvature: 0.12, width: 0.78, tilt: 0, brightness: 0.94 },
-      { glow: 0.98, bob: 0.01, jitter: 0, distortion: 0, flicker: 0.012, scanline: 0.11 },
-    ),
-    durationMs: 260,
-    ease: "smooth",
-    microBob: 0.008,
-    microBobHz: 0.85,
-    microSway: 0.03,
-    blinkMinMs: 3400,
-    blinkMaxMs: 6200,
-    blinkDurationMs: 170,
-  },
-  speaking: {
-    pose: pose(
-      eye(0.8, 0.1, -0.02, 0, 0, 1.06),
-      eye(0.8, 0.1, 0.02, 0, 0, 1.06),
-      { scale: 0.98, tilt: 0, brightness: 1 },
-      { openness: 0.34, curvature: 0.18, width: 0.92, tilt: 0, brightness: 1.1 },
-      { glow: 1.08, bob: 0.014, jitter: 0, distortion: 0, flicker: 0.018, scanline: 0.11 },
-    ),
-    durationMs: 180,
-    ease: "smooth",
-    microBob: 0.012,
-    microBobHz: 1.2,
-    microSway: 0.035,
-    blinkMinMs: 3600,
-    blinkMaxMs: 7000,
-    blinkDurationMs: 160,
-  },
-  offline: {
-    pose: pose(
-      eye(0.02, 0.3, 0, 0, 0, 0.18),
-      eye(0.02, 0.3, 0, 0, 0, 0.18),
-      { scale: 0.55, tilt: 0, brightness: 0.15 },
-      { openness: 0, curvature: 0, width: 0.5, tilt: 0, brightness: 0.16 },
-      { glow: 0.16, bob: 0, jitter: 0, distortion: 0, flicker: 0, scanline: 0.28 },
-    ),
-    durationMs: 400,
-    ease: "gentle",
-    microBob: 0,
-    microBobHz: 0.1,
-    microSway: 0,
-    blinkMinMs: 20000,
-    blinkMaxMs: 30000,
-    blinkDurationMs: 300,
-  },
-  booting: {
-    pose: pose(
-      eye(0.14, 0.16, 0, 0, 0, 0.74),
-      eye(0.14, 0.16, 0, 0, 0, 0.74),
-      { scale: 0.74, tilt: 0, brightness: 0.56 },
-      { openness: 0.01, curvature: 0, width: 0.6, tilt: 0, brightness: 0.52 },
-      { glow: 0.64, bob: 0, jitter: 0, distortion: 0.04, flicker: 0.12, scanline: 0.24 },
-    ),
-    durationMs: 220,
-    ease: "snap",
-    microBob: 0,
-    microBobHz: 0.2,
-    microSway: 0,
-    blinkMinMs: 12000,
-    blinkMaxMs: 18000,
-    blinkDurationMs: 200,
-  },
-  glitch: {
-    pose: pose(
-      eye(0.76, 0.22, 0.18, -0.06, 0.04, 1.08),
-      eye(0.58, 0.32, -0.24, 0.14, -0.02, 0.96),
-      { scale: 0.92, tilt: 0.18, brightness: 0.94 },
-      { openness: 0.08, curvature: -0.1, width: 0.84, tilt: -0.16, brightness: 0.98 },
-      { glow: 1.04, bob: 0.006, jitter: 0.01, distortion: 0.34, flicker: 0.24, scanline: 0.24 },
-    ),
-    durationMs: 120,
-    ease: "snap",
-    microBob: 0.008,
-    microBobHz: 5,
-    microSway: 0.12,
-    blinkMinMs: 4200,
-    blinkMaxMs: 8200,
-    blinkDurationMs: 90,
   },
 };

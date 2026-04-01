@@ -51,6 +51,17 @@ export const drawPixelGlyph = (
   }
 };
 
+export const HEART_PATTERN: readonly string[] = [
+  "01100110",
+  "11111111",
+  "11111111",
+  "11111111",
+  "01111110",
+  "00111100",
+  "00011000",
+  "00000000",
+];
+
 export const ease = (name: "smooth" | "snap" | "gentle", t: number): number => {
   if (name === "snap") {
     return 1 - (1 - t) ** 3;

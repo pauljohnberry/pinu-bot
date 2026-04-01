@@ -6,6 +6,7 @@ import {
   type CharacterDefinition,
   createRobotFace,
   getCharacter,
+  kibaCharacter,
   registerCharacter,
 } from "../src/index";
 
@@ -58,6 +59,10 @@ class FakeContext2D {
 
   quadraticCurveTo(): void {
     this.operations.push("quadraticCurveTo");
+  }
+
+  bezierCurveTo(): void {
+    this.operations.push("bezierCurveTo");
   }
 
   fillRect(x: number, y: number, width: number, height: number): void {
@@ -463,12 +468,287 @@ describe("createRobotFace", () => {
     raf.step(16);
     expect(canvas.context.operations.includes("clearRect")).toBe(true);
 
-    face.perform("glitch");
+    face.glitch();
     raf.step(32);
     raf.step(48);
 
     face.stop();
     expect(raf.queued()).toBe(0);
+  });
+
+  test("glitch overlays without replacing the current displayed emotion", () => {
+    const raf = installRaf();
+    const canvas = new FakeCanvas();
+    const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
+      autoStart: false,
+    });
+
+    face.emote("happy");
+    face.start();
+    raf.step(16);
+
+    face.glitch();
+    expect((face as unknown as { displayName: string }).displayName).toBe("happy");
+
+    raf.step(136);
+
+    expect((face as unknown as { displayName: string }).displayName).toBe("happy");
+    expect(
+      (face as unknown as { currentPose: { global: { distortion: number } } }).currentPose.global
+        .distortion,
+    ).toBeGreaterThan(0.02);
+  });
+
+  test("emotion changes cancel persistent non-emotional actions", () => {
+    const canvas = new FakeCanvas();
+    const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
+      autoStart: false,
+    });
+
+    face.think({ persistent: true });
+    expect((face as unknown as { displayName: string }).displayName).toBe("thinking");
+
+    face.emote("sad");
+
+    expect((face as unknown as { displayName: string }).displayName).toBe("sad");
+    expect((face as unknown as { activeActionName: string | null }).activeActionName).toBeNull();
+  });
+
+  test("held actions still preserve the current emotion", () => {
+    const raf = installRaf();
+
+    const captureThinkCurvature = (emotion: "happy" | "sad"): number => {
+      const canvas = new FakeCanvas();
+      const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
+        autoStart: true,
+      });
+
+      raf.step(0);
+      face.emote(emotion);
+      raf.step(300);
+      raf.step(600);
+      face.think({ persistent: true });
+      raf.step(900);
+      raf.step(1200);
+
+      const curvature = (face as unknown as { currentPose: { mouth: { curvature: number } } })
+        .currentPose.mouth.curvature;
+
+      face.destroy();
+      return curvature;
+    };
+
+    const happyThinkCurvature = captureThinkCurvature("happy");
+    const sadThinkCurvature = captureThinkCurvature("sad");
+
+    expect(happyThinkCurvature).toBeGreaterThan(sadThinkCurvature + 0.18);
+  });
+
+  test("characters receive both the base emotion and active action in draw context", () => {
+    const canvas = new FakeCanvas();
+    let capturedEmotionName = "";
+    let capturedActionName: string | null = null;
+    let capturedOverlayActionName: string | null = null;
+    let capturedDisplayName = "";
+
+    const spyKiba: CharacterDefinition = {
+      ...kibaCharacter,
+      name: "spy-kiba",
+      drawBackground(dc, width, height, pose) {
+        capturedEmotionName = dc.emotionName;
+        capturedActionName = dc.actionName;
+        capturedOverlayActionName = dc.overlayActionName;
+        capturedDisplayName = dc.displayName;
+        kibaCharacter.drawBackground?.(dc, width, height, pose);
+      },
+    };
+
+    const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
+      autoStart: false,
+      character: spyKiba,
+    });
+
+    face.emote("angry").think({ persistent: true }).render();
+
+    expect(capturedEmotionName).toBe("angry");
+    expect(capturedActionName).toBe("thinking");
+    expect(capturedOverlayActionName).toBeNull();
+    expect(capturedDisplayName).toBe("thinking");
+
+    face.bootUp().render();
+
+    expect(capturedEmotionName).toBe("angry");
+    expect(capturedActionName).toBe("thinking");
+    expect(capturedOverlayActionName).toBe("bootUp");
+    expect(capturedDisplayName).toBe("thinking");
+  });
+
+  test("listening reads distinctly from neutral on pinu", () => {
+    const raf = installRaf();
+    const canvas = new FakeCanvas();
+    const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
+      autoStart: true,
+    });
+
+    raf.step(0);
+    raf.step(300);
+    const neutralPose = structuredClone(
+      (
+        face as unknown as {
+          currentPose: {
+            leftEye: { openness: number; brightness: number };
+            rightEye: { openness: number; brightness: number };
+            mouth: { curvature: number };
+          };
+        }
+      ).currentPose,
+    );
+
+    face.listen({ persistent: true });
+    raf.step(600);
+    raf.step(900);
+
+    const listeningPose = (
+      face as unknown as {
+        currentPose: {
+          leftEye: { openness: number; brightness: number };
+          rightEye: { openness: number; brightness: number };
+          mouth: { curvature: number };
+        };
+      }
+    ).currentPose;
+
+    expect(listeningPose.leftEye.brightness).toBeGreaterThan(neutralPose.leftEye.brightness + 0.03);
+    expect(listeningPose.rightEye.brightness).toBeGreaterThan(
+      neutralPose.rightEye.brightness + 0.03,
+    );
+    expect(Math.abs(listeningPose.leftEye.openness - neutralPose.leftEye.openness)).toBeGreaterThan(
+      0.04,
+    );
+    expect(Math.abs(listeningPose.mouth.curvature - neutralPose.mouth.curvature)).toBeGreaterThan(
+      0.04,
+    );
+
+    face.destroy();
+  });
+
+  test("non-emotional actions clear speaking overlays", () => {
+    const canvas = new FakeCanvas();
+    const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
+      autoStart: false,
+    });
+
+    face.speak({ intensity: 0.5, durationMs: 5000 });
+    face.goOffline({ persistent: true });
+
+    expect((face as unknown as { speakingEnabled: boolean }).speakingEnabled).toBe(false);
+    expect((face as unknown as { speakingTarget: number }).speakingTarget).toBe(0);
+
+    face.speak({ intensity: 0.5, durationMs: 5000 });
+    face.bootUp();
+
+    expect((face as unknown as { speakingEnabled: boolean }).speakingEnabled).toBe(false);
+    expect((face as unknown as { speakingTarget: number }).speakingTarget).toBe(0);
+  });
+
+  test("offline stages away from the current emotion and restores it after timing out", () => {
+    const raf = installRaf();
+    const canvas = new FakeCanvas();
+    const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
+      autoStart: true,
+    });
+
+    raf.step(0);
+    face.emote("happy");
+    raf.step(300);
+    raf.step(600);
+
+    const happyGlow = (face as unknown as { currentPose: { global: { glow: number } } }).currentPose
+      .global.glow;
+
+    face.goOffline({ durationMs: 900 });
+    expect((face as unknown as { emotionTargetName: string }).emotionTargetName).toBe("happy");
+    expect((face as unknown as { displayName: string }).displayName).toBe("offline");
+
+    raf.step(1000);
+    raf.step(1400);
+
+    const offlineGlow = (face as unknown as { currentPose: { global: { glow: number } } })
+      .currentPose.global.glow;
+    expect(offlineGlow).toBeLessThan(happyGlow - 0.12);
+
+    raf.step(2200);
+    raf.step(3200);
+
+    expect((face as unknown as { displayName: string }).displayName).toBe("happy");
+    expect((face as unknown as { activeActionName: string | null }).activeActionName).toBeNull();
+
+    const recoveredGlow = (face as unknown as { currentPose: { global: { glow: number } } })
+      .currentPose.global.glow;
+    expect(recoveredGlow).toBeGreaterThan(offlineGlow + 0.08);
+
+    face.destroy();
+  });
+
+  test("timed action context persists while the action pose is still fading out", () => {
+    const raf = installRaf();
+    const canvas = new FakeCanvas();
+    let capturedActionName: string | null = null;
+    let capturedDisplayName = "";
+
+    const spyKiba: CharacterDefinition = {
+      ...kibaCharacter,
+      name: "spy-kiba-fade",
+      drawBackground(dc, width, height, pose) {
+        capturedActionName = dc.actionName;
+        capturedDisplayName = dc.displayName;
+        kibaCharacter.drawBackground?.(dc, width, height, pose);
+      },
+    };
+
+    const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
+      autoStart: true,
+      character: spyKiba,
+    });
+
+    raf.step(0);
+    face.emote("happy");
+    raf.step(300);
+    face.listen({ durationMs: 120 });
+    raf.step(360);
+    raf.step(430);
+
+    expect((face as unknown as { activeActionName: string | null }).activeActionName).toBeNull();
+    expect((face as unknown as { actionBlend: number }).actionBlend).toBeGreaterThan(0.02);
+    expect(capturedActionName).toBe("listening");
+    expect(capturedDisplayName).toBe("listening");
+    expect((face as unknown as { displayName: string }).displayName).toBe("happy");
+
+    face.destroy();
+  });
+
+  test("reset restores the creation-time baseline state", () => {
+    const canvas = new FakeCanvas();
+    const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
+      autoStart: false,
+      mode: "symbol",
+      symbol: "warning",
+    });
+
+    face
+      .showFace()
+      .emote("happy")
+      .think({ persistent: true })
+      .lookLeft(0.7)
+      .speak({ intensity: 0.5, durationMs: 1200 });
+
+    face.reset();
+
+    expect((face as unknown as { displayName: string }).displayName).toBe("neutral");
+    expect((face as unknown as { emotionTargetName: string }).emotionTargetName).toBe("neutral");
+    expect((face as unknown as { activeActionName: string | null }).activeActionName).toBeNull();
+    expect((face as unknown as { mode: string }).mode).toBe("symbol");
+    expect((face as unknown as { symbolName: string | null }).symbolName).toBe("warning");
   });
 
   test("destroy stops the raf loop", () => {
