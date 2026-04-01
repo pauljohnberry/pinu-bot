@@ -1,7 +1,5 @@
 import { eye, type FaceStateDefinition, pose } from "./stateDefinitions.js";
-import type { ActionName } from "./types.js";
-
-type ReplaceActionName = Extract<ActionName, "thinking" | "listening" | "sleeping" | "offline">;
+import type { ActionName, ReplaceActionName } from "./types.js";
 
 export const ACTION_NAMES = [
   "thinking",

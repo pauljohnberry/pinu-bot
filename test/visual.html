@@ -150,17 +150,6 @@
         return offscreen;
       };
 
-      const drawLocalCapsule = (ctx, shape, centerX = 0, centerY = 0) => {
-        roundedRect(
-          ctx,
-          centerX - shape.width * 0.5,
-          centerY + shape.y - shape.height * 0.5,
-          shape.width,
-          shape.height,
-          shape.height * shape.radius,
-        );
-      };
-
       const resolveLoveTransitionProgress = (snapshot) => {
         if (snapshot.displayName !== "love") {
           return -1;

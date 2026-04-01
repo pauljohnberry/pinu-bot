@@ -43,15 +43,18 @@ describe("construction helpers", () => {
     });
     const anchors = resolveConstructionAnchors(frame, layout);
 
-    expect(anchors).toEqual({
-      centerX: -6,
-      centerY: -8,
-      eyeLineY: 20.799999999999997,
-      leftEyeX: -66,
-      rightEyeX: 54,
-    });
-    expect(resolveEyeAnchor(anchors, "left")).toEqual({ x: -66, y: 20.799999999999997 });
-    expect(resolveEyeAnchor(anchors, "right")).toEqual({ x: 54, y: 20.799999999999997 });
+    expect(anchors.centerX).toEqual(-6);
+    expect(anchors.centerY).toEqual(-8);
+    expect(anchors.leftEyeX).toEqual(-66);
+    expect(anchors.rightEyeX).toEqual(54);
+    expect(anchors.eyeLineY).toBeCloseTo(20.8);
+
+    const leftEye = resolveEyeAnchor(anchors, "left");
+    const rightEye = resolveEyeAnchor(anchors, "right");
+    expect(leftEye.x).toEqual(-66);
+    expect(rightEye.x).toEqual(54);
+    expect(leftEye.y).toBeCloseTo(20.8);
+    expect(rightEye.y).toBeCloseTo(20.8);
   });
 
   test("creates semantic construction shapes with stable defaults", () => {
