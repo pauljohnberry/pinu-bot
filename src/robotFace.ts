@@ -618,6 +618,10 @@ class RobotFaceRenderer implements RobotFace {
   private mode: DisplayMode;
   private symbolName: SymbolName | null;
   private backgroundFx: ResolvedBackgroundFx;
+  private cachedConstructionStyle: StyleDefinition | null = null;
+  private cachedConstructionWidth = 0;
+  private cachedConstructionHeight = 0;
+  private cachedConstructionAnchors: import("./construction.js").ConstructionAnchors | null = null;
   private transparentBackground = false;
   private running = false;
   private rafId = 0;
@@ -1629,9 +1633,20 @@ class RobotFaceRenderer implements RobotFace {
     ctx.globalAlpha = alpha;
 
     const style = this.style;
-    const constructionFrame = createConstructionFrame(width, height);
-    const constructionLayout = createStyleConstructionLayout(style);
-    const constructionAnchors = resolveConstructionAnchors(constructionFrame, constructionLayout);
+    if (
+      this.cachedConstructionAnchors === null ||
+      this.cachedConstructionStyle !== style ||
+      this.cachedConstructionWidth !== width ||
+      this.cachedConstructionHeight !== height
+    ) {
+      const frame = createConstructionFrame(width, height);
+      const layout = createStyleConstructionLayout(style);
+      this.cachedConstructionAnchors = resolveConstructionAnchors(frame, layout);
+      this.cachedConstructionStyle = style;
+      this.cachedConstructionWidth = width;
+      this.cachedConstructionHeight = height;
+    }
+    const constructionAnchors = this.cachedConstructionAnchors;
     const glow = Math.max(8, Math.min(width, height) * style.glowScale * pose.global.glow);
     const eyeHeightScale = clamp(this.parts.eyeHeightScale, 0.5, 1.8);
     const scaledEyeHeight = height * style.eyeHeight * eyeHeightScale;

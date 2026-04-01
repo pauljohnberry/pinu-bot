@@ -435,7 +435,6 @@ function defaultAngledBrow(ctx: CanvasRenderingContext2D, params: BrowDrawParams
       inset: -0.14,
       taper: 0.3,
       tilt: 0.18,
-      radius: 0,
     }),
   );
   ctx.fill();

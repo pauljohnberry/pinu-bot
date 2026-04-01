@@ -32,7 +32,6 @@ export interface ConstructionPlate {
   inset: number;
   taper: number;
   tilt: number;
-  radius: number;
 }
 
 export interface ConstructionCapsule {
@@ -40,7 +39,6 @@ export interface ConstructionCapsule {
   width: number;
   height: number;
   y: number;
-  tilt: number;
   radius: number;
 }
 
@@ -157,8 +155,8 @@ export function resolveEyeAnchor(
 }
 
 export function createPlate(
-  config: Omit<ConstructionPlate, "kind" | "inset" | "taper" | "tilt" | "radius"> &
-    Partial<Pick<ConstructionPlate, "inset" | "taper" | "tilt" | "radius">>,
+  config: Omit<ConstructionPlate, "kind" | "inset" | "taper" | "tilt"> &
+    Partial<Pick<ConstructionPlate, "inset" | "taper" | "tilt">>,
 ): ConstructionPlate {
   return {
     kind: "plate",
@@ -168,20 +166,18 @@ export function createPlate(
     inset: config.inset ?? 0,
     taper: config.taper ?? 0,
     tilt: config.tilt ?? 0,
-    radius: config.radius ?? 0.18,
   };
 }
 
 export function createCapsule(
-  config: Omit<ConstructionCapsule, "kind" | "tilt" | "radius"> &
-    Partial<Pick<ConstructionCapsule, "tilt" | "radius">>,
+  config: Omit<ConstructionCapsule, "kind" | "radius"> &
+    Partial<Pick<ConstructionCapsule, "radius">>,
 ): ConstructionCapsule {
   return {
     kind: "capsule",
     width: config.width,
     height: config.height,
     y: config.y,
-    tilt: config.tilt ?? 0,
     radius: config.radius ?? 0.5,
   };
 }

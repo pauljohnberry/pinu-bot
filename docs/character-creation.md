@@ -101,12 +101,12 @@ Rules:
 
 4. Build expression families, not isolated states.
 
-Group states before tuning them:
+Group emotions and actions before tuning them:
 
-- positive: `happy`, `love`, `excited`
-- low-energy: `sad`, `sleepy`
-- tense: `angry`, `confused`
-- utility: `neutral`, `speaking`, `listening`, `booting`
+- positive (emotions): `happy`, `love`, `excited`
+- low-energy (emotions): `sad`
+- tense (emotions): `angry`, `confused`
+- utility (emotions + actions): `neutral`, `sleeping`, `thinking`, `listening`, `bootUp`
 
 Each family should share a base emotional grammar and vary by intensity.
 
@@ -152,7 +152,8 @@ Review at least:
 - `angry`
 - `confused`
 - `love`
-- `speaking`
+- `speak()` / speaking overlays
+- `listen` / `think` / `sleep` / `goOffline` actions
 
 Look for:
 

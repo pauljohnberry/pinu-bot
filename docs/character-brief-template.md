@@ -88,19 +88,20 @@ Define families, not isolated expressions.
 ### Low Energy
 
 - `sad`:
-- `sleepy`:
 
 ### Tense
 
 - `angry`:
 - `confused`:
 
-### Utility
+### Actions
 
-- `neutral`:
-- `speaking`:
+- `thinking`:
 - `listening`:
-- `booting`:
+- `sleeping`:
+- `bootUp`:
+
+Speaking states should be handled via `speak()` rather than as separate emotions.
 
 Questions:
 

@@ -14,8 +14,9 @@ export const ACTION_NAMES = [
 
 /**
  * Face-pose definitions for actions that replace the current expression.
- * "bootUp" and "glitch" are excluded because they use symbol display mode
- * (see OVERLAY_ACTION_SYMBOLS in robotFace.ts) rather than face-pose interpolation.
+ * "bootUp" and "glitch" are excluded here because they are driven as timed
+ * overlay actions in robotFace.ts (see OVERLAY_ACTION_SYMBOLS) rather than as
+ * standalone replacement pose definitions.
  */
 export const ACTION_DEFINITIONS: Record<ReplaceActionName, FaceStateDefinition> = {
   thinking: {

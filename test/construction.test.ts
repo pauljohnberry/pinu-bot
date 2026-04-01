@@ -69,7 +69,6 @@ describe("construction helpers", () => {
       inset: 0,
       taper: 0,
       tilt: 0,
-      radius: 0.18,
     });
 
     expect(
@@ -83,7 +82,6 @@ describe("construction helpers", () => {
       width: 0.2,
       height: 0.1,
       y: 0.04,
-      tilt: 0,
       radius: 0.5,
     });
 
