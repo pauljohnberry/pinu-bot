@@ -690,6 +690,43 @@ describe("createRobotFace", () => {
     face.destroy();
   });
 
+  test("timed action context persists while the action pose is still fading out", () => {
+    const raf = installRaf();
+    const canvas = new FakeCanvas();
+    let capturedActionName: string | null = null;
+    let capturedDisplayName = "";
+
+    const spyKiba: CharacterDefinition = {
+      ...kibaCharacter,
+      name: "spy-kiba-fade",
+      drawBackground(dc, width, height, pose) {
+        capturedActionName = dc.actionName;
+        capturedDisplayName = dc.displayName;
+        kibaCharacter.drawBackground?.(dc, width, height, pose);
+      },
+    };
+
+    const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
+      autoStart: true,
+      character: spyKiba,
+    });
+
+    raf.step(0);
+    face.emote("happy");
+    raf.step(300);
+    face.listen({ durationMs: 120 });
+    raf.step(360);
+    raf.step(430);
+
+    expect((face as unknown as { activeActionName: string | null }).activeActionName).toBeNull();
+    expect((face as unknown as { actionBlend: number }).actionBlend).toBeGreaterThan(0.02);
+    expect(capturedActionName).toBe("listening");
+    expect(capturedDisplayName).toBe("listening");
+    expect((face as unknown as { displayName: string }).displayName).toBe("happy");
+
+    face.destroy();
+  });
+
   test("reset restores the creation-time baseline state", () => {
     const canvas = new FakeCanvas();
     const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {

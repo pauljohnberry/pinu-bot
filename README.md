@@ -175,8 +175,8 @@ Actions:
 - `face.glitch(options?)`
   These actions support:
   - `durationMs`
-  Actions layer behavior on top of the current emotion.
-  A later emotion or action call supersedes the previous action.
+  `bootUp()` and `glitch()` are timed overlay actions: they layer on top of the current emotion and any active held action.
+  Held actions (`think`, `listen`, `sleep`, `goOffline`) are superseded by a later emotion or held action call.
 
 Expression and motion helpers:
 - `face.transitionTo(state)`

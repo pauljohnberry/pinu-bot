@@ -47,6 +47,14 @@
       const compareConstruction = params.get("compareConstruction");
       const emotion = params.get("emotion") ?? "neutral";
       const character = params.get("character") ?? "pinu";
+      const action = params.get("action");
+      const actionPersistent = params.get("actionPersistent") === "true";
+      const actionDurationMsParam = params.get("actionDurationMs");
+      const overlay = params.get("overlay");
+      const overlayDurationMsParam = params.get("overlayDurationMs");
+      const speakDurationMsParam = params.get("speakDurationMs");
+      const speakIntensityParam = params.get("speakIntensity");
+      const settleMsParam = params.get("settleMs");
       const theme = params.get("theme") ?? "cyan";
       const style = params.get("style") ?? "classic";
       const faceTheme = params.get("faceTheme");
@@ -74,6 +82,69 @@
         recipeName.startsWith("pinu-") ? recipeName.slice("pinu-".length) : null;
       const resolveEmotionDefinition = (emotionName) =>
         pinuCharacter.emotions?.[emotionName] ?? EMOTIONS[emotionName];
+      const actionDurationMs =
+        actionDurationMsParam === null ? null : Number.parseInt(actionDurationMsParam, 10);
+      const overlayDurationMs =
+        overlayDurationMsParam === null ? null : Number.parseInt(overlayDurationMsParam, 10);
+      const speakDurationMs =
+        speakDurationMsParam === null ? null : Number.parseInt(speakDurationMsParam, 10);
+      const speakIntensity =
+        speakIntensityParam === null ? null : Number.parseFloat(speakIntensityParam);
+      const settleMs = settleMsParam === null ? null : Number.parseInt(settleMsParam, 10);
+      const isReplaceAction = (name) =>
+        name === "thinking" || name === "listening" || name === "sleeping" || name === "offline";
+      const isOverlayAction = (name) => name === "bootUp" || name === "glitch";
+      const applyAction = (face, name) => {
+        if (name === "thinking") {
+          face.think(
+            actionPersistent
+              ? { persistent: true }
+              : actionDurationMs !== null
+                ? { durationMs: actionDurationMs }
+                : {},
+          );
+          return;
+        }
+        if (name === "listening") {
+          face.listen(
+            actionPersistent
+              ? { persistent: true }
+              : actionDurationMs !== null
+                ? { durationMs: actionDurationMs }
+                : {},
+          );
+          return;
+        }
+        if (name === "sleeping") {
+          face.sleep(
+            actionPersistent
+              ? { persistent: true }
+              : actionDurationMs !== null
+                ? { durationMs: actionDurationMs }
+                : {},
+          );
+          return;
+        }
+        if (name === "offline") {
+          face.goOffline(
+            actionPersistent
+              ? { persistent: true }
+              : actionDurationMs !== null
+                ? { durationMs: actionDurationMs }
+                : {},
+          );
+        }
+      };
+      const applyOverlayAction = (face, name) => {
+        const options = overlayDurationMs !== null ? { durationMs: overlayDurationMs } : {};
+        if (name === "bootUp") {
+          face.bootUp(options);
+          return;
+        }
+        if (name === "glitch") {
+          face.glitch(options);
+        }
+      };
 
       const createSizedCanvas = () => {
         const offscreen = document.createElement("canvas");
@@ -689,14 +760,31 @@
           window.__PINU_READY__ = true;
         } else {
           const resolvedEmotion = activeCharacter.emotions?.[emotion] ?? EMOTIONS[emotion];
-          if (resolvedEmotion) {
-            face.emote(emotion);
-            const settleMs = Math.max(420, resolvedEmotion.durationMs + 120);
+        if (resolvedEmotion) {
+          face.emote(emotion);
+            const defaultEmotionSettleMs = Math.max(420, resolvedEmotion.durationMs + 120);
+            const finalSettleMs = settleMs ?? defaultEmotionSettleMs;
+
+            if (action && isReplaceAction(action)) {
+              applyAction(face, action);
+            }
+
+            if (overlay && isOverlayAction(overlay)) {
+              applyOverlayAction(face, overlay);
+            }
+
+            if (speakDurationMs !== null || speakIntensity !== null) {
+              face.speak({
+                durationMs: speakDurationMs ?? 1800,
+                intensity: speakIntensity ?? 0.65,
+              });
+            }
+
             window.setTimeout(() => {
               face.stop();
               face.render();
               window.__PINU_READY__ = true;
-            }, settleMs);
+            }, finalSettleMs);
           } else {
             window.setTimeout(() => {
               face.stop();

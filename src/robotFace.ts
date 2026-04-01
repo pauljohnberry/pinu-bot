@@ -639,7 +639,6 @@ class RobotFaceRenderer implements RobotFace {
   private activeActionName: ReplaceActionName | null = null;
   private actionVisualName: ReplaceActionName | null = null;
   private actionBlend = 0;
-  private displayName: DisplayName = "neutral";
   private emotionIntensity = 1;
   private activeActionPersistent = false;
   private activeActionUntil = 0;
@@ -742,7 +741,6 @@ class RobotFaceRenderer implements RobotFace {
     this.emotionEase = neutralDefinition.ease;
     this.blinkDurationMs = neutralDefinition.blinkDurationMs;
     this.autoBlinkInMs = this.randomBlinkDelay(neutralDefinition);
-    this.displayName = this.emotionTargetName;
     this.initialEmotionName = this.emotionTargetName;
     this.initialEmotionIntensity = this.emotionIntensity;
     this.initialMode = this.mode;
@@ -1060,7 +1058,6 @@ class RobotFaceRenderer implements RobotFace {
       ? 0
       : this.elapsed + (options.durationMs ?? DEFAULT_ACTION_DURATION_MS[name]);
     this.overlayActionName = null;
-    this.displayName = name;
     const definition = this.getActionDefinition(name);
     this.blinkDurationMs = definition.blinkDurationMs;
     this.autoBlinkInMs = this.randomBlinkDelay(definition);
@@ -1087,7 +1084,6 @@ class RobotFaceRenderer implements RobotFace {
     definition = this.getEmotionDefinition(name),
   ): void {
     copyPose(this.fromEmotionPose, this.basePose);
-    this.displayName = this.activeActionName ?? name;
     blendPoseFromNeutral(definition.pose, clamp(intensity, 0, 1), this.targetEmotionPose);
     this.emotionFromTime = this.elapsed;
     this.emotionDurationMs = definition.durationMs;
@@ -1099,6 +1095,19 @@ class RobotFaceRenderer implements RobotFace {
   private syncCharacterEmotionState(): void {
     this.actionVisualName = this.activeActionName;
     this.applyDisplayState(this.emotionTargetName, this.emotionIntensity);
+  }
+
+  private get visualActionName(): ReplaceActionName | null {
+    return this.activeActionName ?? this.actionVisualName;
+  }
+
+  private get visualDisplayName(): DisplayName {
+    return this.visualActionName ?? this.emotionTargetName;
+  }
+
+  // biome-ignore lint/correctness/noUnusedPrivateClassMembers: tests inspect this internal runtime state directly.
+  private get displayName(): DisplayName {
+    return this.activeActionName ?? this.emotionTargetName;
   }
 
   private applyFaceThemeDefinition(faceTheme: FaceThemeDefinition, resetProfile = false): void {
@@ -1162,7 +1171,7 @@ class RobotFaceRenderer implements RobotFace {
     }
 
     const actionTargetBlend = this.activeActionName ? 1 : 0;
-    const actionBlendName = this.activeActionName ?? this.actionVisualName;
+    const actionBlendName = this.visualActionName;
     const actionBlendSpeed = actionBlendName
       ? actionTargetBlend === 0
         ? 14
@@ -1595,9 +1604,9 @@ class RobotFaceRenderer implements RobotFace {
       ctx: this.ctx,
       theme: this.theme,
       emotionName: this.emotionTargetName,
-      actionName: this.activeActionName,
+      actionName: this.visualActionName,
       overlayActionName: this.overlayActionName,
-      displayName: this.displayName,
+      displayName: this.visualDisplayName,
       elapsed: this.elapsed,
       emotionFromTime: this.emotionFromTime,
       mode: this.mode,
@@ -1630,7 +1639,7 @@ class RobotFaceRenderer implements RobotFace {
     const browExtraLift = Math.max(0, eyeHeightScale - 1) * scaledEyeHeight * 0.18;
     const dynamicBrowY =
       height * style.eyeY - scaledEyeHeight * 0.5 + browOffsetFromEyeTop - browExtraLift;
-    const confusedBrowRaise = this.displayName === "confused" ? height * 0.024 : 0;
+    const confusedBrowRaise = this.visualDisplayName === "confused" ? height * 0.024 : 0;
     const leftBrowY = dynamicBrowY - confusedBrowRaise;
     const rightBrowY = dynamicBrowY + confusedBrowRaise * 0.22;
     ctx.lineCap = "round";
@@ -1729,15 +1738,15 @@ class RobotFaceRenderer implements RobotFace {
 
   private drawScrambleSlices(width: number, height: number, pose: FacePose, flicker: number): void {
     const scramble = this.character.getScrambleStrength
-      ? this.character.getScrambleStrength(this.displayName, pose.global.distortion)
-      : Math.max(this.displayName === "angry" ? 0.16 : 0, pose.global.distortion * 0.7);
+      ? this.character.getScrambleStrength(this.visualDisplayName, pose.global.distortion)
+      : Math.max(this.visualDisplayName === "angry" ? 0.16 : 0, pose.global.distortion * 0.7);
 
     if (scramble < 0.08 || this.mode === "symbol") {
       return;
     }
 
     const ctx = this.ctx;
-    const isAngry = this.displayName === "angry";
+    const isAngry = this.visualDisplayName === "angry";
     const slices = isAngry ? 4 : 6;
     const top = isAngry ? -height * 0.22 : -height * 0.3;
     const bandHeight = isAngry ? height * 0.04 : height * 0.055;
@@ -1827,10 +1836,11 @@ class RobotFaceRenderer implements RobotFace {
       };
     }
 
+    const visualDisplayName = this.visualDisplayName;
     const stateFx =
-      this.displayName in EMOTIONS
-        ? EMOTION_BACKGROUND_FX[this.displayName as EmotionName]
-        : ACTION_BACKGROUND_FX[this.displayName as ReplaceActionName];
+      visualDisplayName in EMOTIONS
+        ? EMOTION_BACKGROUND_FX[visualDisplayName as EmotionName]
+        : ACTION_BACKGROUND_FX[visualDisplayName as ReplaceActionName];
     if (!stateFx) {
       return null;
     }
@@ -1851,11 +1861,12 @@ class RobotFaceRenderer implements RobotFace {
       return OVERLAY_ACTION_SYMBOLS[this.overlayActionName] ?? "ellipsis";
     }
 
-    if (this.displayName in EMOTIONS) {
-      return EMOTION_SYMBOLS[this.displayName as EmotionName] ?? "ellipsis";
+    const visualDisplayName = this.visualDisplayName;
+    if (visualDisplayName in EMOTIONS) {
+      return EMOTION_SYMBOLS[visualDisplayName as EmotionName] ?? "ellipsis";
     }
 
-    return ACTION_SYMBOLS[this.displayName as ReplaceActionName] ?? "ellipsis";
+    return ACTION_SYMBOLS[visualDisplayName as ReplaceActionName] ?? "ellipsis";
   }
 
   private drawSymbol(symbol: SymbolName, width: number, height: number, pose: FacePose): void {
