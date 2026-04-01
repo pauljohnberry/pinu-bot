@@ -12,6 +12,11 @@ export const ACTION_NAMES = [
   "glitch",
 ] as const satisfies readonly ActionName[];
 
+/**
+ * Face-pose definitions for actions that replace the current expression.
+ * "bootUp" and "glitch" are excluded because they use symbol display mode
+ * (see ACTION_SYMBOL_MAP in robotFace.ts) rather than face-pose interpolation.
+ */
 export const ACTION_DEFINITIONS: Record<ReplaceActionName, FaceStateDefinition> = {
   thinking: {
     pose: pose(

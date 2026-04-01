@@ -4,7 +4,7 @@ import type {
   EyeDrawParams,
   MouthDrawParams,
 } from "../character.js";
-import { clamp, drawPixelGlyph, roundedRect, wave } from "../drawUtils.js";
+import { clamp, drawPixelGlyph, HEART_PATTERN, roundedRect, wave } from "../drawUtils.js";
 import {
   drawStandardGlyphEye,
   eyeShapeSupportsPupil,
@@ -14,7 +14,7 @@ import {
   createStandardBrowRenderer,
   createStandardNoseRenderer,
 } from "../standardRobotRenderers.js";
-import type { FaceStateDefinition } from "../stateDefinitions.js";
+import { eye, type FaceStateDefinition, pose } from "../stateDefinitions.js";
 import { STYLE_PRESETS } from "../styles.js";
 import type { EmotionName, FacePose, StyleDefinition } from "../types.js";
 
@@ -28,16 +28,6 @@ const SURFACE_STROKE_ALPHA = 0.76;
 const DETAIL_LINE_ALPHA = 0.36;
 const PATCH_FILL_ALPHA = 0.18;
 const SOCKET_FILL_ALPHA = 0.11;
-const HEART_PATTERN = [
-  "01100110",
-  "11111111",
-  "11111111",
-  "11111111",
-  "01111110",
-  "00111100",
-  "00011000",
-  "00000000",
-];
 
 const kibaStyle: StyleDefinition = {
   ...STYLE_PRESETS.soft,
@@ -56,36 +46,6 @@ const kibaStyle: StyleDefinition = {
   mouthY: 0.188,
   glowScale: 0.032,
 };
-
-const eye = (
-  openness: number,
-  squint: number,
-  tilt: number,
-  pupilX: number,
-  pupilY: number,
-  brightness: number,
-) => ({
-  openness,
-  squint,
-  tilt,
-  pupilX,
-  pupilY,
-  brightness,
-});
-
-const pose = (
-  leftEye: FacePose["leftEye"],
-  rightEye: FacePose["rightEye"],
-  nose: FacePose["nose"],
-  mouth: FacePose["mouth"],
-  global: FacePose["global"],
-): FacePose => ({
-  leftEye,
-  rightEye,
-  nose,
-  mouth,
-  global,
-});
 
 type EarPose = {
   innerX: number;

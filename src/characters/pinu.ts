@@ -1,5 +1,5 @@
 import type { CharacterDefinition, DrawContext } from "../character.js";
-import { clamp, drawPixelGlyph, ease, roundedRect, wave } from "../drawUtils.js";
+import { clamp, drawPixelGlyph, ease, HEART_PATTERN, roundedRect, wave } from "../drawUtils.js";
 import {
   createStandardBrowRenderer,
   createStandardEyeRenderer,
@@ -8,17 +8,6 @@ import {
 } from "../standardRobotRenderers.js";
 import { STYLE_PRESETS } from "../styles.js";
 import type { FacePose } from "../types.js";
-
-const HEART_PATTERN = [
-  "01100110",
-  "11111111",
-  "11111111",
-  "11111111",
-  "01111110",
-  "00111100",
-  "00011000",
-  "00000000",
-];
 
 function resolveLoveTransitionProgress(dc: DrawContext): number {
   if (dc.displayName !== "love") {

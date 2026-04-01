@@ -118,6 +118,7 @@ export function createStyleConstructionLayout(
   overrides: Partial<Pick<ConstructionLayout, "centerlineBias">> = {},
 ): ConstructionLayout {
   const layoutOverrides: Partial<ConstructionLayout> = {
+    // style.eyeGap is center-to-eye; layout.eyeGap is the full eye-to-eye span
     eyeGap: style.eyeGap * 2,
     eyeLineY: style.eyeY,
   };
@@ -206,6 +207,11 @@ export function createWedge(
   };
 }
 
+/**
+ * Traces a capsule (rounded rectangle) path. Unlike {@link traceConstructionPlate},
+ * this applies offsets arithmetically rather than via canvas transforms,
+ * so it does not call save/restore.
+ */
 export function traceConstructionCapsule(
   ctx: CanvasRenderingContext2D,
   shape: ConstructionCapsule,
@@ -222,6 +228,10 @@ export function traceConstructionCapsule(
   );
 }
 
+/**
+ * Traces a plate (tapered quadrilateral) path. Uses save/restore because the
+ * plate's tilt requires a canvas rotation transform.
+ */
 export function traceConstructionPlate(
   ctx: CanvasRenderingContext2D,
   shape: ConstructionPlate,

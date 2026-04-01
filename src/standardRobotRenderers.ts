@@ -29,6 +29,17 @@ import {
   resolveStandardNoseMetrics,
 } from "./standardFace.js";
 
+const DEFAULT_CLOSED_OPEN_DEPTH_THRESHOLD = 1.5;
+
+function assignDefined<T extends object>(target: T, source: Partial<T>): T {
+  for (const key of Object.keys(source) as Array<keyof T>) {
+    if (source[key] !== undefined) {
+      (target as Record<string, unknown>)[key as string] = source[key];
+    }
+  }
+  return target;
+}
+
 export interface StandardEyeRendererOptions {
   defaultShape?: string;
   glyphShapes?: string[];
@@ -250,7 +261,8 @@ export function drawStandardMouthShape(
   traceConstructionCurve(ctx, -width * 0.5, 0, 0, lift, width * 0.5, 0);
   ctx.stroke();
 
-  if (openDepth > 1.5) {
+  if (openDepth > DEFAULT_CLOSED_OPEN_DEPTH_THRESHOLD) {
+    ctx.save();
     ctx.globalAlpha *= 0.86;
     traceConstructionCurve(
       ctx,
@@ -262,6 +274,7 @@ export function drawStandardMouthShape(
       openDepth * 0.18,
     );
     ctx.stroke();
+    ctx.restore();
   }
 }
 
@@ -282,27 +295,7 @@ export function createStandardEyeRenderer(
       eyeWidthScale: parts.eyeWidthScale,
       eyeHeightScale: parts.eyeHeightScale,
     };
-    if (metricOptions.widthBase !== undefined) {
-      resolvedEyeMetricOptions.widthBase = metricOptions.widthBase;
-    }
-    if (metricOptions.widthOpenFactor !== undefined) {
-      resolvedEyeMetricOptions.widthOpenFactor = metricOptions.widthOpenFactor;
-    }
-    if (metricOptions.opennessBase !== undefined) {
-      resolvedEyeMetricOptions.opennessBase = metricOptions.opennessBase;
-    }
-    if (metricOptions.opennessFactor !== undefined) {
-      resolvedEyeMetricOptions.opennessFactor = metricOptions.opennessFactor;
-    }
-    if (metricOptions.squintFactor !== undefined) {
-      resolvedEyeMetricOptions.squintFactor = metricOptions.squintFactor;
-    }
-    if (metricOptions.minHeightFactor !== undefined) {
-      resolvedEyeMetricOptions.minHeightFactor = metricOptions.minHeightFactor;
-    }
-    if (metricOptions.pupilScale !== undefined) {
-      resolvedEyeMetricOptions.pupilScale = metricOptions.pupilScale;
-    }
+    assignDefined(resolvedEyeMetricOptions, metricOptions);
     const eyeMetrics = resolveStandardEyeMetrics(resolvedEyeMetricOptions);
     const { openness, squint } = eyeMetrics;
     const eyeHeight = eyeMetrics.height;
@@ -337,14 +330,8 @@ export function createStandardEyeRenderer(
     ctx.globalAlpha *= brightness;
     if (glyphEye) {
       const glyphOptions: StandardGlyphEyeOptions = {};
-      if (options.glyphOptions?.lineWidthFloor !== undefined) {
-        glyphOptions.lineWidthFloor = options.glyphOptions.lineWidthFloor;
-      }
-      if (options.glyphOptions?.sharpLineScale !== undefined) {
-        glyphOptions.sharpLineScale = options.glyphOptions.sharpLineScale;
-      }
-      if (options.glyphOptions?.sleepyLineScale !== undefined) {
-        glyphOptions.sleepyLineScale = options.glyphOptions.sleepyLineScale;
+      if (options.glyphOptions) {
+        assignDefined(glyphOptions, options.glyphOptions);
       }
       drawStandardGlyphEye(
         ctx,
@@ -540,23 +527,14 @@ export function createStandardMouthRenderer(
       curvature: params.pose.curvature,
       widthScale: metricOptions.widthScale ?? params.pose.width,
     };
-    if (metricOptions.widthClampMin !== undefined) {
-      resolvedMouthMetricOptions.widthClampMin = metricOptions.widthClampMin;
-    }
-    if (metricOptions.widthClampMax !== undefined) {
-      resolvedMouthMetricOptions.widthClampMax = metricOptions.widthClampMax;
-    }
-    if (metricOptions.liftScale !== undefined) {
-      resolvedMouthMetricOptions.liftScale = metricOptions.liftScale;
-    }
-    if (metricOptions.openDepthScale !== undefined) {
-      resolvedMouthMetricOptions.openDepthScale = metricOptions.openDepthScale;
-    }
+    assignDefined(resolvedMouthMetricOptions, metricOptions);
     const mouthMetrics = resolveStandardMouthMetrics(resolvedMouthMetricOptions);
     const brightness =
       options.resolveBrightness?.(dc, params) ?? clamp(params.pose.brightness, 0.1, 1.8);
     const rotation = options.resolveRotation?.(dc, params) ?? params.pose.tilt * 0.26;
-    const closedMouth = mouthMetrics.openDepth <= (options.closedOpenDepthThreshold ?? 1.5);
+    const closedMouth =
+      mouthMetrics.openDepth <=
+      (options.closedOpenDepthThreshold ?? DEFAULT_CLOSED_OPEN_DEPTH_THRESHOLD);
 
     ctx.save();
     ctx.translate(params.centerX, params.centerY);

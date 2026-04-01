@@ -33,7 +33,7 @@ export {
   resolveConstructionAnchors,
   resolveEyeAnchor,
 } from "./construction.js";
-export { clamp, drawPixelGlyph, ease, roundedRect, wave } from "./drawUtils.js";
+export { clamp, drawPixelGlyph, ease, HEART_PATTERN, roundedRect, wave } from "./drawUtils.js";
 export { EMOTIONS as BUILTIN_EMOTIONS } from "./emotions.js";
 export { FACE_THEMES as BUILTIN_FACE_THEMES } from "./faceThemes.js";
 export { createRobotFace } from "./robotFace.js";

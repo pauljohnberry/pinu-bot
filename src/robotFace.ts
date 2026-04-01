@@ -7,7 +7,7 @@ import {
   createStyleConstructionLayout,
   resolveConstructionAnchors,
 } from "./construction.js";
-import { clamp, drawPixelGlyph, ease, roundedRect, wave } from "./drawUtils.js";
+import { clamp, drawPixelGlyph, ease, HEART_PATTERN, roundedRect, wave } from "./drawUtils.js";
 import { EMOTIONS } from "./emotions.js";
 import { FACE_THEMES } from "./faceThemes.js";
 import type { FaceStateDefinition } from "./stateDefinitions.js";
@@ -306,7 +306,7 @@ const OVERLAY_ACTION_SYMBOLS: Partial<Record<OverlayActionName, SymbolName>> = {
   glitch: "warning",
 };
 
-const PIXEL_SYMBOL_PATTERNS: Record<Exclude<SymbolName, "loading">, string[]> = {
+const PIXEL_SYMBOL_PATTERNS: Record<Exclude<SymbolName, "loading">, readonly string[]> = {
   question: [
     "00111100",
     "01100110",
@@ -339,16 +339,7 @@ const PIXEL_SYMBOL_PATTERNS: Record<Exclude<SymbolName, "loading">, string[]> = 
     "1100110011",
     "0000000000",
   ],
-  heart: [
-    "01100110",
-    "11111111",
-    "11111111",
-    "11111111",
-    "01111110",
-    "00111100",
-    "00011000",
-    "00000000",
-  ],
+  heart: HEART_PATTERN,
   offline: [
     "0000000011111100",
     "0000000000001100",
