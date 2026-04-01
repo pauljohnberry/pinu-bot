@@ -1737,6 +1737,7 @@ class RobotFaceRenderer implements RobotFace {
         width: width * style.noseWidth,
         height: height * style.noseHeight,
         pose: pose.nose,
+        mouthPose: pose.mouth,
         parts,
       });
     }

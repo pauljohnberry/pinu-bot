@@ -56,6 +56,7 @@ export interface NoseDrawParams {
   width: number;
   height: number;
   pose: NosePose;
+  mouthPose?: MouthPose;
   parts: Required<PartStyleConfig>;
 }
 

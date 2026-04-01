@@ -46,6 +46,7 @@ type BuboStateConfig = {
   beakBrightness: number;
   middleBarOpenness: number;
   middleBarWidth: number;
+  mouthCurvature?: number;
   glow: number;
   bob: number;
   flicker: number;
@@ -228,7 +229,7 @@ function createBuboState(config: BuboStateConfig): FaceStateDefinition {
       { scale: config.beakScale, tilt: 0, brightness: config.beakBrightness },
       {
         openness: config.middleBarOpenness,
-        curvature: 0,
+        curvature: config.mouthCurvature ?? 0,
         width: config.middleBarWidth,
         tilt: 0,
         brightness: config.beakBrightness,
@@ -338,14 +339,15 @@ const buboEmotions: Partial<Record<EmotionName, FaceStateDefinition>> = {
     blinkDurationMs: 170,
   }),
   sad: createBuboState({
-    eyeOpenness: 0.48,
-    eyeSquint: 0.22,
-    eyeTilt: 0.08,
+    eyeOpenness: 0.4,
+    eyeSquint: 0.26,
+    eyeTilt: -0.24,
     eyeBrightness: 0.72,
     beakScale: 0.94,
     beakBrightness: 0.8,
     middleBarOpenness: 0.1,
     middleBarWidth: 0.74,
+    mouthCurvature: -0.72,
     glow: 0.74,
     bob: 0.005,
     flicker: 0.008,
@@ -585,21 +587,48 @@ function drawBuboEye(dc: DrawContext, params: EyeDrawParams): void {
 
 function drawBuboBrow(_dc: DrawContext, _params: BrowDrawParams): void {}
 
+function drawSolidCurvedBar(
+  ctx: CanvasRenderingContext2D,
+  centerY: number,
+  totalWidth: number,
+  barHeight: number,
+  curveHeight: number,
+): void {
+  const halfWidth = totalWidth * 0.5;
+
+  ctx.save();
+  ctx.strokeStyle = typeof ctx.fillStyle === "string" ? ctx.fillStyle : BUBO_BEAK_FILL;
+  ctx.lineWidth = barHeight;
+  ctx.lineCap = "square";
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+  ctx.moveTo(-halfWidth, centerY);
+  ctx.quadraticCurveTo(0, centerY + curveHeight, halfWidth, centerY);
+  ctx.stroke();
+  ctx.restore();
+}
+
 function drawBuboNose(dc: DrawContext, params: NoseDrawParams): void {
   const { ctx } = dc;
   const geometry = resolveBeakGeometry(params.parts.noseShape);
   const scale = clamp(params.pose.scale, 0.72, 1.28) * 0.86;
   const width = params.width * scale;
   const height = params.height * scale;
+  const curvature = clamp(params.mouthPose?.curvature ?? 0, -1, 1);
+  const smileT = Math.max(0, curvature);
+  const frownT = Math.max(0, -curvature);
+  const expressionT = Math.max(smileT, frownT);
   const brightness = clamp(params.pose.brightness, 0.22, 1.5) * 0.9;
-  const topWidth = width * geometry.topWidthScale;
+  const topWidth = width * geometry.topWidthScale * lerp(1, 0.94, expressionT);
   const topHeight = Math.max(7, height * Math.max(geometry.topHeightScale, 0.24));
+  const topY = -height * 0.22 + height * (0.05 * smileT - 0.07 * frownT);
+  const topCurve = height * 0.2 * curvature;
 
   ctx.save();
   ctx.translate(params.centerX, params.centerY);
   ctx.rotate(params.pose.tilt * 0.18);
   applySegmentStyle(ctx, BUBO_BEAK_FILL, BUBO_BEAK_GLOW, brightness, width * 0.12);
-  fillCenteredRect(ctx, 0, -height * 0.22, topWidth, topHeight);
+  drawSolidCurvedBar(ctx, topY, topWidth, topHeight, topCurve);
   ctx.restore();
 }
 
@@ -607,19 +636,46 @@ function drawBuboMouth(dc: DrawContext, params: MouthDrawParams): void {
   const { ctx } = dc;
   const beakGeometry = resolveBeakGeometry(params.parts.noseShape);
   const geometry = resolveMiddleBarGeometry(params.parts.mouthShape);
-  const brightness = clamp(params.pose.brightness, 0.22, 1.5) * 0.92;
   const speech = clamp(Math.max(params.pose.openness, dc.speakingAmount * 0.92), 0, 1);
+  const curvature = clamp(params.pose.curvature, -1, 1);
+  const smileT = Math.max(0, curvature);
+  const frownT = Math.max(0, -curvature);
+  const poutT = clamp((0.72 - params.pose.width) / 0.32, 0, 1);
+  const brightness =
+    clamp(params.pose.brightness, 0.22, 1.5) * 0.92 * lerp(1, 1.06, smileT) * lerp(1, 0.94, frownT);
+
   const middleWidth =
-    params.width * geometry.widthScale * clamp(params.pose.width, 0.84, 1.12) * 0.92;
-  const middleHeight = Math.max(7, params.height * Math.max(geometry.heightScale, 0.32));
-  const bottomWidth = params.width * beakGeometry.bottomWidthScale * 0.94;
-  const bottomHeight = Math.max(
-    7,
-    params.height * Math.max(beakGeometry.bottomHeightScale * 1.15, 0.22),
-  );
-  const stackOffset = params.height * 0.3;
-  const middleY = -stackOffset;
-  const bottomBaseY = stackOffset;
+    params.width *
+    geometry.widthScale *
+    clamp(params.pose.width, 0.38, 1.12) *
+    lerp(0.98, 0.82, smileT) *
+    lerp(1, 0.94, frownT) *
+    0.92;
+  const middleHeight =
+    Math.max(7, params.height * Math.max(geometry.heightScale, 0.32)) *
+    lerp(1, 1.18, poutT) *
+    lerp(1, 0.94, smileT);
+  const bottomWidth =
+    params.width *
+    beakGeometry.bottomWidthScale *
+    0.94 *
+    lerp(1, 1.2, smileT) *
+    lerp(1, 0.76, frownT) *
+    lerp(1, 1.14, poutT);
+  const bottomHeight =
+    Math.max(7, params.height * Math.max(beakGeometry.bottomHeightScale * 1.15, 0.22)) *
+    lerp(1, 1.12, poutT) *
+    lerp(1, 0.92, smileT);
+  const stackOffset = params.height * lerp(0.3, 0.22, poutT);
+  const stackShift = params.height * (0.1 * smileT - 0.12 * frownT);
+  const middleY = -stackOffset + stackShift - params.height * 0.04 * poutT;
+  const bottomBaseY = stackOffset + stackShift - params.height * 0.08 * poutT;
+  const smileArch = params.height * 0.11 * smileT;
+  const frownArch = params.height * 0.14 * frownT;
+  const middleExpressionY = middleY + smileArch * 0.5 - frownArch * 0.75;
+  const bottomExpressionY = bottomBaseY - smileArch * 0.45 + frownArch * 0.65;
+  const middleCurve = params.height * 0.28 * curvature;
+  const bottomCurve = params.height * 0.22 * curvature;
   const openThreshold = 0.16;
 
   ctx.save();
@@ -627,13 +683,16 @@ function drawBuboMouth(dc: DrawContext, params: MouthDrawParams): void {
   applySegmentStyle(ctx, BUBO_BEAK_FILL, BUBO_BEAK_GLOW, brightness, middleWidth * 0.1);
 
   if (speech <= openThreshold) {
-    fillCenteredRect(ctx, 0, middleY, middleWidth, middleHeight);
+    drawSolidCurvedBar(ctx, middleExpressionY, middleWidth, middleHeight, middleCurve);
   } else {
     const t = clamp((speech - openThreshold) / (1 - openThreshold), 0, 1);
     const verticalWidth = Math.max(5, middleWidth * lerp(0.16, 0.12, t));
-    const verticalHeight = Math.max(8, params.height * lerp(0.62, 0.9, t));
+    const verticalHeight =
+      Math.max(8, params.height * lerp(0.62, 0.9, t)) *
+      lerp(1, 1.08, frownT) *
+      lerp(1, 0.94, smileT);
     const verticalGap = middleWidth * lerp(0.34, 0.4, t);
-    const verticalY = lerp(middleY + verticalHeight * 0.12, 0, 0.18 + t * 0.14);
+    const verticalY = lerp(middleExpressionY + verticalHeight * 0.12, 0, 0.18 + t * 0.14);
 
     fillCenteredRect(ctx, -verticalGap, verticalY, verticalWidth, verticalHeight);
     fillCenteredRect(ctx, verticalGap, verticalY, verticalWidth, verticalHeight);
@@ -643,7 +702,7 @@ function drawBuboMouth(dc: DrawContext, params: MouthDrawParams): void {
     speech <= openThreshold
       ? 0
       : params.height * lerp(0, 0.34, (speech - openThreshold) / (1 - openThreshold));
-  fillCenteredRect(ctx, 0, bottomBaseY + bottomTravel, bottomWidth, bottomHeight);
+  drawSolidCurvedBar(ctx, bottomExpressionY + bottomTravel, bottomWidth, bottomHeight, bottomCurve);
   ctx.restore();
 }
 

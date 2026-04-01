@@ -46,6 +46,29 @@ const cases = [
     maxDiffPixelRatio: 0.03,
   },
   {
+    name: "bubo-smile-crt",
+    query:
+      "?character=bubo&emotion=neutral&theme=green-crt&expression=smile&expressionAmount=1&settleMs=420",
+    maxDiffPixelRatio: 0.02,
+  },
+  {
+    name: "bubo-frown-crt",
+    query:
+      "?character=bubo&emotion=neutral&theme=green-crt&expression=frown&expressionAmount=1&settleMs=420",
+    maxDiffPixelRatio: 0.02,
+  },
+  {
+    name: "bubo-pout-crt",
+    query:
+      "?character=bubo&emotion=neutral&theme=green-crt&expression=pout&expressionAmount=1&settleMs=420",
+    maxDiffPixelRatio: 0.02,
+  },
+  {
+    name: "bubo-sad-crt",
+    query: "?character=bubo&emotion=sad&theme=green-crt&settleMs=520",
+    maxDiffPixelRatio: 0.02,
+  },
+  {
     name: "kiba-angry-thinking",
     query: "?character=kiba&emotion=angry&action=thinking&actionPersistent=true&settleMs=620",
     maxDiffPixelRatio: 0.02,
