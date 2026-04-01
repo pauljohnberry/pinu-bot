@@ -14,7 +14,7 @@ const cases = [
   {
     name: "confused-soft",
     query: "?emotion=confused&theme=cyan&style=soft",
-    maxDiffPixels: 100,
+    maxDiffPixelRatio: 0.02,
   },
   {
     name: "heart-symbol",
