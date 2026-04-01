@@ -69,6 +69,11 @@ const cases = [
     maxDiffPixelRatio: 0.02,
   },
   {
+    name: "bubo-angry-crt",
+    query: "?character=bubo&emotion=angry&theme=green-crt&settleMs=520",
+    maxDiffPixelRatio: 0.02,
+  },
+  {
     name: "kiba-angry-thinking",
     query: "?character=kiba&emotion=angry&action=thinking&actionPersistent=true&settleMs=620",
     maxDiffPixelRatio: 0.02,

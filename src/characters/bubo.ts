@@ -13,6 +13,10 @@ import type { EmotionName, ReplaceActionName, StyleDefinition, ThemeDefinition }
 
 const BUBO_BEAK_FILL = "#ffc247";
 const BUBO_BEAK_GLOW = "rgba(255, 194, 71, 0.56)";
+const BUBO_IRIS_FILL = "#ffcf5a";
+const BUBO_IRIS_GLOW = "rgba(255, 207, 90, 0.42)";
+const BUBO_PUPIL_FILL = "#140f18";
+const BUBO_PUPIL_SHINE = "rgba(255, 248, 224, 0.92)";
 
 type EyeGeometry = {
   sizeScale: number;
@@ -65,19 +69,19 @@ type BuboStateConfig = {
 
 const buboStyle: StyleDefinition = {
   ...STYLE_PRESETS.industrial,
-  eyeWidth: 0.314,
-  eyeHeight: 0.314,
-  eyeY: -0.086,
-  eyeGap: 0.162,
-  browWidth: 0.14,
-  browHeight: 0.012,
-  browY: -0.208,
-  noseWidth: 0.172,
+  eyeWidth: 0.382,
+  eyeHeight: 0.382,
+  eyeY: -0.044,
+  eyeGap: 0.126,
+  browWidth: 0.18,
+  browHeight: 0.016,
+  browY: -0.236,
+  noseWidth: 0.15,
   noseHeight: 0.094,
-  noseY: 0.148,
-  mouthWidth: 0.172,
+  noseY: 0.164,
+  mouthWidth: 0.15,
   mouthHeight: 0.052,
-  mouthY: 0.184,
+  mouthY: 0.198,
   glowScale: 0.052,
 };
 
@@ -89,6 +93,54 @@ function fillCenteredRect(
   height: number,
 ): void {
   ctx.fillRect(centerX - width * 0.5, centerY - height * 0.5, width, height);
+}
+
+function fillEllipse(
+  ctx: CanvasRenderingContext2D,
+  centerX: number,
+  centerY: number,
+  radiusX: number,
+  radiusY: number,
+): void {
+  const kappa = 0.5522847498;
+  const offsetX = radiusX * kappa;
+  const offsetY = radiusY * kappa;
+
+  ctx.beginPath();
+  ctx.moveTo(centerX - radiusX, centerY);
+  ctx.bezierCurveTo(
+    centerX - radiusX,
+    centerY - offsetY,
+    centerX - offsetX,
+    centerY - radiusY,
+    centerX,
+    centerY - radiusY,
+  );
+  ctx.bezierCurveTo(
+    centerX + offsetX,
+    centerY - radiusY,
+    centerX + radiusX,
+    centerY - offsetY,
+    centerX + radiusX,
+    centerY,
+  );
+  ctx.bezierCurveTo(
+    centerX + radiusX,
+    centerY + offsetY,
+    centerX + offsetX,
+    centerY + radiusY,
+    centerX,
+    centerY + radiusY,
+  );
+  ctx.bezierCurveTo(
+    centerX - offsetX,
+    centerY + radiusY,
+    centerX - radiusX,
+    centerY + offsetY,
+    centerX - radiusX,
+    centerY,
+  );
+  ctx.fill();
 }
 
 function lerp(from: number, to: number, t: number): number {
@@ -342,13 +394,13 @@ const buboEmotions: Partial<Record<EmotionName, FaceStateDefinition>> = {
     eyeOpenness: 0.4,
     eyeSquint: 0.26,
     eyeTilt: -0.24,
-    eyeBrightness: 0.72,
+    eyeBrightness: 1.04,
     beakScale: 0.94,
-    beakBrightness: 0.8,
+    beakBrightness: 1,
     middleBarOpenness: 0.1,
     middleBarWidth: 0.74,
     mouthCurvature: -0.72,
-    glow: 0.74,
+    glow: 1.02,
     bob: 0.005,
     flicker: 0.008,
     scanline: 0.2,
@@ -562,6 +614,13 @@ function drawBuboEye(dc: DrawContext, params: EyeDrawParams): void {
   const radius = eyeDiameter * geometry.radiusScale;
   const diagonalX = eyeDiameter * geometry.diagonalXScale;
   const diagonalY = eyeDiameter * geometry.diagonalYScale;
+  const pupilScale = clamp(0.42 + params.pose.openness * 0.58, 0, 1);
+  const pupilX = clamp(params.pose.pupilX, -1, 1) * radius * 0.34;
+  const pupilY = clamp(params.pose.pupilY, -1, 1) * radius * 0.24;
+  const irisRadiusX = Math.max(6, eyeDiameter * 0.19) * pupilScale;
+  const irisRadiusY = irisRadiusX * lerp(0.96, 0.72, blinkAmount);
+  const pupilRadiusX = irisRadiusX * 0.48;
+  const pupilRadiusY = irisRadiusY * 0.52;
 
   ctx.save();
   ctx.translate(params.centerX, params.centerY);
@@ -582,10 +641,134 @@ function drawBuboEye(dc: DrawContext, params: EyeDrawParams): void {
   fillCenteredRect(ctx, -diagonalX, diagonalY, horizontalWidth, horizontalHeight);
   fillCenteredRect(ctx, diagonalX, diagonalY, horizontalWidth, horizontalHeight);
   fillCenteredRect(ctx, 0, radius, horizontalWidth * 1.05, horizontalHeight);
+
+  if (params.features.pupils && pupilScale > 0.16) {
+    ctx.save();
+    ctx.shadowColor = BUBO_IRIS_GLOW;
+    ctx.shadowBlur = eyeDiameter * 0.2;
+    ctx.fillStyle = BUBO_IRIS_FILL;
+    fillEllipse(ctx, pupilX, pupilY, irisRadiusX, irisRadiusY);
+
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = BUBO_PUPIL_FILL;
+    fillEllipse(ctx, pupilX, pupilY, pupilRadiusX, pupilRadiusY);
+
+    ctx.fillStyle = BUBO_PUPIL_SHINE;
+    fillEllipse(
+      ctx,
+      pupilX - irisRadiusX * 0.28,
+      pupilY - irisRadiusY * 0.3,
+      Math.max(2, irisRadiusX * 0.18),
+      Math.max(2, irisRadiusY * 0.16),
+    );
+    ctx.restore();
+  }
+
   ctx.restore();
 }
 
-function drawBuboBrow(_dc: DrawContext, _params: BrowDrawParams): void {}
+function drawBuboBrow(dc: DrawContext, params: BrowDrawParams): void {
+  const { ctx, theme } = dc;
+  const squint = clamp(params.pose.squint, 0, 1);
+  const openness = clamp(params.pose.openness, 0, 1);
+  const brightness = clamp(params.pose.brightness, 0.18, 1.4);
+  const angryT = dc.emotionName === "angry" ? 1 : 0;
+  const sadT = dc.emotionName === "sad" ? 1 : 0;
+  const compression = 1 - openness;
+  const outerSweep = params.width * lerp(0.88, 1.06, squint * 0.55 + angryT * 0.45);
+  const innerReach = params.width * lerp(0.28, 0.4, squint * 0.35 + angryT * 0.5);
+  const outerX = params.side * outerSweep;
+  const innerX = -params.side * innerReach;
+  const outerY = -params.height * (0.18 + squint * 0.12 + angryT * 0.08 - sadT * 0.08);
+  const innerY = params.height * (-0.08 + compression * 0.05 + angryT * 0.08 - sadT * 0.04);
+  const crestX = params.side * params.width * (0.22 + angryT * 0.04);
+  const crestY = -params.height * (1.44 + squint * 0.24 + angryT * 0.36 - sadT * 0.08);
+  const innerShoulderX = -params.side * params.width * (0.02 + angryT * 0.03);
+  const innerShoulderY = -params.height * (0.6 + squint * 0.18 + angryT * 0.18);
+  const primaryWidth = Math.max(2, params.height * lerp(1.22, 1.88, squint * 0.45 + angryT * 0.55));
+  const secondaryWidth = primaryWidth * 0.54;
+  const featherWidth = primaryWidth * (0.26 + angryT * 0.08);
+  const hookTipX = -params.side * params.width * (0.34 + angryT * 0.08);
+  const hookTipY = params.height * (-0.04 + angryT * 0.06 + compression * 0.01);
+  const featherTipX = -params.side * params.width * (0.28 + angryT * 0.1);
+  const featherTipY = params.height * (-0.12 + angryT * 0.03 + compression * 0.01);
+  const innerFeatherX = innerX - params.side * params.width * (0.14 + angryT * 0.04);
+  const innerFeatherY = innerY - params.height * (0.12 + angryT * 0.04);
+  const outerFeatherX = outerX - params.side * params.width * 0.04;
+  const outerFeatherY = outerY - params.height * (0.12 + angryT * 0.02);
+  const angrySlashT = Math.max(0, angryT * 0.9 + squint * 0.12 - sadT * 0.1);
+  const angrySlashWidth = primaryWidth * 0.28 * angrySlashT;
+
+  ctx.save();
+  ctx.translate(params.centerX, params.centerY);
+  ctx.rotate(params.pose.tilt * 0.3);
+  ctx.globalAlpha *= brightness * 0.92;
+  ctx.strokeStyle = resolveEyeFill(theme);
+  ctx.shadowColor = theme.glow;
+  ctx.shadowBlur = params.width * 0.04;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+
+  ctx.lineWidth = primaryWidth;
+  ctx.beginPath();
+  ctx.moveTo(outerX, outerY);
+  ctx.bezierCurveTo(crestX, crestY, innerShoulderX, innerShoulderY, innerX, innerY);
+  ctx.quadraticCurveTo(
+    -params.side * params.width * (0.18 + angryT * 0.06),
+    -params.height * (0.12 - angryT * 0.04),
+    hookTipX,
+    hookTipY,
+  );
+  ctx.stroke();
+
+  ctx.lineWidth = secondaryWidth;
+  ctx.beginPath();
+  ctx.moveTo(outerFeatherX, outerFeatherY);
+  ctx.bezierCurveTo(
+    crestX - params.side * params.width * 0.04,
+    crestY - params.height * 0.22,
+    innerShoulderX - params.side * params.width * 0.1,
+    innerShoulderY - params.height * 0.2,
+    innerFeatherX,
+    innerFeatherY,
+  );
+  ctx.quadraticCurveTo(
+    -params.side * params.width * (0.2 + angryT * 0.04),
+    -params.height * (0.16 - angryT * 0.02),
+    featherTipX,
+    featherTipY,
+  );
+  ctx.stroke();
+
+  ctx.lineWidth = featherWidth;
+  ctx.beginPath();
+  ctx.moveTo(innerX - params.side * params.width * 0.04, innerY - params.height * 0.12);
+  ctx.bezierCurveTo(
+    -params.side * params.width * (0.18 + angryT * 0.06),
+    -params.height * (0.34 + angryT * 0.1),
+    -params.side * params.width * (0.1 + angryT * 0.04),
+    params.height * (angryT * 0.02 - 0.08),
+    featherTipX,
+    featherTipY,
+  );
+  ctx.stroke();
+
+  if (angrySlashT > 0.08) {
+    ctx.lineWidth = angrySlashWidth;
+    ctx.beginPath();
+    ctx.moveTo(innerX + params.side * params.width * 0.02, innerY + params.height * 0.02);
+    ctx.bezierCurveTo(
+      -params.side * params.width * 0.02,
+      innerY - params.height * 0.2,
+      params.side * params.width * 0.02,
+      innerY + params.height * 0.18,
+      params.side * params.width * 0.16,
+      innerY + params.height * 0.24,
+    );
+    ctx.stroke();
+  }
+  ctx.restore();
+}
 
 function drawSolidCurvedBar(
   ctx: CanvasRenderingContext2D,
@@ -611,7 +794,7 @@ function drawSolidCurvedBar(
 function drawBuboNose(dc: DrawContext, params: NoseDrawParams): void {
   const { ctx } = dc;
   const geometry = resolveBeakGeometry(params.parts.noseShape);
-  const scale = clamp(params.pose.scale, 0.72, 1.28) * 0.86;
+  const scale = clamp(params.pose.scale, 0.72, 1.28) * 0.8;
   const width = params.width * scale;
   const height = params.height * scale;
   const curvature = clamp(params.mouthPose?.curvature ?? 0, -1, 1);
@@ -621,7 +804,7 @@ function drawBuboNose(dc: DrawContext, params: NoseDrawParams): void {
   const brightness = clamp(params.pose.brightness, 0.22, 1.5) * 0.9;
   const topWidth = width * geometry.topWidthScale * lerp(1, 0.94, expressionT);
   const topHeight = Math.max(7, height * Math.max(geometry.topHeightScale, 0.24));
-  const topY = -height * 0.22 + height * (0.05 * smileT - 0.07 * frownT);
+  const topY = -height * 0.12 + height * (0.04 * smileT - 0.06 * frownT);
   const topCurve = height * 0.2 * curvature;
 
   ctx.save();
@@ -650,7 +833,7 @@ function drawBuboMouth(dc: DrawContext, params: MouthDrawParams): void {
     clamp(params.pose.width, 0.38, 1.12) *
     lerp(0.98, 0.82, smileT) *
     lerp(1, 0.94, frownT) *
-    0.92;
+    0.86;
   const middleHeight =
     Math.max(7, params.height * Math.max(geometry.heightScale, 0.32)) *
     lerp(1, 1.18, poutT) *
@@ -658,7 +841,7 @@ function drawBuboMouth(dc: DrawContext, params: MouthDrawParams): void {
   const bottomWidth =
     params.width *
     beakGeometry.bottomWidthScale *
-    0.94 *
+    0.88 *
     lerp(1, 1.2, smileT) *
     lerp(1, 0.76, frownT) *
     lerp(1, 1.14, poutT);
@@ -729,8 +912,8 @@ export const buboCharacter: CharacterDefinition = {
 
   defaultStyle: buboStyle,
   defaultFeatures: {
-    brows: false,
-    pupils: false,
+    brows: true,
+    pupils: true,
   },
 
   emotions: buboEmotions,

@@ -59,4 +59,5 @@ A robot owl face with oversized segmented ring eyes, a stacked bar beak, and a w
 - `faceTheme`: respected for panel/background styling; the owl keeps its own amber beak
 - `speak()`: animates the beak middle bar only
 - `pout()`: compresses the beak middle bar
-- `lookAt()`: translated into mirrored eye ring rotation rather than pupil travel
+- `lookAt()`: now reads through subtle pupil travel inside the fixed ring eyes
+- `brows` and `pupils`: enabled by default for the current experimental owl pass
