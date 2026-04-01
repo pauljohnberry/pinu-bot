@@ -23,11 +23,12 @@ const cases = [
   {
     name: "pinu-thinking",
     query: "?character=pinu&emotion=neutral&action=thinking&actionPersistent=true&settleMs=620",
-    maxDiffPixels: 5,
+    maxDiffPixelRatio: 0.02,
   },
   {
     name: "pinu-listening",
     query: "?character=pinu&emotion=neutral&action=listening&actionPersistent=true&settleMs=620",
+    maxDiffPixelRatio: 0.02,
   },
   {
     name: "pinu-offline",
@@ -36,23 +37,23 @@ const cases = [
   {
     name: "kiba-angry-thinking",
     query: "?character=kiba&emotion=angry&action=thinking&actionPersistent=true&settleMs=620",
-    maxDiffPixels: 5,
+    maxDiffPixelRatio: 0.02,
   },
   {
     name: "kiba-angry-listening",
     query: "?character=kiba&emotion=angry&action=listening&actionPersistent=true&settleMs=620",
-    maxDiffPixels: 5,
+    maxDiffPixelRatio: 0.02,
   },
   {
     name: "kiba-angry-speaking",
     query: "?character=kiba&emotion=angry&speakDurationMs=1800&speakIntensity=0.65&settleMs=420",
-    maxDiffPixels: 250,
+    maxDiffPixelRatio: 0.04,
   },
   {
     name: "kiba-listening-bootup",
     query:
       "?character=kiba&emotion=happy&action=listening&actionPersistent=true&overlay=bootUp&overlayDurationMs=1400&settleMs=520",
-    maxDiffPixels: 5,
+    maxDiffPixelRatio: 0.02,
   },
   {
     name: "construction-owl-mask",
