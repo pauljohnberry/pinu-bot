@@ -108,5 +108,6 @@ export type {
   SymbolName,
   ThemeDefinition,
   ThemeName,
+  TimedActionOptions,
   WinkSide,
 } from "./types.js";

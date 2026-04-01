@@ -766,7 +766,11 @@ class RobotFaceRenderer implements RobotFace {
     this.clearSpeaking();
     this.overlayActionName = name;
     this.overlayActionStartedAt = this.elapsed;
-    this.overlayActionDurationMs = options.durationMs ?? DEFAULT_OVERLAY_ACTION_DURATION_MS[name];
+    const overlayDuration = options.durationMs;
+    this.overlayActionDurationMs =
+      typeof overlayDuration === "number" && Number.isFinite(overlayDuration) && overlayDuration > 0
+        ? overlayDuration
+        : DEFAULT_OVERLAY_ACTION_DURATION_MS[name];
     return this;
   }
 
@@ -1045,9 +1049,16 @@ class RobotFaceRenderer implements RobotFace {
     this.activeActionName = name;
     this.actionVisualName = name;
     this.activeActionPersistent = options.persistent ?? false;
-    this.activeActionUntil = this.activeActionPersistent
-      ? 0
-      : this.elapsed + (options.durationMs ?? DEFAULT_ACTION_DURATION_MS[name]);
+    if (this.activeActionPersistent) {
+      this.activeActionUntil = 0;
+    } else {
+      const actionDuration = options.durationMs;
+      const durationMs =
+        typeof actionDuration === "number" && Number.isFinite(actionDuration) && actionDuration > 0
+          ? actionDuration
+          : DEFAULT_ACTION_DURATION_MS[name];
+      this.activeActionUntil = this.elapsed + durationMs;
+    }
     this.overlayActionName = null;
     const definition = this.getActionDefinition(name);
     this.blinkDurationMs = definition.blinkDurationMs;

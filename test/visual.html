@@ -82,15 +82,21 @@
         recipeName.startsWith("pinu-") ? recipeName.slice("pinu-".length) : null;
       const resolveEmotionDefinition = (emotionName) =>
         pinuCharacter.emotions?.[emotionName] ?? EMOTIONS[emotionName];
-      const actionDurationMs =
-        actionDurationMsParam === null ? null : Number.parseInt(actionDurationMsParam, 10);
-      const overlayDurationMs =
-        overlayDurationMsParam === null ? null : Number.parseInt(overlayDurationMsParam, 10);
-      const speakDurationMs =
-        speakDurationMsParam === null ? null : Number.parseInt(speakDurationMsParam, 10);
-      const speakIntensity =
-        speakIntensityParam === null ? null : Number.parseFloat(speakIntensityParam);
-      const settleMs = settleMsParam === null ? null : Number.parseInt(settleMsParam, 10);
+      const safeInt = (raw) => {
+        if (raw === null) return null;
+        const v = Number.parseInt(raw, 10);
+        return Number.isFinite(v) ? v : null;
+      };
+      const safeFloat = (raw) => {
+        if (raw === null) return null;
+        const v = Number.parseFloat(raw);
+        return Number.isFinite(v) ? v : null;
+      };
+      const actionDurationMs = safeInt(actionDurationMsParam);
+      const overlayDurationMs = safeInt(overlayDurationMsParam);
+      const speakDurationMs = safeInt(speakDurationMsParam);
+      const speakIntensity = safeFloat(speakIntensityParam);
+      const settleMs = safeInt(settleMsParam);
       const isReplaceAction = (name) =>
         name === "thinking" || name === "listening" || name === "sleeping" || name === "offline";
       const isOverlayAction = (name) => name === "bootUp" || name === "glitch";
