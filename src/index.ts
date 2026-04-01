@@ -32,11 +32,28 @@ export {
   createWedge,
   resolveConstructionAnchors,
   resolveEyeAnchor,
+  traceConstructionCapsule,
+  traceConstructionChevron,
+  traceConstructionCurve,
+  traceConstructionDiamond,
+  traceConstructionDroplet,
+  traceConstructionPlate,
+  traceConstructionQuad,
+  traceConstructionTriangle,
 } from "./construction.js";
 export { clamp, drawPixelGlyph, ease, HEART_PATTERN, roundedRect, wave } from "./drawUtils.js";
 export { EMOTIONS as BUILTIN_EMOTIONS } from "./emotions.js";
 export { FACE_THEMES as BUILTIN_FACE_THEMES } from "./faceThemes.js";
 export { createRobotFace } from "./robotFace.js";
+export type {
+  StandardEyeMetrics,
+  StandardEyeMetricsOptions,
+  StandardGlyphEyeOptions,
+  StandardMouthMetrics,
+  StandardMouthMetricsOptions,
+  StandardNoseMetrics,
+  StandardNoseMetricsOptions,
+} from "./standardFace.js";
 export {
   drawStandardGlyphEye,
   eyeShapeSupportsPupil,
@@ -44,6 +61,12 @@ export {
   resolveStandardMouthMetrics,
   resolveStandardNoseMetrics,
 } from "./standardFace.js";
+export type {
+  StandardBrowRendererOptions,
+  StandardEyeRendererOptions,
+  StandardMouthRendererOptions,
+  StandardNoseRendererOptions,
+} from "./standardRobotRenderers.js";
 export {
   createStandardBrowRenderer,
   createStandardEyeRenderer,
@@ -53,6 +76,7 @@ export {
   drawStandardMouthShape,
   drawStandardNoseShape,
 } from "./standardRobotRenderers.js";
+export type { FaceStateDefinition } from "./stateDefinitions.js";
 export { FACE_FEATURE_DEFAULTS, STYLE_PRESETS as BUILTIN_STYLES } from "./styles.js";
 export { THEMES as BUILTIN_THEMES } from "./themes.js";
 export type {
