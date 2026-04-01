@@ -144,8 +144,8 @@ Always prepare these review states:
 3. `sad`
 4. `angry`
 5. `confused`
-6. `sleepy`
-7. `speaking`
+6. `sleeping` (action)
+7. `speak()` overlay
 
 ## Visual Deliverables
 
