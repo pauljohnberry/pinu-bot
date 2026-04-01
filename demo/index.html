@@ -457,6 +457,7 @@
       <div class="stage">
         <nav class="character-switcher" id="character-switcher">
           <button type="button" data-character="pinu" class="is-active">pinu</button>
+          <button type="button" data-character="bubo">bubo</button>
           <button type="button" data-character="kiba">kiba <span class="coming-soon-tag">coming soon</span></button>
         </nav>
         <canvas id="face" width="720" height="480"></canvas>
@@ -708,6 +709,7 @@ bun add pinu-bot</pre>
         BUILTIN_FACE_THEMES,
         BUILTIN_STYLES,
         BUILTIN_THEMES,
+        buboCharacter,
         createRobotFace,
         kibaCharacter,
         pinuCharacter
@@ -775,7 +777,7 @@ bun add pinu-bot</pre>
       const scanlineSpacingInput = document.querySelector("#scanline-spacing");
       const codeSample = document.querySelector("#code-sample");
       const versionBadge = document.querySelector("#package-version");
-      const characters = { pinu: pinuCharacter, kiba: kibaCharacter };
+      const characters = { pinu: pinuCharacter, bubo: buboCharacter, kiba: kibaCharacter };
       let activeCharacter = pinuCharacter;
       let currentActionCode = INTRO_ACTION_CODE;
       let introActive = false;

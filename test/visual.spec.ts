@@ -35,6 +35,17 @@ const cases = [
     query: "?character=pinu&emotion=happy&action=offline&actionDurationMs=1800&settleMs=960",
   },
   {
+    name: "bubo-neutral-crt",
+    query: "?character=bubo&emotion=neutral&theme=green-crt&settleMs=420",
+    maxDiffPixelRatio: 0.02,
+  },
+  {
+    name: "bubo-speaking-crt",
+    query:
+      "?character=bubo&emotion=neutral&theme=green-crt&speakDurationMs=1800&speakIntensity=0.7&settleMs=420",
+    maxDiffPixelRatio: 0.03,
+  },
+  {
     name: "kiba-angry-thinking",
     query: "?character=kiba&emotion=angry&action=thinking&actionPersistent=true&settleMs=620",
     maxDiffPixelRatio: 0.02,

@@ -3,6 +3,7 @@ import {
   BUILTIN_EMOTIONS,
   BUILTIN_FACE_THEMES,
   BUILTIN_STYLES,
+  buboCharacter,
   type CharacterDefinition,
   createRobotFace,
   getCharacter,
@@ -434,6 +435,21 @@ describe("createRobotFace", () => {
 
     expect(eyeCalls).toBeGreaterThan(0);
     expect(noseCalls).toBeGreaterThan(0);
+  });
+
+  test("registers and renders the built-in bubo character", () => {
+    const canvas = new FakeCanvas();
+    const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
+      autoStart: false,
+      character: "bubo",
+      theme: "green-crt",
+    });
+
+    expect(getCharacter("bubo")).toBe(buboCharacter);
+
+    face.render();
+
+    expect(canvas.context.fillRectCalls.length).toBeGreaterThan(0);
   });
 
   test("throws for unknown character names", () => {

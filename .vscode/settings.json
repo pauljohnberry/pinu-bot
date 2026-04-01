@@ -1,0 +1,6 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "./scripts/check.sh": true,
+        "./scripts/run-bun.sh": true
+    }
+}

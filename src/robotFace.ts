@@ -1,7 +1,7 @@
 import { ACTION_DEFINITIONS } from "./actions.js";
 import type { CharacterDefinition, DrawContext } from "./character.js";
 import { getCharacter, registerCharacter } from "./character.js";
-import { kibaCharacter, pinuCharacter } from "./characters/index.js";
+import { buboCharacter, kibaCharacter, pinuCharacter } from "./characters/index.js";
 import {
   createConstructionFrame,
   createStyleConstructionLayout,
@@ -52,6 +52,7 @@ import type {
 
 registerCharacter(pinuCharacter);
 registerCharacter(kibaCharacter);
+registerCharacter(buboCharacter);
 
 type EasingName = FaceStateDefinition["ease"];
 type ResolvedBackgroundFx = Required<BackgroundFxConfig>;

@@ -25,6 +25,7 @@
       import { EMOTIONS } from "../dist/emotions.js";
       import {
         BUILTIN_THEMES,
+        buboCharacter,
         clamp,
         createCapsule,
         createConstructionFrame,
@@ -62,7 +63,7 @@
       const mode = params.get("mode") ?? "face";
       const symbol = params.get("symbol");
       const noseShape = params.get("noseShape");
-      const characters = { pinu: pinuCharacter, kiba: kibaCharacter };
+      const characters = { pinu: pinuCharacter, bubo: buboCharacter, kiba: kibaCharacter };
       const activeCharacter = characters[character] ?? pinuCharacter;
 
       const canvas = document.querySelector("#face");
