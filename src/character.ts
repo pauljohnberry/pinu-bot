@@ -1,6 +1,5 @@
 import type { FaceStateDefinition } from "./stateDefinitions.js";
 import type {
-  ActionName,
   DisplayMode,
   DisplayName,
   EmotionName,
@@ -9,7 +8,9 @@ import type {
   FacePose,
   MouthPose,
   NosePose,
+  OverlayActionName,
   PartStyleConfig,
+  ReplaceActionName,
   StyleDefinition,
   ThemeDefinition,
 } from "./types.js";
@@ -18,8 +19,8 @@ export interface DrawContext {
   ctx: CanvasRenderingContext2D;
   theme: ThemeDefinition;
   emotionName: EmotionName;
-  actionName: ActionName | null;
-  overlayActionName: Extract<ActionName, "bootUp" | "glitch"> | null;
+  actionName: ReplaceActionName | null;
+  overlayActionName: OverlayActionName | null;
   displayName: DisplayName;
   elapsed: number;
   emotionFromTime: number;
@@ -68,7 +69,7 @@ export interface MouthDrawParams {
 }
 
 type CharacterShapeOptionKey = "eyeShape" | "noseShape" | "mouthShape" | "browShape";
-type CharacterActionName = Extract<ActionName, "thinking" | "listening" | "sleeping" | "offline">;
+type CharacterActionName = ReplaceActionName;
 
 export type CharacterPartOptions = {
   [K in CharacterShapeOptionKey]: NonNullable<Required<PartStyleConfig>[K]>[];

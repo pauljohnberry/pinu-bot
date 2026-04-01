@@ -14,7 +14,6 @@ import type { FaceStateDefinition } from "./stateDefinitions.js";
 import { FACE_FEATURE_DEFAULTS, PART_STYLE_DEFAULTS, STYLE_PRESETS } from "./styles.js";
 import { THEMES } from "./themes.js";
 import type {
-  ActionName,
   ActionOptions,
   BackgroundFxConfig,
   BackgroundFxMode,
@@ -34,8 +33,10 @@ import type {
   MouthPose,
   NoseControlApi,
   NosePose,
+  OverlayActionName,
   PartialFacePose,
   PartStyleConfig,
+  ReplaceActionName,
   RobotFace,
   RobotFaceConfig,
   RobotFaceOptions,
@@ -54,8 +55,6 @@ registerCharacter(kibaCharacter);
 
 type EasingName = FaceStateDefinition["ease"];
 type ResolvedBackgroundFx = Required<BackgroundFxConfig>;
-type ReplaceActionName = Extract<ActionName, "thinking" | "listening" | "sleeping" | "offline">;
-type OverlayActionName = Extract<ActionName, "bootUp" | "glitch">;
 
 const UNSET = Number.NaN;
 

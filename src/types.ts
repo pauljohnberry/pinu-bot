@@ -10,9 +10,11 @@ export type EmotionName =
   | "confused"
   | "excited";
 
-export type ActionName = "thinking" | "listening" | "sleeping" | "offline" | "bootUp" | "glitch";
+export type ReplaceActionName = "thinking" | "listening" | "sleeping" | "offline";
+export type OverlayActionName = "bootUp" | "glitch";
+export type ActionName = ReplaceActionName | OverlayActionName;
 
-export type DisplayName = EmotionName | ActionName;
+export type DisplayName = EmotionName | ReplaceActionName;
 
 export type ThemeName =
   | "amber"
