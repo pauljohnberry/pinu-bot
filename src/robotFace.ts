@@ -396,6 +396,20 @@ const DEFAULT_OVERLAY_ACTION_DURATION_MS: Record<OverlayActionName, number> = {
   glitch: 900,
 };
 
+const ACTION_BLEND_STRENGTH: Record<ReplaceActionName, number> = {
+  thinking: 0.52,
+  listening: 0.78,
+  sleeping: 0.84,
+  offline: 1,
+};
+
+const ACTION_BLEND_SPEED: Record<ReplaceActionName, number> = {
+  thinking: 10,
+  listening: 11,
+  sleeping: 8,
+  offline: 7,
+};
+
 const resolveBackgroundFx = (
   config: BackgroundFxMode | BackgroundFxConfig | undefined,
 ): ResolvedBackgroundFx => {
@@ -587,6 +601,7 @@ class RobotFaceRenderer implements RobotFace {
   private readonly currentPose = createPose();
   private readonly basePose = createPose();
   private readonly composedPose = createPose();
+  private readonly actionPose = createPose();
   private readonly targetEmotionPose = createPose();
   private readonly fromEmotionPose = createPose();
   private readonly manualPose = createUnsetPose();
@@ -622,6 +637,8 @@ class RobotFaceRenderer implements RobotFace {
   private logicalHeight = 0;
   private emotionTargetName: EmotionName = "neutral";
   private activeActionName: ReplaceActionName | null = null;
+  private actionVisualName: ReplaceActionName | null = null;
+  private actionBlend = 0;
   private displayName: DisplayName = "neutral";
   private emotionIntensity = 1;
   private activeActionPersistent = false;
@@ -800,6 +817,8 @@ class RobotFaceRenderer implements RobotFace {
     this.winkProgress = 0;
     this.clearSpeaking();
     this.activeActionName = null;
+    this.actionVisualName = null;
+    this.actionBlend = 0;
     this.activeActionPersistent = false;
     this.activeActionUntil = 0;
     this.overlayActionName = null;
@@ -1035,12 +1054,16 @@ class RobotFaceRenderer implements RobotFace {
     this.clearManualOverrides();
     this.clearSpeaking();
     this.activeActionName = name;
+    this.actionVisualName = name;
     this.activeActionPersistent = options.persistent ?? false;
     this.activeActionUntil = this.activeActionPersistent
       ? 0
       : this.elapsed + (options.durationMs ?? DEFAULT_ACTION_DURATION_MS[name]);
     this.overlayActionName = null;
-    this.applyDisplayState(name, 1);
+    this.displayName = name;
+    const definition = this.getActionDefinition(name);
+    this.blinkDurationMs = definition.blinkDurationMs;
+    this.autoBlinkInMs = this.randomBlinkDelay(definition);
     return this;
   }
 
@@ -1058,19 +1081,13 @@ class RobotFaceRenderer implements RobotFace {
     return this.character.actions?.[name] ?? ACTION_DEFINITIONS[name];
   }
 
-  private getDisplayDefinition(name: DisplayName): FaceStateDefinition {
-    return name in EMOTIONS
-      ? this.getEmotionDefinition(name as EmotionName)
-      : this.getActionDefinition(name as ReplaceActionName);
-  }
-
   private applyDisplayState(
-    name: DisplayName,
+    name: EmotionName,
     intensity = 1,
-    definition = this.getDisplayDefinition(name),
+    definition = this.getEmotionDefinition(name),
   ): void {
     copyPose(this.fromEmotionPose, this.basePose);
-    this.displayName = name;
+    this.displayName = this.activeActionName ?? name;
     blendPoseFromNeutral(definition.pose, clamp(intensity, 0, 1), this.targetEmotionPose);
     this.emotionFromTime = this.elapsed;
     this.emotionDurationMs = definition.durationMs;
@@ -1080,16 +1097,8 @@ class RobotFaceRenderer implements RobotFace {
   }
 
   private syncCharacterEmotionState(): void {
-    const activeName = this.activeActionName ?? this.emotionTargetName;
-    const definition =
-      this.activeActionName === null
-        ? this.getEmotionDefinition(this.emotionTargetName)
-        : this.getActionDefinition(this.activeActionName);
-    this.applyDisplayState(
-      activeName,
-      this.activeActionName === null ? this.emotionIntensity : 1,
-      definition,
-    );
+    this.actionVisualName = this.activeActionName;
+    this.applyDisplayState(this.emotionTargetName, this.emotionIntensity);
   }
 
   private applyFaceThemeDefinition(faceTheme: FaceThemeDefinition, resetProfile = false): void {
@@ -1124,7 +1133,10 @@ class RobotFaceRenderer implements RobotFace {
   }
 
   private update(dt: number, dtMs: number): void {
-    const displayDefinition = this.getDisplayDefinition(this.displayName);
+    const animationDefinition =
+      this.activeActionName === null
+        ? this.getEmotionDefinition(this.emotionTargetName)
+        : this.getActionDefinition(this.activeActionName);
     const emotionProgress = clamp(
       (this.elapsed - this.emotionFromTime) / this.emotionDurationMs,
       0,
@@ -1149,6 +1161,19 @@ class RobotFaceRenderer implements RobotFace {
       this.applyDisplayState(this.emotionTargetName, this.emotionIntensity);
     }
 
+    const actionTargetBlend = this.activeActionName ? 1 : 0;
+    const actionBlendName = this.activeActionName ?? this.actionVisualName;
+    const actionBlendSpeed = actionBlendName
+      ? actionTargetBlend === 0
+        ? 14
+        : ACTION_BLEND_SPEED[actionBlendName]
+      : 10;
+    this.actionBlend = damp(this.actionBlend, actionTargetBlend, dt, actionBlendSpeed);
+    if (!this.activeActionName && this.actionVisualName && this.actionBlend <= 0.02) {
+      this.actionBlend = 0;
+      this.actionVisualName = null;
+    }
+
     this.lookX = damp(this.lookX, this.lookTargetX, dt, 9);
     this.lookY = damp(this.lookY, this.lookTargetY, dt, 9);
 
@@ -1157,7 +1182,7 @@ class RobotFaceRenderer implements RobotFace {
       if (this.blinkProgress >= 1) {
         this.blinkActive = false;
         this.blinkProgress = 0;
-        this.autoBlinkInMs = this.randomBlinkDelay(displayDefinition);
+        this.autoBlinkInMs = this.randomBlinkDelay(animationDefinition);
       }
     } else {
       this.autoBlinkInMs -= dtMs;
@@ -1196,18 +1221,18 @@ class RobotFaceRenderer implements RobotFace {
   }
 
   private composePose(dt: number): void {
-    const definition = this.getDisplayDefinition(this.displayName);
+    const emotionDefinition = this.getEmotionDefinition(this.emotionTargetName);
     copyPose(this.composedPose, this.basePose);
     applyOverrides(this.composedPose, this.manualPose);
 
     const intensity = this.emotionIntensity;
-    const bobWave = wave(this.elapsed / 1000, definition.microBobHz);
-    const swayWave = wave((this.elapsed + 270) / 1000, definition.microBobHz * 0.5);
-    this.composedPose.global.bob += definition.microBob * bobWave * intensity;
-    this.composedPose.leftEye.tilt += definition.microSway * 0.18 * swayWave * intensity;
-    this.composedPose.rightEye.tilt -= definition.microSway * 0.18 * swayWave * intensity;
+    const bobWave = wave(this.elapsed / 1000, emotionDefinition.microBobHz);
+    const swayWave = wave((this.elapsed + 270) / 1000, emotionDefinition.microBobHz * 0.5);
+    this.composedPose.global.bob += emotionDefinition.microBob * bobWave * intensity;
+    this.composedPose.leftEye.tilt += emotionDefinition.microSway * 0.18 * swayWave * intensity;
+    this.composedPose.rightEye.tilt -= emotionDefinition.microSway * 0.18 * swayWave * intensity;
 
-    if (this.displayName === "confused") {
+    if (this.emotionTargetName === "confused") {
       const delay = 0.5 + 0.5 * wave(this.elapsed / 1000, 1.1);
       const mouthWobble = wave((this.elapsed + 140) / 1000, 2.2);
       const mouthDrift = wave((this.elapsed + 20) / 1000, 0.8);
@@ -1215,6 +1240,45 @@ class RobotFaceRenderer implements RobotFace {
       this.composedPose.mouth.tilt += 0.08 * delay + mouthWobble * 0.04;
       this.composedPose.mouth.curvature += mouthWobble * 0.035;
       this.composedPose.mouth.width += mouthDrift * 0.02;
+    }
+
+    if (this.actionVisualName && this.actionBlend > 0.001) {
+      const actionDefinition = this.getActionDefinition(this.actionVisualName);
+      const actionAmount = clamp(
+        this.actionBlend * ACTION_BLEND_STRENGTH[this.actionVisualName],
+        0,
+        1,
+      );
+      lerpPose(this.actionPose, this.composedPose, actionDefinition.pose, actionAmount);
+      copyPose(this.composedPose, this.actionPose);
+
+      const actionBobWave = wave(this.elapsed / 1000, actionDefinition.microBobHz);
+      const actionSwayWave = wave((this.elapsed + 270) / 1000, actionDefinition.microBobHz * 0.5);
+      this.composedPose.global.bob += actionDefinition.microBob * actionBobWave * actionAmount;
+      this.composedPose.leftEye.tilt +=
+        actionDefinition.microSway * 0.18 * actionSwayWave * actionAmount;
+      this.composedPose.rightEye.tilt -=
+        actionDefinition.microSway * 0.18 * actionSwayWave * actionAmount;
+
+      if (this.actionVisualName === "offline") {
+        const shutdown = ease("smooth", clamp((this.actionBlend - 0.16) / 0.68, 0, 1));
+        const cutoffPulse = Math.sin(Math.PI * clamp(this.actionBlend / 0.9, 0, 1));
+        this.composedPose.global.flicker += cutoffPulse * 0.08;
+        this.composedPose.global.distortion += cutoffPulse * 0.04;
+        this.composedPose.global.glow *= 1 - shutdown * 0.18;
+        this.composedPose.leftEye.openness = lerp(
+          this.composedPose.leftEye.openness,
+          0.02,
+          shutdown * 0.55,
+        );
+        this.composedPose.rightEye.openness = lerp(
+          this.composedPose.rightEye.openness,
+          0.02,
+          shutdown * 0.55,
+        );
+        this.composedPose.mouth.brightness *= 1 - shutdown * 0.3;
+        this.composedPose.nose.brightness *= 1 - shutdown * 0.25;
+      }
     }
 
     const blinkAmount = this.blinkActive ? Math.sin(Math.PI * this.blinkProgress) : 0;
@@ -1531,6 +1595,8 @@ class RobotFaceRenderer implements RobotFace {
       ctx: this.ctx,
       theme: this.theme,
       emotionName: this.emotionTargetName,
+      actionName: this.activeActionName,
+      overlayActionName: this.overlayActionName,
       displayName: this.displayName,
       elapsed: this.elapsed,
       emotionFromTime: this.emotionFromTime,

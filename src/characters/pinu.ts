@@ -45,13 +45,27 @@ const drawPinuEye = createStandardEyeRenderer({
     widthOpenFactor: 0.14,
     pupilScale: params.style.pupilScale,
   }),
-  resolveRotation: (_dc, params) => params.pose.tilt * 0.46,
+  resolveRotation: (dc, params) => {
+    const thinkingLift = dc.actionName === "thinking" && params.side === 1 ? -0.18 : 0;
+    return params.pose.tilt * 0.46 + thinkingLift;
+  },
   resolveBrightness: (_dc, params) => clamp(params.pose.brightness, 0.1, 1.8),
   resolvePupilFill: (dc) => (dc.displayName === "angry" ? "#565d66" : "#000000"),
-  resolvePupilOffset: (_dc, params, eyeWidth, eyeHeight) => ({
-    x: clamp(params.pose.pupilX, -1, 1) * eyeWidth * 0.46,
-    y: clamp(params.pose.pupilY, -1, 1) * eyeHeight * 0.42,
-  }),
+  resolvePupilOffset: (dc, params, eyeWidth, eyeHeight) => {
+    if (dc.actionName === "thinking") {
+      const sweep = wave((dc.elapsed + 220) / 1000, 0.22);
+      const jitter = wave((dc.elapsed + 80) / 1000, 0.73);
+      return {
+        x: (sweep * 0.78 + jitter * 0.22) * eyeWidth * 0.38,
+        y: (-0.2 - 0.14 * jitter) * eyeHeight,
+      };
+    }
+
+    return {
+      x: clamp(params.pose.pupilX, -1, 1) * eyeWidth * 0.46,
+      y: clamp(params.pose.pupilY, -1, 1) * eyeHeight * 0.42,
+    };
+  },
   resolveLidCut: (_dc, _params, _eyeWidth, eyeHeight, squint) => eyeHeight * squint * 0.24,
   glyphOptions: {
     lineWidthFloor: 3,
@@ -68,9 +82,23 @@ const drawPinuBrow = createStandardBrowRenderer({
   defaultShape: "soft",
   resolveAngle: (dc, params) => {
     const baseAngle = params.pose.tilt * 0.52 + params.pose.squint * 0.18 * -params.side;
-    return dc.displayName === "confused" ? (params.side === -1 ? -0.2 : -0.08) : baseAngle;
+    if (dc.displayName === "confused") {
+      return params.side === -1 ? -0.2 : -0.08;
+    }
+
+    if (dc.actionName === "thinking" && params.side === 1) {
+      return baseAngle - 0.12;
+    }
+
+    return baseAngle;
   },
-  resolveLift: (_dc, params) => (1 - params.pose.openness) * params.height * 0.4,
+  resolveLift: (dc, params) => {
+    const baseLift = (1 - params.pose.openness) * params.height * 0.4;
+    if (dc.actionName === "thinking" && params.side === 1) {
+      return baseLift + params.height * 0.72;
+    }
+    return baseLift;
+  },
   resolveBrightness: (_dc, params) => clamp(params.pose.brightness, 0.1, 1.6) * 0.9,
 });
 

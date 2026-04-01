@@ -18,6 +18,8 @@ export interface DrawContext {
   ctx: CanvasRenderingContext2D;
   theme: ThemeDefinition;
   emotionName: EmotionName;
+  actionName: ActionName | null;
+  overlayActionName: Extract<ActionName, "bootUp" | "glitch"> | null;
   displayName: DisplayName;
   elapsed: number;
   emotionFromTime: number;
