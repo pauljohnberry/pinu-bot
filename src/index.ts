@@ -1,3 +1,4 @@
+export { ACTION_NAMES as BUILTIN_ACTIONS } from "./actions.js";
 export type {
   BrowDrawParams,
   CharacterDefinition,
@@ -52,21 +53,21 @@ export {
   drawStandardMouthShape,
   drawStandardNoseShape,
 } from "./standardRobotRenderers.js";
-export { STATES as BUILTIN_STATES } from "./states.js";
 export { FACE_FEATURE_DEFAULTS, STYLE_PRESETS as BUILTIN_STYLES } from "./styles.js";
 export { THEMES as BUILTIN_THEMES } from "./themes.js";
 export type {
+  ActionName,
   ActionOptions,
   BackgroundFxConfig,
   BackgroundFxMode,
   BrowShapeName,
   DisplayMode,
+  DisplayName,
   EmoteOptions,
   EmotionName,
   EyeShapeName,
   FaceFeatures,
   FacePose,
-  FaceStateName,
   FaceThemeDefinition,
   FaceThemeName,
   MouthExpressionOptions,
@@ -78,8 +79,6 @@ export type {
   RobotFaceConfig,
   RobotFaceOptions,
   SpeakOptions,
-  StateName,
-  StateOptions,
   StyleDefinition,
   StylePresetName,
   SymbolName,

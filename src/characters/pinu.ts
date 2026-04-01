@@ -21,7 +21,7 @@ const HEART_PATTERN = [
 ];
 
 function resolveLoveTransitionProgress(dc: DrawContext): number {
-  if (dc.stateName !== "love") {
+  if (dc.displayName !== "love") {
     return -1;
   }
 
@@ -47,7 +47,7 @@ const drawPinuEye = createStandardEyeRenderer({
   }),
   resolveRotation: (_dc, params) => params.pose.tilt * 0.46,
   resolveBrightness: (_dc, params) => clamp(params.pose.brightness, 0.1, 1.8),
-  resolvePupilFill: (dc) => (dc.stateName === "angry" ? "#565d66" : "#000000"),
+  resolvePupilFill: (dc) => (dc.displayName === "angry" ? "#565d66" : "#000000"),
   resolvePupilOffset: (_dc, params, eyeWidth, eyeHeight) => ({
     x: clamp(params.pose.pupilX, -1, 1) * eyeWidth * 0.46,
     y: clamp(params.pose.pupilY, -1, 1) * eyeHeight * 0.42,
@@ -68,7 +68,7 @@ const drawPinuBrow = createStandardBrowRenderer({
   defaultShape: "soft",
   resolveAngle: (dc, params) => {
     const baseAngle = params.pose.tilt * 0.52 + params.pose.squint * 0.18 * -params.side;
-    return dc.stateName === "confused" ? (params.side === -1 ? -0.2 : -0.08) : baseAngle;
+    return dc.displayName === "confused" ? (params.side === -1 ? -0.2 : -0.08) : baseAngle;
   },
   resolveLift: (_dc, params) => (1 - params.pose.openness) * params.height * 0.4,
   resolveBrightness: (_dc, params) => clamp(params.pose.brightness, 0.1, 1.6) * 0.9,
@@ -197,8 +197,8 @@ export const pinuCharacter: CharacterDefinition = {
     return ease("smooth", (progress - 0.82) / 0.18);
   },
 
-  getScrambleStrength(stateName, baseDistortion): number {
-    const angryStrength = stateName === "angry" ? 0.16 : 0;
+  getScrambleStrength(displayName, baseDistortion): number {
+    const angryStrength = displayName === "angry" ? 0.16 : 0;
     return Math.max(angryStrength, baseDistortion * 0.7);
   },
 };

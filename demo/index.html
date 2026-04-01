@@ -481,18 +481,12 @@
             </div>
           </div>
           <div class="group">
-            <h3>States</h3>
+            <h3>Actions</h3>
             <div class="controls">
               <button type="button" id="think">think</button>
               <button type="button" id="listen">listen</button>
               <button type="button" id="sleep">sleep</button>
               <button type="button" id="offline">offline</button>
-              <button type="button" id="reset-face">reset</button>
-            </div>
-          </div>
-          <div class="group">
-            <h3>Actions</h3>
-            <div class="controls">
               <button type="button" id="smile">smile</button>
               <button type="button" id="frown">frown</button>
               <button type="button" id="pout">pout</button>
@@ -635,11 +629,15 @@ bun add pinu-bot</pre>
                 </div>
                 <div class="api-item">
                   <code>face.think(options?) / face.listen(options?) / face.sleep(options?) / face.goOffline(options?)</code>
-                  <span class="subtle">Enter non-emotional face states. Use <code>{ persistent: true }</code> to hold them until <code>face.reset()</code> or a later emotion change.</span>
+                  <span class="subtle">Run face actions. Use <code>{ durationMs }</code> for a timed action or <code>{ persistent: true }</code> when you want it to hold until <code>face.reset()</code> or a later emotion or action change.</span>
                 </div>
                 <div class="api-item">
-                  <code>face.bootUp(options?) / face.glitch(options?) / face.reset()</code>
-                  <span class="subtle">Run display actions or return all behavior back to the original creation-time baseline.</span>
+                  <code>face.bootUp(options?) / face.glitch(options?)</code>
+                  <span class="subtle">Run short timed actions on top of the current emotion or action.</span>
+                </div>
+                <div class="api-item">
+                  <code>face.reset()</code>
+                  <span class="subtle">Return behavior back to the original creation-time baseline.</span>
                 </div>
                 <div class="api-item">
                   <code>face.transitionTo(state)</code>
@@ -663,11 +661,11 @@ bun add pinu-bot</pre>
                 </div>
                 <div class="api-item">
                   <code>face.blink() / face.wink(side)</code>
-                  <span class="subtle">Trigger quick eye overlays.</span>
+                  <span class="subtle">Trigger quick eye actions.</span>
                 </div>
                 <div class="api-item">
                   <code>face.speak({ intensity, cadence, durationMs })</code>
-                  <span class="subtle">Layer speaking animation on top of the current visible state.</span>
+                  <span class="subtle">Layer speaking animation on top of the current face.</span>
                 </div>
                 <div class="api-item">
                   <code>face.setCharacter(nameOrDefinition)</code>
@@ -718,7 +716,6 @@ bun add pinu-bot</pre>
       const PACKAGE_VERSION = "0.2.0";
       const INTRO_ACTION_CODE = [
         "face.bootUp();",
-        'setTimeout(() => face.emote("neutral"), 1500);',
         "setTimeout(() => face.lookLeft(0.62), 1820);",
         "setTimeout(() => face.lookRight(0.58), 2140);",
         'setTimeout(() => face.wink("right"), 2440);',
@@ -1304,15 +1301,6 @@ bun add pinu-bot</pre>
         currentActionCode = "face.goOffline({ persistent: true });";
         syncCodeSample();
       });
-      document.querySelector("#reset-face").addEventListener("click", () => {
-        markManualInteraction();
-        activeEmotionName = "neutral";
-        activeEmotionIntensity = 1;
-        face.reset();
-        currentActionCode = "face.reset();";
-        syncCodeSample();
-      });
-
       document.querySelector("#smile").addEventListener("click", () => {
         markManualInteraction();
         runExpressionAction("face.smile(1, { open: false });", () => face.smile(1, { open: false }));

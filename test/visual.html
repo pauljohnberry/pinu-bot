@@ -94,7 +94,7 @@
       };
 
       const resolveLoveTransitionProgress = (snapshot) => {
-        if (snapshot.stateName !== "love") {
+        if (snapshot.displayName !== "love") {
           return -1;
         }
 
@@ -159,7 +159,7 @@
           parts: cloneValue(face.parts),
           features: cloneValue(face.features),
           emotionName: face.emotionTargetName ?? emotionName,
-          stateName: face.displayStateName ?? emotionName,
+          displayName: face.displayName ?? emotionName,
           elapsed: face.elapsed ?? 0,
           emotionFromTime: face.emotionFromTime ?? 0,
           mode: face.mode ?? "face",
@@ -237,7 +237,7 @@
 
         const width = targetCanvas.width;
         const height = targetCanvas.height;
-        const { pose, style, theme, parts, features, emotionName, stateName } = snapshot;
+        const { pose, style, theme, parts, features, emotionName, displayName } = snapshot;
         const frame = createConstructionFrame(width, height);
         const layout = createStyleConstructionLayout(style);
         const anchors = resolveConstructionAnchors(frame, layout);
@@ -250,14 +250,14 @@
         const browExtraLift = Math.max(0, eyeHeightScale - 1) * scaledEyeHeight * 0.18;
         const dynamicBrowY =
           height * style.eyeY - scaledEyeHeight * 0.5 + browOffsetFromEyeTop - browExtraLift;
-        const confusedBrowRaise = stateName === "confused" ? height * 0.024 : 0;
+        const confusedBrowRaise = displayName === "confused" ? height * 0.024 : 0;
         const leftBrowY = dynamicBrowY - confusedBrowRaise;
         const rightBrowY = dynamicBrowY + confusedBrowRaise * 0.22;
         const dc = {
           ctx,
           theme,
           emotionName,
-          stateName,
+          displayName,
           elapsed: snapshot.elapsed,
           emotionFromTime: snapshot.emotionFromTime,
           mode: snapshot.mode,

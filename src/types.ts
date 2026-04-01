@@ -10,9 +10,9 @@ export type EmotionName =
   | "confused"
   | "excited";
 
-export type StateName = "thinking" | "listening" | "sleeping" | "offline" | "booting" | "glitch";
+export type ActionName = "thinking" | "listening" | "sleeping" | "offline" | "bootUp" | "glitch";
 
-export type FaceStateName = EmotionName | StateName;
+export type DisplayName = EmotionName | ActionName;
 
 export type ThemeName =
   | "amber"
@@ -175,12 +175,12 @@ export interface EmoteOptions {
   intensity?: number;
 }
 
-export interface StateOptions {
+export interface ActionOptions {
   durationMs?: number;
   persistent?: boolean;
 }
 
-export interface ActionOptions {
+export interface TimedActionOptions {
   durationMs?: number;
 }
 
@@ -252,12 +252,12 @@ export interface NoseControlApi<TDone> {
 export interface RobotFace {
   setCharacter(character: CharacterDefinition | string): RobotFace;
   emote(name: EmotionName, options?: EmoteOptions): RobotFace;
-  think(options?: StateOptions): RobotFace;
-  listen(options?: StateOptions): RobotFace;
-  sleep(options?: StateOptions): RobotFace;
-  goOffline(options?: StateOptions): RobotFace;
-  bootUp(options?: ActionOptions): RobotFace;
-  glitch(options?: ActionOptions): RobotFace;
+  think(options?: ActionOptions): RobotFace;
+  listen(options?: ActionOptions): RobotFace;
+  sleep(options?: ActionOptions): RobotFace;
+  goOffline(options?: ActionOptions): RobotFace;
+  bootUp(options?: TimedActionOptions): RobotFace;
+  glitch(options?: TimedActionOptions): RobotFace;
   reset(): RobotFace;
   transitionTo(state: PartialFacePose): RobotFace;
   lookAt(x: number, y: number): RobotFace;

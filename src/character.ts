@@ -1,15 +1,15 @@
 import type { FaceStateDefinition } from "./stateDefinitions.js";
 import type {
+  ActionName,
   DisplayMode,
+  DisplayName,
   EmotionName,
   EyePose,
   FaceFeatures,
   FacePose,
-  FaceStateName,
   MouthPose,
   NosePose,
   PartStyleConfig,
-  StateName,
   StyleDefinition,
   ThemeDefinition,
 } from "./types.js";
@@ -18,7 +18,7 @@ export interface DrawContext {
   ctx: CanvasRenderingContext2D;
   theme: ThemeDefinition;
   emotionName: EmotionName;
-  stateName: FaceStateName;
+  displayName: DisplayName;
   elapsed: number;
   emotionFromTime: number;
   mode: DisplayMode;
@@ -66,6 +66,7 @@ export interface MouthDrawParams {
 }
 
 type CharacterShapeOptionKey = "eyeShape" | "noseShape" | "mouthShape" | "browShape";
+type CharacterActionName = Extract<ActionName, "thinking" | "listening" | "sleeping" | "offline">;
 
 export type CharacterPartOptions = {
   [K in CharacterShapeOptionKey]: NonNullable<Required<PartStyleConfig>[K]>[];
@@ -81,7 +82,7 @@ export interface CharacterDefinition {
   defaultFeatures?: Partial<FaceFeatures>;
 
   emotions?: Partial<Record<EmotionName, FaceStateDefinition>>;
-  states?: Partial<Record<StateName, FaceStateDefinition>>;
+  actions?: Partial<Record<CharacterActionName, FaceStateDefinition>>;
 
   drawEye(dc: DrawContext, params: EyeDrawParams): void;
   drawBrow(dc: DrawContext, params: BrowDrawParams): void;
@@ -91,7 +92,7 @@ export interface CharacterDefinition {
   drawOverlay?(dc: DrawContext, width: number, height: number, pose: FacePose): void;
   drawBackground?(dc: DrawContext, width: number, height: number, pose: FacePose): void;
   getFaceVisibility?(dc: DrawContext): number;
-  getScrambleStrength?(stateName: FaceStateName, baseDistortion: number): number;
+  getScrambleStrength?(displayName: DisplayName, baseDistortion: number): number;
 }
 
 const registry = new Map<string, CharacterDefinition>();

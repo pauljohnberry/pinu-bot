@@ -471,19 +471,61 @@ describe("createRobotFace", () => {
     expect(raf.queued()).toBe(0);
   });
 
-  test("emotion changes cancel persistent non-emotional states", () => {
+  test("glitch overlays without replacing the current displayed emotion", () => {
+    const raf = installRaf();
+    const canvas = new FakeCanvas();
+    const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
+      autoStart: false,
+    });
+
+    face.emote("happy");
+    face.start();
+    raf.step(16);
+
+    face.glitch();
+    expect((face as unknown as { displayName: string }).displayName).toBe("happy");
+
+    raf.step(136);
+
+    expect((face as unknown as { displayName: string }).displayName).toBe("happy");
+    expect(
+      (face as unknown as { currentPose: { global: { distortion: number } } }).currentPose.global
+        .distortion,
+    ).toBeGreaterThan(0.02);
+  });
+
+  test("emotion changes cancel persistent non-emotional actions", () => {
     const canvas = new FakeCanvas();
     const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
       autoStart: false,
     });
 
     face.think({ persistent: true });
-    expect((face as unknown as { displayStateName: string }).displayStateName).toBe("thinking");
+    expect((face as unknown as { displayName: string }).displayName).toBe("thinking");
 
     face.emote("sad");
 
-    expect((face as unknown as { displayStateName: string }).displayStateName).toBe("sad");
-    expect((face as unknown as { activeStateName: string | null }).activeStateName).toBeNull();
+    expect((face as unknown as { displayName: string }).displayName).toBe("sad");
+    expect((face as unknown as { activeActionName: string | null }).activeActionName).toBeNull();
+  });
+
+  test("non-emotional actions clear speaking overlays", () => {
+    const canvas = new FakeCanvas();
+    const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
+      autoStart: false,
+    });
+
+    face.speak({ intensity: 0.5, durationMs: 5000 });
+    face.goOffline({ persistent: true });
+
+    expect((face as unknown as { speakingEnabled: boolean }).speakingEnabled).toBe(false);
+    expect((face as unknown as { speakingTarget: number }).speakingTarget).toBe(0);
+
+    face.speak({ intensity: 0.5, durationMs: 5000 });
+    face.bootUp();
+
+    expect((face as unknown as { speakingEnabled: boolean }).speakingEnabled).toBe(false);
+    expect((face as unknown as { speakingTarget: number }).speakingTarget).toBe(0);
   });
 
   test("reset restores the creation-time baseline state", () => {
@@ -503,9 +545,9 @@ describe("createRobotFace", () => {
 
     face.reset();
 
-    expect((face as unknown as { displayStateName: string }).displayStateName).toBe("neutral");
+    expect((face as unknown as { displayName: string }).displayName).toBe("neutral");
     expect((face as unknown as { emotionTargetName: string }).emotionTargetName).toBe("neutral");
-    expect((face as unknown as { activeStateName: string | null }).activeStateName).toBeNull();
+    expect((face as unknown as { activeActionName: string | null }).activeActionName).toBeNull();
     expect((face as unknown as { mode: string }).mode).toBe("symbol");
     expect((face as unknown as { symbolName: string | null }).symbolName).toBe("warning");
   });

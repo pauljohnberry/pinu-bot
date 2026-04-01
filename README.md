@@ -2,7 +2,7 @@
 
 [GitHub](https://github.com/pauljohnberry/pinu-bot) · [Docs](https://www.pinubot.com) · [Issues](https://github.com/pauljohnberry/pinu-bot/issues)
 
-`pinu-bot` is a framework-agnostic TypeScript library for expressive robot display faces on HTML5 canvas. It focuses on orchestrating animated emotions, overlays, and display-state transitions instead of drawing static avatars.
+`pinu-bot` is a framework-agnostic TypeScript library for expressive robot display faces on HTML5 canvas. It focuses on orchestrating animated emotions, actions, and overlays instead of drawing static avatars.
 
 ![Pinubot expressive face capture in ice-blue theme](https://raw.githubusercontent.com/pauljohnberry/pinu-bot/HEAD/.github/assets/neutral-demo.png)
 
@@ -158,17 +158,27 @@ face.configure({
 - `createRobotFace(canvas, options?)`
   Options include `character`, `theme`, `style`, `features`, `parts`, `mode`, `symbol`, `backgroundFx`, `transparentBackground`, `autoStart`, and `pixelRatio`.
 - `face.setCharacter(nameOrDefinition)`
+
+Emotions:
 - `face.emote(name, options?)`
+  `emote()` sets the persistent emotional baseline. A later `emote(...)` call replaces the previous one.
+
+Actions:
 - `face.think(options?)`
 - `face.listen(options?)`
 - `face.sleep(options?)`
 - `face.goOffline(options?)`
+  These actions support:
+  - `durationMs`
+  - `persistent: true`
 - `face.bootUp(options?)`
 - `face.glitch(options?)`
-- `face.reset()`
+  These actions support:
+  - `durationMs`
+  Actions layer behavior on top of the current emotion.
+  A later emotion or action call supersedes the previous action.
 
-`emote()` is for emotional baselines only. `reset()` returns the face to the original creation-time baseline: the initial emotion, mode, and symbol set when you created the face.
-
+Expression and motion helpers:
 - `face.transitionTo(state)`
 - `face.lookAt(x, y)`
 - `face.lookLeft(amount?)`
@@ -181,6 +191,10 @@ face.configure({
 - `face.blink()`
 - `face.wink(side?)`
 - `face.speak(options)`
+
+Controls and configuration:
+- `face.reset()`
+  Returns the face to the original creation-time baseline: the initial emotion, mode, and symbol set when you created the face.
 - `face.setTheme(nameOrDefinition)`
 - `face.setFaceTheme(nameOrDefinition)`
 - `face.setStyle(nameOrDefinition)`
@@ -190,10 +204,14 @@ face.configure({
 - `face.showFace()`
 - `face.setBackgroundFx("off" | "emotion" | { mode: "custom", color, intensity, pulseHz })`
 - `face.configure({ character, theme, style, features, parts, mode, symbol, backgroundFx, transparentBackground, pixelRatio })`
+
+Lifecycle:
 - `face.start()`
 - `face.stop()`
 - `face.render()`
 - `face.destroy()`
+
+Low-level part controls:
 - `face.eyes()`
 - `face.leftEye()`
 - `face.rightEye()`
@@ -248,7 +266,7 @@ registerCharacter(myCharacter);
 const face = createRobotFace(canvas, { character: "my-character" });
 ```
 
-Characters can optionally provide `drawOverlay`, `drawBackground`, `getFaceVisibility`, `getScrambleStrength`, and per-character `emotions` or `states` overrides. See [`src/character.ts`](./src/character.ts) for the full interface and [`src/characters/pinu.ts`](./src/characters/pinu.ts) for a reference implementation.
+Characters can optionally provide `drawOverlay`, `drawBackground`, `getFaceVisibility`, `getScrambleStrength`, and per-character `emotions` or `actions` overrides. See [`src/character.ts`](./src/character.ts) for the full interface and [`src/characters/pinu.ts`](./src/characters/pinu.ts) for a reference implementation.
 
 ## Construction Helpers
 
@@ -299,8 +317,8 @@ These helpers are intended to lock composition and anchors before low-level draw
 Emotions:
 `neutral`, `happy`, `love`, `sad`, `angry`, `surprised`, `confused`, `excited`
 
-States:
-`thinking`, `listening`, `sleeping`, `offline`, `booting`, `glitch`
+Actions:
+`thinking`, `listening`, `sleeping`, `offline`, `bootUp`, `glitch`
 
 Themes:
 `amber`, `cyan`, `green-crt`, `white`, `red-alert`, `ice-blue`, `sunset`, `violet`
