@@ -75,7 +75,7 @@ const buboStyle: StyleDefinition = {
   eyeGap: 0.126,
   browWidth: 0.18,
   browHeight: 0.016,
-  browY: -0.252,
+  browY: -0.2,
   noseWidth: 0.13,
   noseHeight: 0.094,
   noseY: 0.096,
@@ -859,31 +859,12 @@ function drawBuboEye(dc: DrawContext, params: EyeDrawParams): void {
 
 function drawBuboBrow(dc: DrawContext, params: BrowDrawParams): void {
   const { ctx, theme } = dc;
+  const s = params.side; // -1 left, 1 right
+  const w = params.width;
   const squint = clamp(params.pose.squint, 0, 1);
-  const openness = clamp(params.pose.openness, 0, 1);
   const brightness = clamp(params.pose.brightness, 0.18, 1.4);
   const angryT = dc.emotionName === "angry" ? 1 : 0;
   const sadT = dc.emotionName === "sad" ? 1 : 0;
-  const compression = 1 - openness;
-  const outerX = params.side * params.width * (1.04 + angryT * 0.04);
-  const outerY = -params.height * (0.72 + squint * 0.04 + angryT * 0.08 - sadT * 0.08);
-  const spineKneeX = params.side * params.width * (0.46 + angryT * 0.04);
-  const spineKneeY = -params.height * (0.74 + squint * 0.02 + angryT * 0.06 - sadT * 0.06);
-  const innerX = -params.side * params.width * (0.26 + angryT * 0.05);
-  const innerY = params.height * (0.72 + compression * 0.08 + angryT * 0.22 - sadT * 0.1);
-  const primaryWidth = Math.max(2, params.height * lerp(1.22, 1.88, squint * 0.45 + angryT * 0.55));
-  const secondaryWidth = primaryWidth * 0.46;
-  const featherWidth = primaryWidth * (0.22 + angryT * 0.06);
-  const featherBaseX = params.side * params.width * (0.54 + angryT * 0.03);
-  const featherBaseY = -params.height * (0.72 + squint * 0.02 + angryT * 0.06 - sadT * 0.04);
-  const featherTipAX = params.side * params.width * (0.98 + angryT * 0.08);
-  const featherTipAY = -params.height * (1.16 + angryT * 0.18 - sadT * 0.04);
-  const featherTipBX = params.side * params.width * (1.14 + angryT * 0.08);
-  const featherTipBY = -params.height * (0.9 + angryT * 0.12 - sadT * 0.02);
-  const innerFeatherX = -params.side * params.width * (0.1 + angryT * 0.03);
-  const innerFeatherY = params.height * (0.46 + angryT * 0.12 - sadT * 0.06);
-  const angrySlashT = Math.max(0, angryT * 0.9 + squint * 0.12 - sadT * 0.1);
-  const angrySlashWidth = primaryWidth * 0.28 * angrySlashT;
 
   ctx.save();
   ctx.translate(params.centerX, params.centerY);
@@ -891,68 +872,78 @@ function drawBuboBrow(dc: DrawContext, params: BrowDrawParams): void {
   ctx.globalAlpha *= brightness * 0.92;
   ctx.strokeStyle = resolveEyeFill(theme);
   ctx.shadowColor = theme.glow;
-  ctx.shadowBlur = params.width * 0.04;
+  ctx.shadowBlur = w * 0.06;
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
 
-  ctx.lineWidth = primaryWidth;
-  ctx.beginPath();
-  ctx.moveTo(outerX, outerY);
-  ctx.quadraticCurveTo(
-    spineKneeX,
-    spineKneeY,
-    innerX,
-    innerY,
-  );
-  ctx.stroke();
+  // Owl brows: a fan of feather-strokes radiating from an inner anchor point
+  // near the nose bridge. Inner strokes angle down (forming the V), middle
+  // strokes go horizontal, outer strokes sweep upward (ear-tuft feel).
 
-  ctx.lineWidth = secondaryWidth;
-  ctx.beginPath();
-  ctx.moveTo(featherBaseX, featherBaseY);
-  ctx.quadraticCurveTo(
-    params.side * params.width * 0.74,
-    featherBaseY - params.height * 0.1,
-    featherTipAX,
-    featherTipAY,
-  );
-  ctx.stroke();
+  // Anchor — the hub all feathers radiate from, pulled well inward toward nose
+  const anchorX = s * w * -0.4;
+  const anchorY = w * (0.08 + angryT * 0.06 - sadT * 0.03);
 
-  ctx.lineWidth = featherWidth;
-  ctx.beginPath();
-  ctx.moveTo(featherBaseX + params.side * params.width * 0.04, featherBaseY + params.height * 0.02);
-  ctx.quadraticCurveTo(
-    params.side * params.width * 0.82,
-    featherBaseY - params.height * 0.02,
-    featherTipBX,
-    featherTipBY,
-  );
-  ctx.stroke();
+  // Each feather: [tipX, tipY, ctrlX, ctrlY, width, opacity]
+  // Defined as multipliers of w, relative to anchor
+  const baseAlpha = ctx.globalAlpha;
+  const feathers: [number, number, number, number, number, number][] = [
+    // Feather 0 — inner V stroke: angles steeply down toward nose bridge
+    [
+      s * -0.44,
+      0.28 + angryT * 0.1,
+      s * -0.4,
+      0.18 + angryT * 0.06,
+      0.09 + angryT * 0.03,
+      0.55,
+    ],
+    // Feather 1 — lower-mid: angles slightly outward and down
+    [
+      s * 0.18,
+      0.1 + angryT * 0.08 - sadT * 0.04,
+      s * -0.08,
+      0.1 + angryT * 0.04,
+      0.1 + angryT * 0.02,
+      0.7,
+    ],
+    // Feather 2 — main brow: the dominant stroke, full brightness
+    [
+      s * 0.88,
+      -0.04 - angryT * 0.02 + sadT * 0.03 - squint * 0.02,
+      s * 0.52,
+      0.0 + angryT * 0.02 + sadT * 0.01,
+      0.13 + angryT * 0.04,
+      1.0,
+    ],
+    // Feather 3 — upper sweep: arcs upward and outward
+    [
+      s * (1.02 + angryT * 0.06),
+      -(0.14 + angryT * 0.06 - sadT * 0.03 + squint * 0.02),
+      s * 0.64,
+      -(0.06 + angryT * 0.02),
+      0.08 + angryT * 0.02,
+      0.6,
+    ],
+    // Feather 4 — ear tuft: thinnest, most ghostly
+    [
+      s * (1.1 + angryT * 0.08),
+      -(0.24 + angryT * 0.1 - sadT * 0.04 + squint * 0.03),
+      s * 0.76,
+      -(0.14 + angryT * 0.04),
+      0.05,
+      0.38,
+    ],
+  ];
 
-  ctx.lineWidth = secondaryWidth;
-  ctx.beginPath();
-  ctx.moveTo(params.side * params.width * 0.18, spineKneeY + params.height * 0.04);
-  ctx.quadraticCurveTo(
-    params.side * params.width * 0.02,
-    params.height * (0.18 + angryT * 0.06),
-    innerFeatherX,
-    innerFeatherY,
-  );
-  ctx.stroke();
-
-  if (angrySlashT > 0.08) {
-    ctx.lineWidth = angrySlashWidth;
+  for (const [tipX, tipY, ctrlX, ctrlY, lineW, opacity] of feathers) {
+    ctx.globalAlpha = baseAlpha * opacity;
+    ctx.lineWidth = Math.max(1.5, w * lineW);
     ctx.beginPath();
-    ctx.moveTo(innerX + params.side * params.width * 0.02, innerY - params.height * 0.04);
-    ctx.bezierCurveTo(
-      -params.side * params.width * 0.08,
-      innerY - params.height * 0.16,
-      params.side * params.width * 0.04,
-      innerY + params.height * 0.1,
-      params.side * params.width * 0.2,
-      innerY + params.height * 0.16,
-    );
+    ctx.moveTo(anchorX, anchorY);
+    ctx.quadraticCurveTo(w * ctrlX, w * ctrlY, w * tipX, w * tipY);
     ctx.stroke();
   }
+
   ctx.restore();
 }
 
