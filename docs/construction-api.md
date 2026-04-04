@@ -211,7 +211,25 @@ The current renderer layer should be thought of as `standard robot renderers`, n
 
 - `pinu` fits this family closely
 - `kiba` can reuse some pieces, but still needs custom ear / muzzle / mouth systems
+- `bubo` should share anchors and semantic controls, but its owl eye / beak system is still its own family
 - future characters should opt into this layer only where the face language genuinely matches
+
+## Value Test
+
+This work is only worth keeping if it makes character authorship simpler.
+
+Success should look like:
+
+- character files get shorter or at least more clearly partitioned
+- shared part options (`eyeShape`, `noseShape`, `mouthShape`, `browShape`) stay coherent across built-ins
+- custom code is limited to identity-specific systems such as ears, muzzle pieces, beak stacks, or overlays
+- contributors and LLMs can reason about composition and API mapping without first rewriting low-level canvas code
+
+Failure mode:
+
+- a new abstraction exists, but `kiba` and `bubo` are not easier to read, change, or extend
+
+If an extraction does not materially simplify a real character file, it should not be added.
 
 ## Recommended First Scope
 
@@ -241,6 +259,12 @@ The new process would be:
 This is the real value:
 
 the design becomes reviewable before it becomes deeply coded.
+
+For current built-ins, that should mean:
+
+- `pinu` can stay closest to the standard renderer path
+- `kiba` should reuse shared controls and family helpers, while keeping custom ear / muzzle identity systems
+- `bubo` should reuse shared controls and anchors, while keeping a distinct owl eye / beak family
 
 ## Recommendation
 

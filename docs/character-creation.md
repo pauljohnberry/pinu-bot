@@ -98,6 +98,7 @@ Rules:
 - every shared control should either work, be intentionally translated, or be intentionally ignored for a documented reason
 - avoid `pinu`-specific assumptions in new character implementations
 - preserve cross-character consistency where possible
+- preserve the same public part vocabulary even when two characters need different renderer families underneath
 
 4. Build expression families, not isolated states.
 
@@ -202,6 +203,8 @@ Before calling a character pass done:
 - Keep `defaultParts` complete and typed.
 - Favor shared helpers when the geometry can be reused across characters.
 - If the character needs a custom interpretation of a shared shape, translate the shared option semantically rather than ignoring it.
+- Do not force unlike characters through the same renderer family just for the sake of reuse.
+- Prefer extracting small family-level helpers when they make a character file shorter and easier to read.
 - If a built-in behavior changes, update demo docs and README in the same pass.
 - If repeated character work keeps failing at the composition level, prefer introducing constrained construction primitives rather than continuing to patch low-level draw code directly. See `docs/construction-api.md`.
 

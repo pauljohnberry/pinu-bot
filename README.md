@@ -12,8 +12,8 @@
 - Parametric geometry only, no sprite sheets
 - Layered runtime: base emotion + blink + lookAt + speaking + screen FX
 - Character system: swap between different face types
-- Optional construction helpers for authoring new characters
-- Shared standard-robot renderer helpers for common face families
+- Low-level construction helpers for composition-first character authoring
+- Shared standard renderer helpers for robot-like face families
 - Optional mood lighting and symbol mode
 - Built-in face-theme presets, visual themes, and style presets
 - Direct part control for eyes, mouth, and nose
@@ -268,49 +268,7 @@ const face = createRobotFace(canvas, { character: "my-character" });
 
 Characters can optionally provide `drawOverlay`, `drawBackground`, `getFaceVisibility`, `getScrambleStrength`, and per-character `emotions` or `actions` overrides. See [`src/character.ts`](./src/character.ts) for the full interface and [`src/characters/pinu.ts`](./src/characters/pinu.ts) for a reference implementation.
 
-## Construction Helpers
-
-For composition-first character work, the package also exports additive construction helpers.
-
-```ts
-import {
-  createCapsule,
-  createConstructionFrame,
-  createConstructionLayout,
-  createPlate,
-  createWedge,
-  resolveConstructionAnchors,
-} from "pinu-bot";
-
-const frame = createConstructionFrame(1, 1);
-const layout = createConstructionLayout({
-  eyeGap: 0.24,
-  eyeLineY: -0.04,
-});
-const anchors = resolveConstructionAnchors(frame, layout);
-
-const upperMask = createPlate({
-  width: 0.72,
-  height: 0.28,
-  y: -0.06,
-  taper: 0.18,
-  tilt: -0.04,
-});
-
-const eyeShell = createCapsule({
-  width: 0.18,
-  height: 0.1,
-  y: anchors.eyeLineY,
-});
-
-const centerWedge = createWedge({
-  width: 0.08,
-  height: 0.14,
-  y: 0.03,
-});
-```
-
-These helpers are intended to lock composition and anchors before low-level drawing work. They do not replace `CharacterDefinition`; they support it.
+Advanced custom-character helpers are also exported for composition-first authoring. See [docs/construction-api.md](./docs/construction-api.md) for the deeper design notes.
 
 ## Built-In Presets
 
