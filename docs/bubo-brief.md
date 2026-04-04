@@ -53,7 +53,7 @@ A robot owl face with oversized segmented disc eyes, feathered V-brows, a stacke
 - `eyeShape`: changes disc proportions while keeping the segmented feather-eye system
 - `noseShape`: changes top and bottom beak bar proportions
 - `mouthShape`: changes the beak middle bar proportions
-- `browShape`: selects brow rendering variant (currently "soft" only)
+- `browShape`: selects brow rendering variant (`soft`, `bold`, or `angled`)
 - `features.leftEye/rightEye`: supported directly
 - `features.pupils`: toggles iris and pupil rendering within the disc eyes
 - `features.brows`: toggles the feathered V-brow system
