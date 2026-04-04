@@ -457,6 +457,7 @@
       <div class="stage">
         <nav class="character-switcher" id="character-switcher">
           <button type="button" data-character="pinu" class="is-active">pinu</button>
+          <button type="button" data-character="bubo">bubo</button>
           <button type="button" data-character="kiba">kiba <span class="coming-soon-tag">coming soon</span></button>
         </nav>
         <canvas id="face" width="720" height="480"></canvas>
@@ -529,9 +530,9 @@
                 <option value="sentinel">face theme sentinel</option>
                 <option value="soft-smile">face theme soft-smile</option>
                 <option value="status-strip">face theme status-strip</option>
-                <option value="caret-cheer">face theme caret-cheer</option>
-                <option value="crescent-muse">face theme crescent-muse</option>
-                <option value="teardrop-dream">face theme teardrop-dream</option>
+                <option value="sharp-cheer">face theme sharp-cheer</option>
+                <option value="sleepy-muse">face theme sleepy-muse</option>
+                <option value="droplet-dream">face theme droplet-dream</option>
               </select>
               <label>background color <input id="background-color" type="color" value="#ff9b64" /></label>
               <select id="theme">
@@ -708,6 +709,7 @@ bun add pinu-bot</pre>
         BUILTIN_FACE_THEMES,
         BUILTIN_STYLES,
         BUILTIN_THEMES,
+        buboCharacter,
         createRobotFace,
         kibaCharacter,
         pinuCharacter
@@ -753,10 +755,10 @@ bun add pinu-bot</pre>
         scanlineSpacing: 5
       };
       const eyeAspectPresets = {
-        wide: { eyeShape: "wide", eyeWidthScale: 1.38, eyeHeightScale: 0.72 },
+        wide: { eyeShape: "wide", eyeWidthScale: 1.28, eyeHeightScale: 0.74 },
         balanced: { eyeShape: "soft", eyeWidthScale: 1, eyeHeightScale: 1 },
-        tall: { eyeShape: "wide", eyeWidthScale: 0.72, eyeHeightScale: 1.42 },
-        pillar: { eyeShape: "wide", eyeWidthScale: 0.52, eyeHeightScale: 1.72 }
+        tall: { eyeShape: "soft", eyeWidthScale: 0.72, eyeHeightScale: 1.32 },
+        pillar: { eyeShape: "block", eyeWidthScale: 0.46, eyeHeightScale: 1.54 }
       };
       const characterButtons = document.querySelectorAll("#character-switcher button");
       const themeSelect = document.querySelector("#theme");
@@ -775,7 +777,7 @@ bun add pinu-bot</pre>
       const scanlineSpacingInput = document.querySelector("#scanline-spacing");
       const codeSample = document.querySelector("#code-sample");
       const versionBadge = document.querySelector("#package-version");
-      const characters = { pinu: pinuCharacter, kiba: kibaCharacter };
+      const characters = { pinu: pinuCharacter, bubo: buboCharacter, kiba: kibaCharacter };
       let activeCharacter = pinuCharacter;
       let currentActionCode = INTRO_ACTION_CODE;
       let introActive = false;
@@ -1444,7 +1446,7 @@ bun add pinu-bot</pre>
       });
       document.querySelector("#style").addEventListener("change", (event) => {
         markManualInteraction();
-        face.setStyle(BUILTIN_STYLES[event.target.value]);
+        face.setStyle(event.target.value);
         syncCodeSample();
       });
       document.querySelector("#eye-shape").addEventListener("change", (event) => {

@@ -35,6 +35,61 @@ const cases = [
     query: "?character=pinu&emotion=happy&action=offline&actionDurationMs=1800&settleMs=960",
   },
   {
+    name: "bubo-neutral-demo",
+    query: "?character=bubo&emotion=neutral&faceTheme=default&settleMs=420",
+    maxDiffPixelRatio: 0.02,
+  },
+  {
+    name: "bubo-speaking-demo",
+    query:
+      "?character=bubo&emotion=neutral&faceTheme=default&speakDurationMs=1800&speakIntensity=0.7&settleMs=420",
+    maxDiffPixelRatio: 0.03,
+  },
+  {
+    name: "bubo-angry-demo",
+    query: "?character=bubo&emotion=angry&faceTheme=default&settleMs=520",
+    maxDiffPixelRatio: 0.02,
+  },
+  {
+    name: "bubo-neutral-crt",
+    query: "?character=bubo&emotion=neutral&theme=green-crt&settleMs=420",
+    maxDiffPixelRatio: 0.02,
+  },
+  {
+    name: "bubo-speaking-crt",
+    query:
+      "?character=bubo&emotion=neutral&theme=green-crt&speakDurationMs=1800&speakIntensity=0.7&settleMs=420",
+    maxDiffPixelRatio: 0.03,
+  },
+  {
+    name: "bubo-smile-crt",
+    query:
+      "?character=bubo&emotion=neutral&theme=green-crt&expression=smile&expressionAmount=1&settleMs=420",
+    maxDiffPixelRatio: 0.02,
+  },
+  {
+    name: "bubo-frown-crt",
+    query:
+      "?character=bubo&emotion=neutral&theme=green-crt&expression=frown&expressionAmount=1&settleMs=420",
+    maxDiffPixelRatio: 0.02,
+  },
+  {
+    name: "bubo-pout-crt",
+    query:
+      "?character=bubo&emotion=neutral&theme=green-crt&expression=pout&expressionAmount=1&settleMs=420",
+    maxDiffPixelRatio: 0.02,
+  },
+  {
+    name: "bubo-sad-crt",
+    query: "?character=bubo&emotion=sad&theme=green-crt&settleMs=520",
+    maxDiffPixelRatio: 0.02,
+  },
+  {
+    name: "bubo-angry-crt",
+    query: "?character=bubo&emotion=angry&theme=green-crt&settleMs=520",
+    maxDiffPixelRatio: 0.02,
+  },
+  {
     name: "kiba-angry-thinking",
     query: "?character=kiba&emotion=angry&action=thinking&actionPersistent=true&settleMs=620",
     maxDiffPixelRatio: 0.02,

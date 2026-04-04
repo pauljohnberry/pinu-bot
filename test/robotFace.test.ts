@@ -3,6 +3,7 @@ import {
   BUILTIN_EMOTIONS,
   BUILTIN_FACE_THEMES,
   BUILTIN_STYLES,
+  buboCharacter,
   type CharacterDefinition,
   createRobotFace,
   getCharacter,
@@ -21,6 +22,11 @@ type FillRectCall = {
   globalAlpha: number;
 };
 
+type FillCall = {
+  fillStyle: string;
+  globalAlpha: number;
+};
+
 class FakeContext2D {
   fillStyle = "";
   strokeStyle = "";
@@ -32,6 +38,7 @@ class FakeContext2D {
   globalAlpha = 1;
   operations: string[] = [];
   fillRectCalls: FillRectCall[] = [];
+  fillCalls: FillCall[] = [];
 
   beginPath(): void {
     this.operations.push("beginPath");
@@ -83,6 +90,10 @@ class FakeContext2D {
 
   fill(): void {
     this.operations.push("fill");
+    this.fillCalls.push({
+      fillStyle: this.fillStyle,
+      globalAlpha: this.globalAlpha,
+    });
   }
 
   stroke(): void {
@@ -101,6 +112,10 @@ class FakeContext2D {
     this.operations.push("rotate");
   }
 
+  scale(_x: number, _y: number): void {
+    this.operations.push("scale");
+  }
+
   save(): void {
     this.operations.push("save");
   }
@@ -116,6 +131,7 @@ class FakeContext2D {
   reset(): void {
     this.operations = [];
     this.fillRectCalls = [];
+    this.fillCalls = [];
   }
 }
 
@@ -436,6 +452,162 @@ describe("createRobotFace", () => {
     expect(noseCalls).toBeGreaterThan(0);
   });
 
+  test("registers and renders the built-in bubo character", () => {
+    const canvas = new FakeCanvas();
+    const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
+      autoStart: false,
+      character: "bubo",
+      theme: "green-crt",
+    });
+
+    expect(getCharacter("bubo")).toBe(buboCharacter);
+
+    face.render();
+
+    expect(canvas.context.fillRectCalls.length).toBeGreaterThan(0);
+  });
+
+  test("sharp-cheer, sleepy-muse, and droplet-dream face themes preserve Bubo eye fills", () => {
+    const canvas = new FakeCanvas();
+    const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
+      autoStart: false,
+      character: "bubo",
+    });
+
+    for (const faceTheme of ["sharp-cheer", "sleepy-muse", "droplet-dream"] as const) {
+      canvas.context.reset();
+      face.setFaceTheme(faceTheme).render();
+
+      expect(canvas.context.fillCalls.some((call) => call.fillStyle === "#ffcf5a")).toBe(true);
+      expect(canvas.context.fillCalls.some((call) => call.fillStyle === "#140f18")).toBe(true);
+    }
+  });
+
+  test("face theme aliases resolve to the canonical named presets", () => {
+    expect(BUILTIN_FACE_THEMES.sharp).toBe(BUILTIN_FACE_THEMES["sharp-cheer"]);
+    expect(BUILTIN_FACE_THEMES.sleepy).toBe(BUILTIN_FACE_THEMES["sleepy-muse"]);
+    expect(BUILTIN_FACE_THEMES.droplet).toBe(BUILTIN_FACE_THEMES["droplet-dream"]);
+    expect(BUILTIN_FACE_THEMES["caret-cheer"]).toBe(BUILTIN_FACE_THEMES["sharp-cheer"]);
+    expect(BUILTIN_FACE_THEMES["crescent-muse"]).toBe(BUILTIN_FACE_THEMES["sleepy-muse"]);
+    expect(BUILTIN_FACE_THEMES["teardrop-dream"]).toBe(BUILTIN_FACE_THEMES["droplet-dream"]);
+  });
+
+  test("bubo exposes shared brow and nose shapes and themed presets use them", () => {
+    expect(buboCharacter.partOptions.browShape).toEqual(["soft", "bold", "angled"]);
+    expect(buboCharacter.partOptions.noseShape).toEqual(["bridge", "gem", "pointed", "button"]);
+    expect(BUILTIN_FACE_THEMES["sharp-cheer"].parts?.browShape).toBe("angled");
+    expect(BUILTIN_FACE_THEMES["sleepy-muse"].parts?.browShape).toBe("soft");
+    expect(BUILTIN_FACE_THEMES["droplet-dream"].parts?.browShape).toBe("bold");
+  });
+
+  test("bubo maps shared style presets to owl-specific geometry", () => {
+    const canvas = new FakeCanvas();
+    const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
+      autoStart: false,
+      character: "bubo",
+    });
+
+    face.setStyle("visor");
+
+    const visorStyle = (
+      face as unknown as {
+        style: { eyeWidth: number; eyeHeight: number; eyeGap: number; panelRadius: number };
+      }
+    ).style;
+    expect(visorStyle.eyeWidth).toBeCloseTo(0.428, 6);
+    expect(visorStyle.eyeHeight).toBeCloseTo(0.336, 6);
+    expect(visorStyle.eyeGap).toBeCloseTo(0.112, 6);
+    expect(visorStyle.panelRadius).toBeCloseTo(0.084, 6);
+
+    face.setStyle(BUILTIN_STYLES.minimal);
+
+    const minimalStyle = (
+      face as unknown as {
+        style: { eyeWidth: number; eyeHeight: number; eyeGap: number; panelRadius: number };
+      }
+    ).style;
+    expect(minimalStyle.eyeWidth).toBeCloseTo(0.334, 6);
+    expect(minimalStyle.eyeHeight).toBeCloseTo(0.338, 6);
+    expect(minimalStyle.eyeGap).toBeCloseTo(0.136, 6);
+    expect(minimalStyle.panelRadius).toBeCloseTo(0.05, 6);
+  });
+
+  test("constructor style options respect locked character style presets", () => {
+    const canvas = new FakeCanvas();
+    const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
+      autoStart: false,
+      character: "bubo",
+      style: "classic",
+    });
+
+    const style = (
+      face as unknown as {
+        style: { eyeWidth: number; eyeHeight: number; eyeGap: number; panelRadius: number };
+      }
+    ).style;
+
+    expect(style.eyeWidth).toBeCloseTo(0.366, 6);
+    expect(style.eyeHeight).toBeCloseTo(0.37, 6);
+    expect(style.eyeGap).toBeCloseTo(0.128, 6);
+    expect(style.panelRadius).toBeCloseTo(0.064, 6);
+  });
+
+  test("kiba face themes keep the nose for status-strip and preserve pupils on shared glyph themes", () => {
+    const canvas = new FakeCanvas();
+    const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
+      autoStart: false,
+      character: "kiba",
+    });
+
+    face.setFaceTheme("status-strip");
+
+    const statusStripFeatures = (
+      face as unknown as {
+        features: { nose: boolean; brows: boolean };
+      }
+    ).features;
+    expect(statusStripFeatures.nose).toBe(true);
+    expect(statusStripFeatures.brows).toBe(false);
+
+    for (const faceTheme of ["sharp-cheer", "sleepy-muse", "droplet-dream"] as const) {
+      canvas.context.reset();
+      face.setFaceTheme(faceTheme).render();
+      expect(canvas.context.fillCalls.some((call) => call.fillStyle === "#000000")).toBe(true);
+    }
+  });
+
+  test("kiba maps shared style presets to tighter dog-specific eye geometry", () => {
+    const canvas = new FakeCanvas();
+    const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
+      autoStart: false,
+      character: "kiba",
+    });
+
+    face.setStyle("visor");
+
+    const visorStyle = (
+      face as unknown as {
+        style: { eyeWidth: number; eyeHeight: number; eyeGap: number; panelRadius: number };
+      }
+    ).style;
+    expect(visorStyle.eyeWidth).toBeCloseTo(0.144, 6);
+    expect(visorStyle.eyeHeight).toBeCloseTo(0.116, 6);
+    expect(visorStyle.eyeGap).toBeCloseTo(0.126, 6);
+    expect(visorStyle.panelRadius).toBeCloseTo(0.102, 6);
+
+    face.setStyle(BUILTIN_STYLES.minimal);
+
+    const minimalStyle = (
+      face as unknown as {
+        style: { eyeWidth: number; eyeHeight: number; eyeGap: number; panelRadius: number };
+      }
+    ).style;
+    expect(minimalStyle.eyeWidth).toBeCloseTo(0.11, 6);
+    expect(minimalStyle.eyeHeight).toBeCloseTo(0.118, 6);
+    expect(minimalStyle.eyeGap).toBeCloseTo(0.134, 6);
+    expect(minimalStyle.panelRadius).toBeCloseTo(0.064, 6);
+  });
+
   test("throws for unknown character names", () => {
     const canvas = new FakeCanvas();
 
@@ -571,15 +743,15 @@ describe("createRobotFace", () => {
     face.emote("angry").think({ persistent: true }).render();
 
     expect(capturedEmotionName).toBe("angry");
-    expect(capturedActionName).toBe("thinking");
+    expect(capturedActionName === "thinking").toBe(true);
     expect(capturedOverlayActionName).toBeNull();
     expect(capturedDisplayName).toBe("thinking");
 
     face.bootUp().render();
 
     expect(capturedEmotionName).toBe("angry");
-    expect(capturedActionName).toBe("thinking");
-    expect(capturedOverlayActionName).toBe("bootUp");
+    expect(capturedActionName === "thinking").toBe(true);
+    expect(capturedOverlayActionName === "bootUp").toBe(true);
     expect(capturedDisplayName).toBe("thinking");
   });
 
@@ -627,6 +799,143 @@ describe("createRobotFace", () => {
     );
     expect(Math.abs(listeningPose.mouth.curvature - neutralPose.mouth.curvature)).toBeGreaterThan(
       0.04,
+    );
+
+    face.destroy();
+  });
+
+  test("transitionTo applies partial manual overrides without disturbing unrelated pose groups", () => {
+    const raf = installRaf();
+    const canvas = new FakeCanvas();
+    const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
+      autoStart: true,
+    });
+
+    raf.step(0);
+    raf.step(300);
+
+    const baselinePose = structuredClone(
+      (
+        face as unknown as {
+          currentPose: {
+            leftEye: { openness: number; pupilX: number };
+            rightEye: { openness: number };
+            nose: { scale: number };
+            mouth: { width: number; curvature: number };
+          };
+        }
+      ).currentPose,
+    );
+
+    face.transitionTo({
+      leftEye: { openness: 0.18, pupilX: -0.35 },
+      mouth: { width: 0.42, curvature: -0.2 },
+    });
+
+    raf.step(600);
+    raf.step(900);
+
+    const currentPose = (
+      face as unknown as {
+        currentPose: {
+          leftEye: { openness: number; pupilX: number };
+          rightEye: { openness: number };
+          nose: { scale: number };
+          mouth: { width: number; curvature: number };
+        };
+      }
+    ).currentPose;
+
+    expect(currentPose.leftEye.openness).toBeLessThan(baselinePose.leftEye.openness - 0.25);
+    expect(currentPose.leftEye.pupilX).toBeLessThan(baselinePose.leftEye.pupilX - 0.2);
+    expect(currentPose.mouth.width).toBeLessThan(baselinePose.mouth.width - 0.2);
+    expect(currentPose.mouth.curvature).toBeLessThan(baselinePose.mouth.curvature - 0.15);
+    expect(Math.abs(currentPose.rightEye.openness - baselinePose.rightEye.openness)).toBeLessThan(
+      0.08,
+    );
+    expect(Math.abs(currentPose.nose.scale - baselinePose.nose.scale)).toBeLessThan(0.05);
+
+    face.destroy();
+  });
+
+  test("leftEye and rightEye controls clamp independently", () => {
+    const canvas = new FakeCanvas();
+    const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
+      autoStart: false,
+    });
+
+    face.leftEye().open(1.4).pupil(-2, 2).brightness(3).done();
+    face.rightEye().open(0.25).pupil(0.3, -0.4).brightness(0.45).done();
+
+    const manualPose = (
+      face as unknown as {
+        manualPose: {
+          leftEye: { openness: number; pupilX: number; pupilY: number; brightness: number };
+          rightEye: { openness: number; pupilX: number; pupilY: number; brightness: number };
+        };
+      }
+    ).manualPose;
+
+    expect(manualPose.leftEye.openness).toBe(1);
+    expect(manualPose.leftEye.pupilX).toBe(-1);
+    expect(manualPose.leftEye.pupilY).toBe(1);
+    expect(manualPose.leftEye.brightness).toBe(2);
+    expect(manualPose.rightEye.openness).toBe(0.25);
+    expect(manualPose.rightEye.pupilX).toBe(0.3);
+    expect(manualPose.rightEye.pupilY).toBe(-0.4);
+    expect(manualPose.rightEye.brightness).toBe(0.45);
+  });
+
+  test("sleep reads distinctly from neutral and keeps the action active when persistent", () => {
+    const raf = installRaf();
+    const canvas = new FakeCanvas();
+    const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
+      autoStart: true,
+    });
+
+    raf.step(0);
+    raf.step(300);
+
+    const neutralPose = structuredClone(
+      (
+        face as unknown as {
+          currentPose: {
+            leftEye: { openness: number };
+            rightEye: { openness: number };
+            nose: { brightness: number };
+            global: { glow: number };
+          };
+        }
+      ).currentPose,
+    );
+
+    face.sleep({ persistent: true });
+    expect((face as unknown as { displayName: string }).displayName).toBe("sleeping");
+
+    raf.step(900);
+    raf.step(1200);
+    raf.step(1500);
+
+    const sleepingPose = face as unknown as {
+      currentPose: {
+        leftEye: { openness: number };
+        rightEye: { openness: number };
+        nose: { brightness: number };
+        global: { glow: number };
+      };
+      activeActionName: string | null;
+    };
+
+    expect(sleepingPose.activeActionName).toBe("sleeping");
+    expect(sleepingPose.currentPose.leftEye.openness).toBeLessThan(
+      neutralPose.leftEye.openness - 0.12,
+    );
+    expect(sleepingPose.currentPose.rightEye.openness).toBeLessThan(
+      neutralPose.rightEye.openness - 0.12,
+    );
+    expect(sleepingPose.currentPose.global.glow).toBeLessThan(neutralPose.global.glow - 0.12);
+    expect(sleepingPose.currentPose.nose.brightness).toBeLessThan(
+      neutralPose.nose.brightness - 0.1,
     );
 
     face.destroy();
@@ -720,7 +1029,7 @@ describe("createRobotFace", () => {
 
     expect((face as unknown as { activeActionName: string | null }).activeActionName).toBeNull();
     expect((face as unknown as { actionBlend: number }).actionBlend).toBeGreaterThan(0.02);
-    expect(capturedActionName).toBe("listening");
+    expect(capturedActionName === "listening").toBe(true);
     expect(capturedDisplayName).toBe("listening");
     expect((face as unknown as { displayName: string }).displayName).toBe("happy");
 

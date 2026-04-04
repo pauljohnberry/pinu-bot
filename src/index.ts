@@ -9,7 +9,7 @@ export type {
   NoseDrawParams,
 } from "./character.js";
 export { getCharacter, registerCharacter } from "./character.js";
-export { kibaCharacter, pinuCharacter } from "./characters/index.js";
+export { buboCharacter, kibaCharacter, pinuCharacter } from "./characters/index.js";
 export type {
   CharacterConstruction,
   ConstructionAnchors,

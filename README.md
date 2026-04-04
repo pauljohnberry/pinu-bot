@@ -222,7 +222,7 @@ Low-level part controls:
 
 Characters define how the face looks: the shapes of eyes, nose, mouth, and brows, plus optional overlays and emotion-specific effects. Every character shares the same API.
 
-Built-in characters: `pinu`, `kiba`
+Built-in characters: `pinu`, `bubo`, `kiba`
 
 Switch characters at creation or at runtime:
 
@@ -327,7 +327,9 @@ Styles:
 `classic`, `soft`, `minimal`, `visor`, `industrial`
 
 Face themes:
-`default`, `companion`, `service`, `sentinel`, `soft-smile`, `status-strip`, `caret-cheer`, `crescent-muse`, `teardrop-dream`
+`default`, `companion`, `service`, `sentinel`, `soft-smile`, `status-strip`, `sharp-cheer`, `sleepy-muse`, `droplet-dream`
+
+Aliases `sharp`, `sleepy`, `droplet`, `caret-cheer`, `crescent-muse`, and `teardrop-dream` still resolve for compatibility.
 
 ## Features And Shapes
 

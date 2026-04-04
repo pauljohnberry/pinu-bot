@@ -47,6 +47,99 @@ const kibaStyle: StyleDefinition = {
   glowScale: 0.032,
 };
 
+const kibaStylePresets: Record<
+  "classic" | "soft" | "minimal" | "visor" | "industrial",
+  StyleDefinition
+> = {
+  classic: {
+    ...kibaStyle,
+    panelInsetX: 0.06,
+    panelInsetY: 0.078,
+    panelRadius: 0.08,
+    panelInnerPadding: 0.018,
+    eyeWidth: 0.122,
+    eyeHeight: 0.132,
+    eyeY: -0.094,
+    eyeGap: 0.138,
+    browWidth: 0.082,
+    browHeight: 0.01,
+    browY: -0.162,
+    noseWidth: 0.144,
+    noseHeight: 0.114,
+    noseY: 0.008,
+    mouthWidth: 0.308,
+    mouthHeight: 0.184,
+    mouthY: 0.188,
+    glowScale: 0.032,
+  },
+  soft: {
+    ...kibaStyle,
+  },
+  minimal: {
+    ...kibaStyle,
+    panelInsetX: 0.08,
+    panelInsetY: 0.12,
+    panelRadius: 0.064,
+    panelInnerPadding: 0.015,
+    eyeWidth: 0.11,
+    eyeHeight: 0.118,
+    eyeY: -0.09,
+    eyeGap: 0.134,
+    browWidth: 0.074,
+    browHeight: 0.008,
+    browY: -0.154,
+    noseWidth: 0.132,
+    noseHeight: 0.104,
+    noseY: 0.006,
+    mouthWidth: 0.286,
+    mouthHeight: 0.168,
+    mouthY: 0.182,
+    glowScale: 0.026,
+  },
+  visor: {
+    ...kibaStyle,
+    panelInsetX: 0.052,
+    panelInsetY: 0.08,
+    panelRadius: 0.102,
+    panelInnerPadding: 0.016,
+    eyeWidth: 0.144,
+    eyeHeight: 0.116,
+    eyeY: -0.094,
+    eyeGap: 0.126,
+    browWidth: 0.092,
+    browHeight: 0.01,
+    browY: -0.158,
+    noseWidth: 0.136,
+    noseHeight: 0.1,
+    noseY: 0.01,
+    mouthWidth: 0.292,
+    mouthHeight: 0.166,
+    mouthY: 0.188,
+    glowScale: 0.038,
+  },
+  industrial: {
+    ...kibaStyle,
+    panelInsetX: 0.066,
+    panelInsetY: 0.078,
+    panelRadius: 0.048,
+    panelInnerPadding: 0.014,
+    eyeWidth: 0.116,
+    eyeHeight: 0.124,
+    eyeY: -0.094,
+    eyeGap: 0.132,
+    browWidth: 0.084,
+    browHeight: 0.01,
+    browY: -0.158,
+    noseWidth: 0.146,
+    noseHeight: 0.116,
+    noseY: 0.008,
+    mouthWidth: 0.314,
+    mouthHeight: 0.176,
+    mouthY: 0.186,
+    glowScale: 0.03,
+  },
+};
+
 type EarPose = {
   innerX: number;
   outerX: number;
@@ -643,10 +736,11 @@ function resolveKibaEyeMetrics(
   pose: FacePose["leftEye"],
   side: -1 | 1,
   displayName: EmotionName,
+  style: StyleDefinition,
 ): KibaEyeMetrics {
   const eyeMetrics = resolveStandardEyeMetrics({
-    width: width * kibaStyle.eyeWidth,
-    height: height * kibaStyle.eyeHeight,
+    width: width * style.eyeWidth,
+    height: height * style.eyeHeight,
     openness: pose.openness,
     squint: pose.squint,
     widthBase: 0.86,
@@ -668,11 +762,17 @@ function resolveKibaEyeMetrics(
   const excitedShort = displayName === "excited" ? 0.92 : 1;
 
   return {
-    centerX: side * width * kibaStyle.eyeGap + confusedX,
-    centerY: height * kibaStyle.eyeY + confusedY,
+    centerX: side * width * style.eyeGap + confusedX,
+    centerY: height * style.eyeY + confusedY,
     width: eyeMetrics.width * confusedScale * excitedWide,
     height: eyeMetrics.height * confusedScale * excitedShort,
   };
+}
+
+function kibaEyeShapeSupportsPupil(shape: string): boolean {
+  return (
+    eyeShapeSupportsPupil(shape) || shape === "sharp" || shape === "sleepy" || shape === "droplet"
+  );
 }
 
 function strokeCubicRange(
@@ -1545,6 +1645,8 @@ export const kibaCharacter: CharacterDefinition = {
   },
 
   defaultStyle: kibaStyle,
+  stylePresets: kibaStylePresets,
+  lockedStyle: true,
 
   defaultFeatures: {
     brows: false,
@@ -1570,8 +1672,22 @@ export const kibaCharacter: CharacterDefinition = {
       dc.actionName === "listening"
         ? applyListeningEarLift(resolveEarPoses(expressionName))
         : resolveEarPoses(expressionName);
-    const leftEyeMetrics = resolveKibaEyeMetrics(width, height, pose.leftEye, -1, expressionName);
-    const rightEyeMetrics = resolveKibaEyeMetrics(width, height, pose.rightEye, 1, expressionName);
+    const leftEyeMetrics = resolveKibaEyeMetrics(
+      width,
+      height,
+      pose.leftEye,
+      -1,
+      expressionName,
+      dc.style,
+    );
+    const rightEyeMetrics = resolveKibaEyeMetrics(
+      width,
+      height,
+      pose.rightEye,
+      1,
+      expressionName,
+      dc.style,
+    );
 
     ctx.save();
     if (dc.actionName === "listening") {
@@ -1730,7 +1846,7 @@ export const kibaCharacter: CharacterDefinition = {
     ctx.shadowColor = theme.glow;
     ctx.shadowBlur = Math.max(0, Math.min(resolvedEyeWidth, resolvedEyeHeight) * 0.32);
 
-    if (eyeShapeSupportsPupil(eyeShape)) {
+    if (eyeShapeSupportsPupil(eyeShape) || eyeShape === "droplet") {
       ctx.save();
       ctx.globalAlpha *= SOCKET_FILL_ALPHA;
       ctx.fillStyle = theme.foreground;
@@ -1746,64 +1862,66 @@ export const kibaCharacter: CharacterDefinition = {
         sharpLineScale: 0.11,
         sleepyLineScale: 0.13,
       });
-      ctx.restore();
-      return;
-    }
+    } else {
+      if (side === -1) {
+        ctx.save();
+        ctx.globalAlpha *= PATCH_FILL_ALPHA;
+        ctx.fillStyle = theme.foreground;
+        ctx.shadowBlur = 0;
+        ctx.translate(resolvedEyeWidth * 0.11, 0);
+        ctx.beginPath();
+        ctx.moveTo(-resolvedEyeWidth * 0.48, -resolvedEyeHeight * 0.78);
+        ctx.quadraticCurveTo(
+          resolvedEyeWidth * 0.16,
+          -resolvedEyeHeight * 1.04,
+          resolvedEyeWidth * 0.68,
+          -resolvedEyeHeight * 0.4,
+        );
+        ctx.quadraticCurveTo(
+          resolvedEyeWidth * 0.84,
+          resolvedEyeHeight * 0.08,
+          resolvedEyeWidth * 0.26,
+          resolvedEyeHeight * 0.88,
+        );
+        ctx.quadraticCurveTo(
+          -resolvedEyeWidth * 0.22,
+          resolvedEyeHeight * 0.96,
+          -resolvedEyeWidth * 0.56,
+          resolvedEyeHeight * 0.34,
+        );
+        ctx.quadraticCurveTo(
+          -resolvedEyeWidth * 0.72,
+          -resolvedEyeHeight * 0.1,
+          -resolvedEyeWidth * 0.48,
+          -resolvedEyeHeight * 0.72,
+        );
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
 
-    if (side === -1) {
-      ctx.save();
-      ctx.globalAlpha *= PATCH_FILL_ALPHA;
-      ctx.fillStyle = theme.foreground;
-      ctx.shadowBlur = 0;
-      ctx.translate(resolvedEyeWidth * 0.11, 0);
-      ctx.beginPath();
-      ctx.moveTo(-resolvedEyeWidth * 0.48, -resolvedEyeHeight * 0.78);
-      ctx.quadraticCurveTo(
-        resolvedEyeWidth * 0.16,
-        -resolvedEyeHeight * 1.04,
-        resolvedEyeWidth * 0.68,
-        -resolvedEyeHeight * 0.4,
-      );
-      ctx.quadraticCurveTo(
-        resolvedEyeWidth * 0.84,
-        resolvedEyeHeight * 0.08,
-        resolvedEyeWidth * 0.26,
-        resolvedEyeHeight * 0.88,
-      );
-      ctx.quadraticCurveTo(
-        -resolvedEyeWidth * 0.22,
-        resolvedEyeHeight * 0.96,
-        -resolvedEyeWidth * 0.56,
-        resolvedEyeHeight * 0.34,
-      );
-      ctx.quadraticCurveTo(
-        -resolvedEyeWidth * 0.72,
-        -resolvedEyeHeight * 0.1,
-        -resolvedEyeWidth * 0.48,
-        -resolvedEyeHeight * 0.72,
-      );
-      ctx.closePath();
+      drawDogEyeShell(ctx, eyeShape, resolvedEyeWidth, resolvedEyeHeight);
       ctx.fill();
-      ctx.restore();
+
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha *= 0.92;
+      ctx.fillStyle = theme.accent;
+      drawDogEyeShell(ctx, eyeShape, resolvedEyeWidth * 0.82, resolvedEyeHeight * 0.82);
+      ctx.fill();
     }
 
-    drawDogEyeShell(ctx, eyeShape, resolvedEyeWidth, resolvedEyeHeight);
-    ctx.fill();
-
-    ctx.shadowBlur = 0;
-    ctx.globalAlpha *= 0.92;
-    ctx.fillStyle = theme.accent;
-    drawDogEyeShell(ctx, eyeShape, resolvedEyeWidth * 0.82, resolvedEyeHeight * 0.82);
-    ctx.fill();
-
-    if (features.pupils && eyeShapeSupportsPupil(eyeShape)) {
+    if (features.pupils && kibaEyeShapeSupportsPupil(eyeShape)) {
       const pupilX = clamp(pose.pupilX, -1, 1) * resolvedEyeWidth * 0.2;
       const pupilY = clamp(pose.pupilY, -1, 1) * resolvedEyeHeight * 0.18;
       const thinkingPupilX =
         dc.actionName === "thinking" && side === 1 ? -resolvedEyeWidth * 0.035 : 0;
       const thinkingPupilY =
         dc.actionName === "thinking" && side === 1 ? -resolvedEyeHeight * 0.05 : 0;
+      const pupilCenterX = pupilX + (expressionName === "love" ? 0 : thinkingPupilX);
+      const pupilCenterY = pupilY + (expressionName === "love" ? 0 : thinkingPupilY);
+      const sharpOrSleepyEye = eyeShape === "sharp" || eyeShape === "sleepy";
       ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
       if (expressionName === "love") {
         const heartPulse = 0.96 + 0.06 * (0.5 + 0.5 * wave(dc.elapsed / 1000, 0.82));
         const lovePupilSize =
@@ -1813,11 +1931,25 @@ export const kibaCharacter: CharacterDefinition = {
         drawPixelGlyph(ctx, HEART_PATTERN, pupilX, pupilY, lovePupilSize);
         ctx.restore();
       } else {
+        if (sharpOrSleepyEye) {
+          const irisSize = pupilSize * (eyeShape === "sleepy" ? 1.3 : 1.22);
+          ctx.fillStyle = PUPIL_SHINE_FILL;
+          roundedRect(
+            ctx,
+            pupilCenterX - irisSize * 0.5,
+            pupilCenterY - irisSize * 0.5,
+            irisSize,
+            irisSize,
+            irisSize * 0.5,
+          );
+          ctx.fill();
+        }
+
         ctx.fillStyle = PUPIL_FILL;
         roundedRect(
           ctx,
-          pupilX + thinkingPupilX - pupilSize * 0.5,
-          pupilY + thinkingPupilY - pupilSize * 0.5,
+          pupilCenterX - pupilSize * 0.5,
+          pupilCenterY - pupilSize * 0.5,
           pupilSize,
           pupilSize,
           pupilSize * 0.28,
@@ -1827,8 +1959,8 @@ export const kibaCharacter: CharacterDefinition = {
       ctx.fillStyle = PUPIL_SHINE_FILL;
       drawPupilShine(
         ctx,
-        pupilX + (expressionName === "love" ? 0 : thinkingPupilX),
-        pupilY + (expressionName === "love" ? 0 : thinkingPupilY),
+        pupilCenterX,
+        pupilCenterY,
         expressionName === "love"
           ? Math.max(9, Math.min(resolvedEyeWidth, resolvedEyeHeight) * 0.62)
           : pupilSize,
