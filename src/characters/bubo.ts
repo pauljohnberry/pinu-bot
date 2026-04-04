@@ -6,10 +6,10 @@ import type {
   MouthDrawParams,
   NoseDrawParams,
 } from "../character.js";
-import { clamp, roundedRect } from "../drawUtils.js";
+import { clamp, drawPixelGlyph, ease, HEART_PATTERN, roundedRect } from "../drawUtils.js";
 import { eye, type FaceStateDefinition, pose } from "../stateDefinitions.js";
 import { STYLE_PRESETS } from "../styles.js";
-import type { EmotionName, ReplaceActionName, StyleDefinition, ThemeDefinition } from "../types.js";
+import type { EmotionName, FacePose, ReplaceActionName, StyleDefinition, ThemeDefinition } from "../types.js";
 
 const BUBO_BEAK_FILL = "#ffc247";
 const BUBO_BEAK_GLOW = "rgba(255, 194, 71, 0.56)";
@@ -1100,4 +1100,62 @@ export const buboCharacter: CharacterDefinition = {
   drawBrow: drawBuboBrow,
   drawNose: drawBuboNose,
   drawMouth: drawBuboMouth,
+
+  drawOverlay(dc: DrawContext, width: number, height: number, _pose: FacePose): void {
+    if (dc.displayName !== "love" || dc.mode !== "face") {
+      return;
+    }
+
+    const { ctx } = dc;
+    const t = dc.elapsed / 1000;
+    const unit = Math.min(width, height);
+
+    // Rising heart embers — each one loops on its own cycle, drifting
+    // upward like glowing sparks from a campfire. Seeded with fixed
+    // offsets so the pattern is stable but varied.
+    const embers: [number, number, number, number, number][] = [
+      // [xBias, period, phase, sizeScale, peakAlpha]
+      [-0.14,  2.6, 0.0,  0.55, 0.7],
+      [ 0.08,  3.1, 0.4,  0.4,  0.5],
+      [-0.04,  2.2, 1.1,  0.7,  0.85],
+      [ 0.16,  2.8, 0.7,  0.35, 0.45],
+      [ 0.0,   3.4, 1.8,  0.6,  0.65],
+      [-0.1,   2.4, 2.2,  0.45, 0.55],
+      [ 0.12,  2.0, 1.5,  0.5,  0.6],
+    ];
+
+    ctx.save();
+
+    for (const [xBias, period, phase, sizeScale, peakAlpha] of embers) {
+      // Each ember loops: rises from bottom to top of face, then resets
+      const cycle = ((t + phase) % period) / period; // 0..1
+
+      // Fade in at bottom, full in middle, fade out at top
+      let alpha: number;
+      if (cycle < 0.15) {
+        alpha = ease("smooth", cycle / 0.15);
+      } else if (cycle < 0.7) {
+        alpha = 1;
+      } else {
+        alpha = 1 - ease("smooth", (cycle - 0.7) / 0.3);
+      }
+
+      // Rise from below face center to above it
+      const y = height * (0.2 - cycle * 0.5);
+      // Gentle horizontal sway
+      const sway = Math.sin(cycle * Math.PI * 2.4 + phase) * unit * 0.03;
+      const x = width * xBias + sway;
+      const size = unit * 0.04 * sizeScale;
+
+      ctx.save();
+      ctx.globalAlpha *= alpha * peakAlpha;
+      ctx.shadowColor = "rgba(255, 140, 170, 0.6)";
+      ctx.shadowBlur = size * 0.5;
+      ctx.fillStyle = "#ff7b98";
+      drawPixelGlyph(ctx, HEART_PATTERN, x, y, size);
+      ctx.restore();
+    }
+
+    ctx.restore();
+  },
 };
