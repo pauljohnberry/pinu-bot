@@ -41,16 +41,29 @@ type MiddleBarGeometry = {
   heightScale: number;
 };
 
+type BuboEyeOverrides = {
+  openness?: number;
+  squint?: number;
+  tilt?: number;
+  pupilX?: number;
+  pupilY?: number;
+  brightness?: number;
+};
+
 type BuboStateConfig = {
   eyeOpenness: number;
   eyeSquint: number;
   eyeTilt: number;
   eyeBrightness: number;
+  leftEye?: BuboEyeOverrides;
+  rightEye?: BuboEyeOverrides;
   beakScale: number;
   beakBrightness: number;
+  beakTilt?: number;
   middleBarOpenness: number;
   middleBarWidth: number;
   mouthCurvature?: number;
+  mouthTilt?: number;
   glow: number;
   bob: number;
   flicker: number;
@@ -385,16 +398,32 @@ function resolveMiddleBarGeometry(
 }
 
 function createBuboState(config: BuboStateConfig): FaceStateDefinition {
+  const l = config.leftEye;
+  const r = config.rightEye;
   return {
     pose: pose(
-      eye(config.eyeOpenness, config.eyeSquint, config.eyeTilt, 0, 0, config.eyeBrightness),
-      eye(config.eyeOpenness, config.eyeSquint, -config.eyeTilt, 0, 0, config.eyeBrightness),
-      { scale: config.beakScale, tilt: 0, brightness: config.beakBrightness },
+      eye(
+        l?.openness ?? config.eyeOpenness,
+        l?.squint ?? config.eyeSquint,
+        l?.tilt ?? config.eyeTilt,
+        l?.pupilX ?? 0,
+        l?.pupilY ?? 0,
+        l?.brightness ?? config.eyeBrightness,
+      ),
+      eye(
+        r?.openness ?? config.eyeOpenness,
+        r?.squint ?? config.eyeSquint,
+        r?.tilt ?? -config.eyeTilt,
+        r?.pupilX ?? 0,
+        r?.pupilY ?? 0,
+        r?.brightness ?? config.eyeBrightness,
+      ),
+      { scale: config.beakScale, tilt: config.beakTilt ?? 0, brightness: config.beakBrightness },
       {
         openness: config.middleBarOpenness,
         curvature: config.mouthCurvature ?? 0,
         width: config.middleBarWidth,
-        tilt: 0,
+        tilt: config.mouthTilt ?? 0,
         brightness: config.beakBrightness,
       },
       {
@@ -570,15 +599,25 @@ const buboEmotions: Partial<Record<EmotionName, FaceStateDefinition>> = {
     blinkMaxMs: 16000,
     blinkDurationMs: 130,
   }),
-  confused: {
-    pose: pose(
-      // Same size eyes, both tilted together — owl head-cock
-      eye(0.72, 0.16, -0.32, -0.04, 0.02, 0.96),
-      eye(0.72, 0.16, -0.32, 0.04, -0.02, 0.96),
-      { scale: 0.88, tilt: -0.4, brightness: 0.82 },
-      { openness: 0.06, curvature: -0.38, width: 0.62, tilt: -0.42, brightness: 0.78 },
-      { glow: 0.94, bob: 0.008, jitter: 0, distortion: 0, flicker: 0.022, scanline: 0.18 },
-    ),
+  confused: createBuboState({
+    // Owl head-cock — both eyes tilted the same direction
+    eyeOpenness: 0.72,
+    eyeSquint: 0.16,
+    eyeTilt: 0,
+    eyeBrightness: 0.96,
+    leftEye: { tilt: -0.32, pupilX: -0.04, pupilY: 0.02 },
+    rightEye: { tilt: -0.32, pupilX: 0.04, pupilY: -0.02 },
+    beakScale: 0.88,
+    beakBrightness: 0.82,
+    beakTilt: -0.4,
+    middleBarOpenness: 0.06,
+    middleBarWidth: 0.62,
+    mouthCurvature: -0.38,
+    mouthTilt: -0.42,
+    glow: 0.94,
+    bob: 0.008,
+    flicker: 0.022,
+    scanline: 0.18,
     durationMs: 320,
     ease: "smooth",
     microBob: 0.006,
@@ -587,7 +626,7 @@ const buboEmotions: Partial<Record<EmotionName, FaceStateDefinition>> = {
     blinkMinMs: 2800,
     blinkMaxMs: 5000,
     blinkDurationMs: 190,
-  },
+  }),
   excited: createBuboState({
     eyeOpenness: 0.98,
     eyeSquint: 0.04,
@@ -614,15 +653,23 @@ const buboEmotions: Partial<Record<EmotionName, FaceStateDefinition>> = {
 };
 
 const buboActions: Partial<Record<ReplaceActionName, FaceStateDefinition>> = {
-  thinking: {
-    pose: pose(
-      // Eyes squashed vertically via squint — left brow raised
-      eye(0.62, 0.7, -0.4, -0.06, -0.1, 0.9),
-      eye(0.62, 0.7, 0.1, 0.06, -0.1, 0.9),
-      { scale: 0.92, tilt: 0, brightness: 0.8 },
-      { openness: 0.03, curvature: -0.1, width: 0.58, tilt: 0, brightness: 0.74 },
-      { glow: 0.82, bob: 0.004, jitter: 0, distortion: 0, flicker: 0.012, scanline: 0.22 },
-    ),
+  thinking: createBuboState({
+    // Eyes squashed via squint, left brow raised
+    eyeOpenness: 0.62,
+    eyeSquint: 0.7,
+    eyeTilt: 0,
+    eyeBrightness: 0.9,
+    leftEye: { tilt: -0.4, pupilX: -0.06, pupilY: -0.1 },
+    rightEye: { tilt: 0.1, pupilX: 0.06, pupilY: -0.1 },
+    beakScale: 0.92,
+    beakBrightness: 0.8,
+    middleBarOpenness: 0.03,
+    middleBarWidth: 0.58,
+    mouthCurvature: -0.1,
+    glow: 0.82,
+    bob: 0.004,
+    flicker: 0.012,
+    scanline: 0.22,
     durationMs: 340,
     ease: "gentle",
     microBob: 0.004,
@@ -631,16 +678,25 @@ const buboActions: Partial<Record<ReplaceActionName, FaceStateDefinition>> = {
     blinkMinMs: 3000,
     blinkMaxMs: 5400,
     blinkDurationMs: 240,
-  },
-  listening: {
-    pose: pose(
-      // Wide and alert, slight head cock — attentive owl
-      eye(0.96, 0.02, -0.16, 0.06, -0.02, 1.22),
-      eye(0.96, 0.02, -0.16, 0.06, -0.02, 1.22),
-      { scale: 1.04, tilt: -0.18, brightness: 1.1 },
-      { openness: 0.06, curvature: 0, width: 0.78, tilt: -0.2, brightness: 1.04 },
-      { glow: 1.16, bob: 0.014, jitter: 0, distortion: 0, flicker: 0.008, scanline: 0.08 },
-    ),
+  }),
+  listening: createBuboState({
+    // Wide and alert, slight head cock — attentive owl
+    eyeOpenness: 0.96,
+    eyeSquint: 0.02,
+    eyeTilt: 0,
+    eyeBrightness: 1.22,
+    leftEye: { tilt: -0.16, pupilX: 0.06, pupilY: -0.02 },
+    rightEye: { tilt: -0.16, pupilX: 0.06, pupilY: -0.02 },
+    beakScale: 1.04,
+    beakBrightness: 1.1,
+    beakTilt: -0.18,
+    middleBarOpenness: 0.06,
+    middleBarWidth: 0.78,
+    mouthTilt: -0.2,
+    glow: 1.16,
+    bob: 0.014,
+    flicker: 0.008,
+    scanline: 0.08,
     durationMs: 220,
     ease: "smooth",
     microBob: 0.01,
@@ -649,7 +705,7 @@ const buboActions: Partial<Record<ReplaceActionName, FaceStateDefinition>> = {
     blinkMinMs: 5000,
     blinkMaxMs: 8200,
     blinkDurationMs: 140,
-  },
+  }),
   sleeping: createBuboState({
     eyeOpenness: 0.12,
     eyeSquint: 0.28,
