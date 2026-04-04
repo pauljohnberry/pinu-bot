@@ -480,10 +480,10 @@ const buboEmotions: Partial<Record<EmotionName, FaceStateDefinition>> = {
     blinkDurationMs: 160,
   }),
   love: createBuboState({
-    eyeOpenness: 0.72,
-    eyeSquint: 0.18,
-    eyeTilt: 0,
-    eyeBrightness: 1.18,
+    eyeOpenness: 0.82,
+    eyeSquint: 0.06,
+    eyeTilt: -0.35,
+    eyeBrightness: 1.3,
     beakScale: 1.01,
     beakBrightness: 1.06,
     middleBarOpenness: 0.2,
@@ -570,28 +570,24 @@ const buboEmotions: Partial<Record<EmotionName, FaceStateDefinition>> = {
     blinkMaxMs: 16000,
     blinkDurationMs: 130,
   }),
-  confused: createBuboState({
-    eyeOpenness: 0.68,
-    eyeSquint: 0.22,
-    eyeTilt: 0.1,
-    eyeBrightness: 0.96,
-    beakScale: 0.98,
-    beakBrightness: 0.92,
-    middleBarOpenness: 0.18,
-    middleBarWidth: 0.78,
-    glow: 0.98,
-    bob: 0.01,
-    flicker: 0.016,
-    scanline: 0.16,
-    durationMs: 260,
+  confused: {
+    pose: pose(
+      // Same size eyes, both tilted together — owl head-cock
+      eye(0.72, 0.16, -0.32, -0.04, 0.02, 0.96),
+      eye(0.72, 0.16, -0.32, 0.04, -0.02, 0.96),
+      { scale: 0.88, tilt: -0.4, brightness: 0.82 },
+      { openness: 0.06, curvature: -0.38, width: 0.62, tilt: -0.42, brightness: 0.78 },
+      { glow: 0.94, bob: 0.008, jitter: 0, distortion: 0, flicker: 0.022, scanline: 0.18 },
+    ),
+    durationMs: 320,
     ease: "smooth",
-    microBob: 0.008,
-    microBobHz: 0.9,
-    microSway: 0.022,
-    blinkMinMs: 3200,
-    blinkMaxMs: 5400,
-    blinkDurationMs: 180,
-  }),
+    microBob: 0.006,
+    microBobHz: 0.6,
+    microSway: 0.05,
+    blinkMinMs: 2800,
+    blinkMaxMs: 5000,
+    blinkDurationMs: 190,
+  },
   excited: createBuboState({
     eyeOpenness: 0.98,
     eyeSquint: 0.04,
@@ -618,50 +614,42 @@ const buboEmotions: Partial<Record<EmotionName, FaceStateDefinition>> = {
 };
 
 const buboActions: Partial<Record<ReplaceActionName, FaceStateDefinition>> = {
-  thinking: createBuboState({
-    eyeOpenness: 0.74,
-    eyeSquint: 0.16,
-    eyeTilt: 0.12,
-    eyeBrightness: 0.96,
-    beakScale: 0.96,
-    beakBrightness: 0.9,
-    middleBarOpenness: 0.08,
-    middleBarWidth: 0.74,
-    glow: 0.92,
-    bob: 0.007,
-    flicker: 0.012,
-    scanline: 0.16,
-    durationMs: 320,
+  thinking: {
+    pose: pose(
+      // Eyes squashed vertically via squint — left brow raised
+      eye(0.62, 0.7, -0.4, -0.06, -0.1, 0.9),
+      eye(0.62, 0.7, 0.1, 0.06, -0.1, 0.9),
+      { scale: 0.92, tilt: 0, brightness: 0.8 },
+      { openness: 0.03, curvature: -0.1, width: 0.58, tilt: 0, brightness: 0.74 },
+      { glow: 0.82, bob: 0.004, jitter: 0, distortion: 0, flicker: 0.012, scanline: 0.22 },
+    ),
+    durationMs: 340,
     ease: "gentle",
-    microBob: 0.006,
-    microBobHz: 0.58,
-    microSway: 0.022,
-    blinkMinMs: 2600,
-    blinkMaxMs: 4800,
-    blinkDurationMs: 200,
-  }),
-  listening: createBuboState({
-    eyeOpenness: 1,
-    eyeSquint: 0,
-    eyeTilt: 0.08,
-    eyeBrightness: 1.18,
-    beakScale: 1.02,
-    beakBrightness: 1.04,
-    middleBarOpenness: 0.1,
-    middleBarWidth: 0.84,
-    glow: 1.08,
-    bob: 0.012,
-    flicker: 0.015,
-    scanline: 0.11,
-    durationMs: 240,
+    microBob: 0.004,
+    microBobHz: 0.4,
+    microSway: 0.012,
+    blinkMinMs: 3000,
+    blinkMaxMs: 5400,
+    blinkDurationMs: 240,
+  },
+  listening: {
+    pose: pose(
+      // Wide and alert, slight head cock — attentive owl
+      eye(0.96, 0.02, -0.16, 0.06, -0.02, 1.22),
+      eye(0.96, 0.02, -0.16, 0.06, -0.02, 1.22),
+      { scale: 1.04, tilt: -0.18, brightness: 1.1 },
+      { openness: 0.06, curvature: 0, width: 0.78, tilt: -0.2, brightness: 1.04 },
+      { glow: 1.16, bob: 0.014, jitter: 0, distortion: 0, flicker: 0.008, scanline: 0.08 },
+    ),
+    durationMs: 220,
     ease: "smooth",
-    microBob: 0.009,
-    microBobHz: 0.92,
-    microSway: 0.022,
-    blinkMinMs: 4200,
-    blinkMaxMs: 6800,
-    blinkDurationMs: 160,
-  }),
+    microBob: 0.01,
+    microBobHz: 1.1,
+    microSway: 0.035,
+    blinkMinMs: 5000,
+    blinkMaxMs: 8200,
+    blinkDurationMs: 140,
+  },
   sleeping: createBuboState({
     eyeOpenness: 0.12,
     eyeSquint: 0.28,
@@ -763,18 +751,25 @@ function drawBuboEye(dc: DrawContext, params: EyeDrawParams): void {
   const chinHeight = segmentHeight * (0.48 - featherBias * 0.04);
   const chinY = radius * (0.9 - featherBias * 0.04);
   const socketRadiusX = radius * 1.02;
-  const socketRadiusY = radius * lerp(1.04, 0.9, blinkAmount);
+  const socketRadiusY = radius * lerp(1.04, 0.9, blinkAmount) * lerp(1, 0.52, squint);
   const pupilScale = clamp(0.42 + params.pose.openness * 0.58, 0, 1);
   const pupilX = clamp(params.pose.pupilX, -1, 1) * radius * 0.34;
   const pupilY = clamp(params.pose.pupilY, -1, 1) * radius * 0.24;
-  const irisRadiusX = Math.max(6, eyeDiameter * 0.19) * pupilScale;
+  // Love: pupils dilate gradually over ~600ms, settling at 1.3x
+  const isLove = dc.emotionName === "love";
+  const loveElapsed = isLove ? clamp((dc.elapsed - dc.emotionFromTime) / 600, 0, 1) : 0;
+  const loveDilate = 1 + loveElapsed * 0.3;
+  const irisRadiusX = Math.max(6, eyeDiameter * 0.19 * loveDilate) * pupilScale;
   const irisRadiusY = irisRadiusX * lerp(0.96, 0.72, blinkAmount);
   const pupilRadiusX = irisRadiusX * 0.48;
   const pupilRadiusY = irisRadiusY * 0.52;
 
+  const squishY = lerp(1, 0.55, squint);
+
   ctx.save();
   ctx.translate(params.centerX, params.centerY);
   ctx.rotate(params.pose.tilt * 0.4);
+  ctx.scale(1, squishY);
   applySegmentStyle(ctx, resolveEyeFill(theme), theme.glow, brightness, eyeDiameter * (reducedDetail ? 0.2 : 0.26));
 
   if (blinkAmount >= 0.68 || params.pose.openness <= 0.24) {
@@ -790,7 +785,10 @@ function drawBuboEye(dc: DrawContext, params: EyeDrawParams): void {
   ctx.fill();
   ctx.restore();
 
+  ctx.save();
+  ctx.globalAlpha *= 0.35;
   fillRoundedSegment(ctx, 0, hoodY, hoodWidth, hoodHeight);
+  ctx.restore();
 
   ctx.save();
   ctx.globalAlpha *= 0.54;
@@ -807,7 +805,7 @@ function drawBuboEye(dc: DrawContext, params: EyeDrawParams): void {
   ctx.restore();
 
   ctx.save();
-  ctx.globalAlpha *= 0.72;
+  ctx.globalAlpha *= 0.18;
   fillFeatherSegment(ctx, -sideSweepX, sideSweepY, sideSweepWidth, sideSweepHeight, -0.18);
   fillFeatherSegment(ctx, sideSweepX, sideSweepY, sideSweepWidth, sideSweepHeight, 0.18);
   ctx.restore();
@@ -850,6 +848,19 @@ function drawBuboEye(dc: DrawContext, params: EyeDrawParams): void {
         Math.max(2, irisRadiusX * 0.18),
         Math.max(2, irisRadiusY * 0.16),
       );
+
+      // Glassy second highlight during love — larger, softer
+      if (isLove && loveElapsed > 0.2) {
+        ctx.globalAlpha *= clamp((loveElapsed - 0.2) / 0.4, 0, 1) * 0.5;
+        ctx.fillStyle = "rgba(255, 252, 240, 0.7)";
+        fillEllipse(
+          ctx,
+          pupilX + irisRadiusX * 0.18,
+          pupilY + irisRadiusY * 0.14,
+          Math.max(1.5, irisRadiusX * 0.12),
+          Math.max(1.5, irisRadiusY * 0.1),
+        );
+      }
     }
     ctx.restore();
   }
@@ -868,7 +879,7 @@ function drawBuboBrow(dc: DrawContext, params: BrowDrawParams): void {
 
   ctx.save();
   ctx.translate(params.centerX, params.centerY);
-  ctx.rotate(params.pose.tilt * 0.3);
+  ctx.rotate(params.pose.tilt * 0.7);
   ctx.globalAlpha *= brightness * 0.92;
   ctx.strokeStyle = resolveEyeFill(theme);
   ctx.shadowColor = theme.glow;
