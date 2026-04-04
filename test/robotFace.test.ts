@@ -743,15 +743,15 @@ describe("createRobotFace", () => {
     face.emote("angry").think({ persistent: true }).render();
 
     expect(capturedEmotionName).toBe("angry");
-    expect(capturedActionName).toBe("thinking");
+    expect(capturedActionName === "thinking").toBe(true);
     expect(capturedOverlayActionName).toBeNull();
     expect(capturedDisplayName).toBe("thinking");
 
     face.bootUp().render();
 
     expect(capturedEmotionName).toBe("angry");
-    expect(capturedActionName).toBe("thinking");
-    expect(capturedOverlayActionName).toBe("bootUp");
+    expect(capturedActionName === "thinking").toBe(true);
+    expect(capturedOverlayActionName === "bootUp").toBe(true);
     expect(capturedDisplayName).toBe("thinking");
   });
 
@@ -799,6 +799,143 @@ describe("createRobotFace", () => {
     );
     expect(Math.abs(listeningPose.mouth.curvature - neutralPose.mouth.curvature)).toBeGreaterThan(
       0.04,
+    );
+
+    face.destroy();
+  });
+
+  test("transitionTo applies partial manual overrides without disturbing unrelated pose groups", () => {
+    const raf = installRaf();
+    const canvas = new FakeCanvas();
+    const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
+      autoStart: true,
+    });
+
+    raf.step(0);
+    raf.step(300);
+
+    const baselinePose = structuredClone(
+      (
+        face as unknown as {
+          currentPose: {
+            leftEye: { openness: number; pupilX: number };
+            rightEye: { openness: number };
+            nose: { scale: number };
+            mouth: { width: number; curvature: number };
+          };
+        }
+      ).currentPose,
+    );
+
+    face.transitionTo({
+      leftEye: { openness: 0.18, pupilX: -0.35 },
+      mouth: { width: 0.42, curvature: -0.2 },
+    });
+
+    raf.step(600);
+    raf.step(900);
+
+    const currentPose = (
+      face as unknown as {
+        currentPose: {
+          leftEye: { openness: number; pupilX: number };
+          rightEye: { openness: number };
+          nose: { scale: number };
+          mouth: { width: number; curvature: number };
+        };
+      }
+    ).currentPose;
+
+    expect(currentPose.leftEye.openness).toBeLessThan(baselinePose.leftEye.openness - 0.25);
+    expect(currentPose.leftEye.pupilX).toBeLessThan(baselinePose.leftEye.pupilX - 0.2);
+    expect(currentPose.mouth.width).toBeLessThan(baselinePose.mouth.width - 0.2);
+    expect(currentPose.mouth.curvature).toBeLessThan(baselinePose.mouth.curvature - 0.15);
+    expect(Math.abs(currentPose.rightEye.openness - baselinePose.rightEye.openness)).toBeLessThan(
+      0.08,
+    );
+    expect(Math.abs(currentPose.nose.scale - baselinePose.nose.scale)).toBeLessThan(0.05);
+
+    face.destroy();
+  });
+
+  test("leftEye and rightEye controls clamp independently", () => {
+    const canvas = new FakeCanvas();
+    const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
+      autoStart: false,
+    });
+
+    face.leftEye().open(1.4).pupil(-2, 2).brightness(3).done();
+    face.rightEye().open(0.25).pupil(0.3, -0.4).brightness(0.45).done();
+
+    const manualPose = (
+      face as unknown as {
+        manualPose: {
+          leftEye: { openness: number; pupilX: number; pupilY: number; brightness: number };
+          rightEye: { openness: number; pupilX: number; pupilY: number; brightness: number };
+        };
+      }
+    ).manualPose;
+
+    expect(manualPose.leftEye.openness).toBe(1);
+    expect(manualPose.leftEye.pupilX).toBe(-1);
+    expect(manualPose.leftEye.pupilY).toBe(1);
+    expect(manualPose.leftEye.brightness).toBe(2);
+    expect(manualPose.rightEye.openness).toBe(0.25);
+    expect(manualPose.rightEye.pupilX).toBe(0.3);
+    expect(manualPose.rightEye.pupilY).toBe(-0.4);
+    expect(manualPose.rightEye.brightness).toBe(0.45);
+  });
+
+  test("sleep reads distinctly from neutral and keeps the action active when persistent", () => {
+    const raf = installRaf();
+    const canvas = new FakeCanvas();
+    const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
+      autoStart: true,
+    });
+
+    raf.step(0);
+    raf.step(300);
+
+    const neutralPose = structuredClone(
+      (
+        face as unknown as {
+          currentPose: {
+            leftEye: { openness: number };
+            rightEye: { openness: number };
+            nose: { brightness: number };
+            global: { glow: number };
+          };
+        }
+      ).currentPose,
+    );
+
+    face.sleep({ persistent: true });
+    expect((face as unknown as { displayName: string }).displayName).toBe("sleeping");
+
+    raf.step(900);
+    raf.step(1200);
+    raf.step(1500);
+
+    const sleepingPose = face as unknown as {
+      currentPose: {
+        leftEye: { openness: number };
+        rightEye: { openness: number };
+        nose: { brightness: number };
+        global: { glow: number };
+      };
+      activeActionName: string | null;
+    };
+
+    expect(sleepingPose.activeActionName).toBe("sleeping");
+    expect(sleepingPose.currentPose.leftEye.openness).toBeLessThan(
+      neutralPose.leftEye.openness - 0.12,
+    );
+    expect(sleepingPose.currentPose.rightEye.openness).toBeLessThan(
+      neutralPose.rightEye.openness - 0.12,
+    );
+    expect(sleepingPose.currentPose.global.glow).toBeLessThan(neutralPose.global.glow - 0.12);
+    expect(sleepingPose.currentPose.nose.brightness).toBeLessThan(
+      neutralPose.nose.brightness - 0.1,
     );
 
     face.destroy();
@@ -892,7 +1029,7 @@ describe("createRobotFace", () => {
 
     expect((face as unknown as { activeActionName: string | null }).activeActionName).toBeNull();
     expect((face as unknown as { actionBlend: number }).actionBlend).toBeGreaterThan(0.02);
-    expect(capturedActionName).toBe("listening");
+    expect(capturedActionName === "listening").toBe(true);
     expect(capturedDisplayName).toBe("listening");
     expect((face as unknown as { displayName: string }).displayName).toBe("happy");
 
