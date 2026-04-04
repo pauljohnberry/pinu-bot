@@ -112,7 +112,7 @@ class FakeContext2D {
     this.operations.push("rotate");
   }
 
-  scale(): void {
+  scale(_x: number, _y: number): void {
     this.operations.push("scale");
   }
 
