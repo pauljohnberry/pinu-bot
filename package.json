@@ -1,6 +1,6 @@
 {
   "name": "pinu-bot",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A small TypeScript library for orchestrating expressive robot screen faces on HTML5 canvas.",
   "author": "Paul Berry",
   "homepage": "https://www.pinubot.com",
