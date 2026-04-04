@@ -22,6 +22,11 @@ type FillRectCall = {
   globalAlpha: number;
 };
 
+type FillCall = {
+  fillStyle: string;
+  globalAlpha: number;
+};
+
 class FakeContext2D {
   fillStyle = "";
   strokeStyle = "";
@@ -33,6 +38,7 @@ class FakeContext2D {
   globalAlpha = 1;
   operations: string[] = [];
   fillRectCalls: FillRectCall[] = [];
+  fillCalls: FillCall[] = [];
 
   beginPath(): void {
     this.operations.push("beginPath");
@@ -84,6 +90,10 @@ class FakeContext2D {
 
   fill(): void {
     this.operations.push("fill");
+    this.fillCalls.push({
+      fillStyle: this.fillStyle,
+      globalAlpha: this.globalAlpha,
+    });
   }
 
   stroke(): void {
@@ -121,6 +131,7 @@ class FakeContext2D {
   reset(): void {
     this.operations = [];
     this.fillRectCalls = [];
+    this.fillCalls = [];
   }
 }
 
@@ -454,6 +465,147 @@ describe("createRobotFace", () => {
     face.render();
 
     expect(canvas.context.fillRectCalls.length).toBeGreaterThan(0);
+  });
+
+  test("sharp-cheer, sleepy-muse, and droplet-dream face themes preserve Bubo eye fills", () => {
+    const canvas = new FakeCanvas();
+    const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
+      autoStart: false,
+      character: "bubo",
+    });
+
+    for (const faceTheme of ["sharp-cheer", "sleepy-muse", "droplet-dream"] as const) {
+      canvas.context.reset();
+      face.setFaceTheme(faceTheme).render();
+
+      expect(canvas.context.fillCalls.some((call) => call.fillStyle === "#ffcf5a")).toBe(true);
+      expect(canvas.context.fillCalls.some((call) => call.fillStyle === "#140f18")).toBe(true);
+    }
+  });
+
+  test("face theme aliases resolve to the canonical named presets", () => {
+    expect(BUILTIN_FACE_THEMES.sharp).toBe(BUILTIN_FACE_THEMES["sharp-cheer"]);
+    expect(BUILTIN_FACE_THEMES.sleepy).toBe(BUILTIN_FACE_THEMES["sleepy-muse"]);
+    expect(BUILTIN_FACE_THEMES.droplet).toBe(BUILTIN_FACE_THEMES["droplet-dream"]);
+    expect(BUILTIN_FACE_THEMES["caret-cheer"]).toBe(BUILTIN_FACE_THEMES["sharp-cheer"]);
+    expect(BUILTIN_FACE_THEMES["crescent-muse"]).toBe(BUILTIN_FACE_THEMES["sleepy-muse"]);
+    expect(BUILTIN_FACE_THEMES["teardrop-dream"]).toBe(BUILTIN_FACE_THEMES["droplet-dream"]);
+  });
+
+  test("bubo exposes shared brow and nose shapes and themed presets use them", () => {
+    expect(buboCharacter.partOptions.browShape).toEqual(["soft", "bold", "angled"]);
+    expect(buboCharacter.partOptions.noseShape).toEqual(["bridge", "gem", "pointed", "button"]);
+    expect(BUILTIN_FACE_THEMES["sharp-cheer"].parts?.browShape).toBe("angled");
+    expect(BUILTIN_FACE_THEMES["sleepy-muse"].parts?.browShape).toBe("soft");
+    expect(BUILTIN_FACE_THEMES["droplet-dream"].parts?.browShape).toBe("bold");
+  });
+
+  test("bubo maps shared style presets to owl-specific geometry", () => {
+    const canvas = new FakeCanvas();
+    const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
+      autoStart: false,
+      character: "bubo",
+    });
+
+    face.setStyle("visor");
+
+    const visorStyle = (
+      face as unknown as {
+        style: { eyeWidth: number; eyeHeight: number; eyeGap: number; panelRadius: number };
+      }
+    ).style;
+    expect(visorStyle.eyeWidth).toBeCloseTo(0.428, 6);
+    expect(visorStyle.eyeHeight).toBeCloseTo(0.336, 6);
+    expect(visorStyle.eyeGap).toBeCloseTo(0.112, 6);
+    expect(visorStyle.panelRadius).toBeCloseTo(0.084, 6);
+
+    face.setStyle(BUILTIN_STYLES.minimal);
+
+    const minimalStyle = (
+      face as unknown as {
+        style: { eyeWidth: number; eyeHeight: number; eyeGap: number; panelRadius: number };
+      }
+    ).style;
+    expect(minimalStyle.eyeWidth).toBeCloseTo(0.334, 6);
+    expect(minimalStyle.eyeHeight).toBeCloseTo(0.338, 6);
+    expect(minimalStyle.eyeGap).toBeCloseTo(0.136, 6);
+    expect(minimalStyle.panelRadius).toBeCloseTo(0.05, 6);
+  });
+
+  test("constructor style options respect locked character style presets", () => {
+    const canvas = new FakeCanvas();
+    const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
+      autoStart: false,
+      character: "bubo",
+      style: "classic",
+    });
+
+    const style = (
+      face as unknown as {
+        style: { eyeWidth: number; eyeHeight: number; eyeGap: number; panelRadius: number };
+      }
+    ).style;
+
+    expect(style.eyeWidth).toBeCloseTo(0.366, 6);
+    expect(style.eyeHeight).toBeCloseTo(0.37, 6);
+    expect(style.eyeGap).toBeCloseTo(0.128, 6);
+    expect(style.panelRadius).toBeCloseTo(0.064, 6);
+  });
+
+  test("kiba face themes keep the nose for status-strip and preserve pupils on shared glyph themes", () => {
+    const canvas = new FakeCanvas();
+    const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
+      autoStart: false,
+      character: "kiba",
+    });
+
+    face.setFaceTheme("status-strip");
+
+    const statusStripFeatures = (
+      face as unknown as {
+        features: { nose: boolean; brows: boolean };
+      }
+    ).features;
+    expect(statusStripFeatures.nose).toBe(true);
+    expect(statusStripFeatures.brows).toBe(false);
+
+    for (const faceTheme of ["sharp-cheer", "sleepy-muse", "droplet-dream"] as const) {
+      canvas.context.reset();
+      face.setFaceTheme(faceTheme).render();
+      expect(canvas.context.fillCalls.some((call) => call.fillStyle === "#000000")).toBe(true);
+    }
+  });
+
+  test("kiba maps shared style presets to tighter dog-specific eye geometry", () => {
+    const canvas = new FakeCanvas();
+    const face = createRobotFace(canvas as unknown as HTMLCanvasElement, {
+      autoStart: false,
+      character: "kiba",
+    });
+
+    face.setStyle("visor");
+
+    const visorStyle = (
+      face as unknown as {
+        style: { eyeWidth: number; eyeHeight: number; eyeGap: number; panelRadius: number };
+      }
+    ).style;
+    expect(visorStyle.eyeWidth).toBeCloseTo(0.144, 6);
+    expect(visorStyle.eyeHeight).toBeCloseTo(0.116, 6);
+    expect(visorStyle.eyeGap).toBeCloseTo(0.126, 6);
+    expect(visorStyle.panelRadius).toBeCloseTo(0.102, 6);
+
+    face.setStyle(BUILTIN_STYLES.minimal);
+
+    const minimalStyle = (
+      face as unknown as {
+        style: { eyeWidth: number; eyeHeight: number; eyeGap: number; panelRadius: number };
+      }
+    ).style;
+    expect(minimalStyle.eyeWidth).toBeCloseTo(0.11, 6);
+    expect(minimalStyle.eyeHeight).toBeCloseTo(0.118, 6);
+    expect(minimalStyle.eyeGap).toBeCloseTo(0.134, 6);
+    expect(minimalStyle.panelRadius).toBeCloseTo(0.064, 6);
   });
 
   test("throws for unknown character names", () => {

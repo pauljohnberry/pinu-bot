@@ -201,6 +201,38 @@ const resolveTheme = (theme: ThemeName | ThemeDefinition): ThemeDefinition =>
 const resolveStyle = (style: StylePresetName | StyleDefinition): StyleDefinition =>
   typeof style === "string" ? STYLE_PRESETS[style] : style;
 
+const findStylePresetName = (style: StyleDefinition): StylePresetName | null => {
+  const entries = Object.entries(STYLE_PRESETS) as [StylePresetName, StyleDefinition][];
+
+  for (const [name, preset] of entries) {
+    if (preset === style) {
+      return name;
+    }
+  }
+
+  return null;
+};
+
+const canApplyLockedCharacterThemeStyle = (
+  character: CharacterDefinition,
+  style: StylePresetName | StyleDefinition,
+): boolean => {
+  return !character.lockedStyle || typeof style === "string" || findStylePresetName(style) !== null;
+};
+
+const resolveCharacterStyle = (
+  character: CharacterDefinition,
+  style: StylePresetName | StyleDefinition,
+): StyleDefinition => {
+  const presetName = typeof style === "string" ? style : findStylePresetName(style);
+
+  if (presetName && character.stylePresets?.[presetName]) {
+    return character.stylePresets[presetName];
+  }
+
+  return resolveStyle(style);
+};
+
 const normalizeFeatures = (features: FaceFeatures): FaceFeatures => {
   const anyEyeVisible = features.leftEye || features.rightEye;
   if (anyEyeVisible) {
@@ -709,7 +741,7 @@ class RobotFaceRenderer implements RobotFace {
       this.theme = resolveTheme(options.theme);
     }
     if (options.style) {
-      this.style = resolveStyle(options.style);
+      this.style = resolveCharacterStyle(this.character, options.style);
     }
     if (options.features) {
       this.features = mergeFeatures(this.features, options.features);
@@ -910,7 +942,7 @@ class RobotFaceRenderer implements RobotFace {
   }
 
   setStyle(style: StylePresetName | StyleDefinition): RobotFace {
-    this.style = resolveStyle(style);
+    this.style = resolveCharacterStyle(this.character, style);
     return this;
   }
 
@@ -954,7 +986,7 @@ class RobotFaceRenderer implements RobotFace {
       this.theme = resolveTheme(config.theme);
     }
     if (config.style) {
-      this.style = resolveStyle(config.style);
+      this.style = resolveCharacterStyle(this.character, config.style);
     }
     if (config.features) {
       this.features = mergeFeatures(this.features, config.features);
@@ -1126,8 +1158,8 @@ class RobotFaceRenderer implements RobotFace {
     if (faceTheme.theme) {
       this.theme = resolveTheme(faceTheme.theme);
     }
-    if (faceTheme.style) {
-      this.style = resolveStyle(faceTheme.style);
+    if (faceTheme.style && canApplyLockedCharacterThemeStyle(this.character, faceTheme.style)) {
+      this.style = resolveCharacterStyle(this.character, faceTheme.style);
     }
     if (faceTheme.features) {
       this.features = mergeFeatures(this.features, faceTheme.features);
@@ -1609,6 +1641,7 @@ class RobotFaceRenderer implements RobotFace {
     return {
       ctx: this.ctx,
       theme: this.theme,
+      style: this.style,
       emotionName: this.emotionTargetName,
       actionName: this.visualActionName,
       overlayActionName: this.overlayActionName,

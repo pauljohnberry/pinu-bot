@@ -59,8 +59,8 @@
       const speakDurationMsParam = params.get("speakDurationMs");
       const speakIntensityParam = params.get("speakIntensity");
       const settleMsParam = params.get("settleMs");
-      const theme = params.get("theme") ?? "cyan";
-      const style = params.get("style") ?? "classic";
+      const theme = params.get("theme");
+      const style = params.get("style");
       const faceTheme = params.get("faceTheme");
       const mode = params.get("mode") ?? "face";
       const symbol = params.get("symbol");
@@ -747,8 +747,8 @@
           autoStart: true,
           pixelRatio: 1,
           character: activeCharacter,
-          theme,
-          style,
+          theme: theme || undefined,
+          style: style || undefined,
           faceTheme: faceTheme || undefined,
           parts: noseShape
             ? {

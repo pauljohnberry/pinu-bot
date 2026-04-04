@@ -12,12 +12,14 @@ import type {
   PartStyleConfig,
   ReplaceActionName,
   StyleDefinition,
+  StylePresetName,
   ThemeDefinition,
 } from "./types.js";
 
 export interface DrawContext {
   ctx: CanvasRenderingContext2D;
   theme: ThemeDefinition;
+  style: StyleDefinition;
   emotionName: EmotionName;
   actionName: ReplaceActionName | null;
   overlayActionName: OverlayActionName | null;
@@ -83,7 +85,9 @@ export interface CharacterDefinition {
 
   defaultParts: Required<PartStyleConfig>;
   defaultStyle: StyleDefinition;
+  stylePresets?: Partial<Record<StylePresetName, StyleDefinition>>;
   defaultFeatures?: Partial<FaceFeatures>;
+  lockedStyle?: boolean;
 
   emotions?: Partial<Record<EmotionName, FaceStateDefinition>>;
   actions?: Partial<Record<CharacterActionName, FaceStateDefinition>>;

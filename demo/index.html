@@ -530,9 +530,9 @@
                 <option value="sentinel">face theme sentinel</option>
                 <option value="soft-smile">face theme soft-smile</option>
                 <option value="status-strip">face theme status-strip</option>
-                <option value="caret-cheer">face theme caret-cheer</option>
-                <option value="crescent-muse">face theme crescent-muse</option>
-                <option value="teardrop-dream">face theme teardrop-dream</option>
+                <option value="sharp-cheer">face theme sharp-cheer</option>
+                <option value="sleepy-muse">face theme sleepy-muse</option>
+                <option value="droplet-dream">face theme droplet-dream</option>
               </select>
               <label>background color <input id="background-color" type="color" value="#ff9b64" /></label>
               <select id="theme">
@@ -755,10 +755,10 @@ bun add pinu-bot</pre>
         scanlineSpacing: 5
       };
       const eyeAspectPresets = {
-        wide: { eyeShape: "wide", eyeWidthScale: 1.38, eyeHeightScale: 0.72 },
+        wide: { eyeShape: "wide", eyeWidthScale: 1.28, eyeHeightScale: 0.74 },
         balanced: { eyeShape: "soft", eyeWidthScale: 1, eyeHeightScale: 1 },
-        tall: { eyeShape: "wide", eyeWidthScale: 0.72, eyeHeightScale: 1.42 },
-        pillar: { eyeShape: "wide", eyeWidthScale: 0.52, eyeHeightScale: 1.72 }
+        tall: { eyeShape: "soft", eyeWidthScale: 0.72, eyeHeightScale: 1.32 },
+        pillar: { eyeShape: "block", eyeWidthScale: 0.46, eyeHeightScale: 1.54 }
       };
       const characterButtons = document.querySelectorAll("#character-switcher button");
       const themeSelect = document.querySelector("#theme");
@@ -1446,7 +1446,7 @@ bun add pinu-bot</pre>
       });
       document.querySelector("#style").addEventListener("change", (event) => {
         markManualInteraction();
-        face.setStyle(BUILTIN_STYLES[event.target.value]);
+        face.setStyle(event.target.value);
         syncCodeSample();
       });
       document.querySelector("#eye-shape").addEventListener("change", (event) => {

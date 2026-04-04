@@ -327,7 +327,9 @@ Styles:
 `classic`, `soft`, `minimal`, `visor`, `industrial`
 
 Face themes:
-`default`, `companion`, `service`, `sentinel`, `soft-smile`, `status-strip`, `caret-cheer`, `crescent-muse`, `teardrop-dream`
+`default`, `companion`, `service`, `sentinel`, `soft-smile`, `status-strip`, `sharp-cheer`, `sleepy-muse`, `droplet-dream`
+
+Aliases `sharp`, `sleepy`, `droplet`, `caret-cheer`, `crescent-muse`, and `teardrop-dream` still resolve for compatibility.
 
 ## Features And Shapes
 

@@ -34,6 +34,12 @@ export type FaceThemeName =
   | "sentinel"
   | "soft-smile"
   | "status-strip"
+  | "sharp-cheer"
+  | "sleepy-muse"
+  | "droplet-dream"
+  | "sharp"
+  | "sleepy"
+  | "droplet"
   | "caret-cheer"
   | "crescent-muse"
   | "teardrop-dream";
