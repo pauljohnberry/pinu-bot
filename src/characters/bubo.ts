@@ -9,7 +9,13 @@ import type {
 import { clamp, drawPixelGlyph, ease, HEART_PATTERN, roundedRect } from "../drawUtils.js";
 import { eye, type FaceStateDefinition, pose } from "../stateDefinitions.js";
 import { STYLE_PRESETS } from "../styles.js";
-import type { EmotionName, FacePose, ReplaceActionName, StyleDefinition, ThemeDefinition } from "../types.js";
+import type {
+  EmotionName,
+  FacePose,
+  ReplaceActionName,
+  StyleDefinition,
+  ThemeDefinition,
+} from "../types.js";
 
 const BUBO_BEAK_FILL = "#ffc247";
 const BUBO_BEAK_GLOW = "rgba(255, 194, 71, 0.56)";
@@ -140,22 +146,8 @@ function fillFeatherSegment(
   ctx.rotate(rotation);
   ctx.beginPath();
   ctx.moveTo(-halfWidth, 0);
-  ctx.bezierCurveTo(
-    -width * 0.18,
-    -halfHeight,
-    width * 0.18,
-    -halfHeight,
-    halfWidth,
-    0,
-  );
-  ctx.bezierCurveTo(
-    width * 0.12,
-    halfHeight,
-    -width * 0.24,
-    halfHeight,
-    -halfWidth,
-    0,
-  );
+  ctx.bezierCurveTo(-width * 0.18, -halfHeight, width * 0.18, -halfHeight, halfWidth, 0);
+  ctx.bezierCurveTo(width * 0.12, halfHeight, -width * 0.24, halfHeight, -halfWidth, 0);
   ctx.fill();
   ctx.restore();
 }
@@ -826,7 +818,13 @@ function drawBuboEye(dc: DrawContext, params: EyeDrawParams): void {
   ctx.translate(params.centerX, params.centerY);
   ctx.rotate(params.pose.tilt * 0.4);
   ctx.scale(1, squishY);
-  applySegmentStyle(ctx, resolveEyeFill(theme), theme.glow, brightness, eyeDiameter * (reducedDetail ? 0.2 : 0.26));
+  applySegmentStyle(
+    ctx,
+    resolveEyeFill(theme),
+    theme.glow,
+    brightness,
+    eyeDiameter * (reducedDetail ? 0.2 : 0.26),
+  );
 
   if (blinkAmount >= 0.68 || params.pose.openness <= 0.24) {
     fillRoundedSegment(ctx, 0, 0, eyeDiameter * 0.72, lineHeight);
@@ -854,9 +852,23 @@ function drawBuboEye(dc: DrawContext, params: EyeDrawParams): void {
 
   ctx.save();
   ctx.globalAlpha *= 0.28;
-  fillFeatherSegment(ctx, innerHookX, innerHookY, innerHookWidth, innerHookHeight, params.side * 0.74);
+  fillFeatherSegment(
+    ctx,
+    innerHookX,
+    innerHookY,
+    innerHookWidth,
+    innerHookHeight,
+    params.side * 0.74,
+  );
   if (!reducedDetail) {
-    fillFeatherSegment(ctx, outerWingX, outerWingY, outerWingWidth, outerWingHeight, params.side * 0.28);
+    fillFeatherSegment(
+      ctx,
+      outerWingX,
+      outerWingY,
+      outerWingWidth,
+      outerWingHeight,
+      params.side * 0.28,
+    );
   }
   ctx.restore();
 
@@ -875,7 +887,14 @@ function drawBuboEye(dc: DrawContext, params: EyeDrawParams): void {
   if (!reducedDetail) {
     ctx.save();
     ctx.globalAlpha *= 0.28;
-    fillFeatherSegment(ctx, innerCheekX, innerCheekY, innerCheekWidth, innerCheekHeight, -params.side * 0.34);
+    fillFeatherSegment(
+      ctx,
+      innerCheekX,
+      innerCheekY,
+      innerCheekWidth,
+      innerCheekHeight,
+      -params.side * 0.34,
+    );
     ctx.restore();
 
     ctx.save();
@@ -956,14 +975,7 @@ function drawBuboBrow(dc: DrawContext, params: BrowDrawParams): void {
   const baseAlpha = ctx.globalAlpha;
   const feathers: [number, number, number, number, number, number][] = [
     // Feather 0 — inner V stroke: angles steeply down toward nose bridge
-    [
-      s * -0.44,
-      0.28 + angryT * 0.1,
-      s * -0.4,
-      0.18 + angryT * 0.06,
-      0.09 + angryT * 0.03,
-      0.55,
-    ],
+    [s * -0.44, 0.28 + angryT * 0.1, s * -0.4, 0.18 + angryT * 0.06, 0.09 + angryT * 0.03, 0.55],
     // Feather 1 — lower-mid: angles slightly outward and down
     [
       s * 0.18,
@@ -1182,13 +1194,13 @@ export const buboCharacter: CharacterDefinition = {
     // offsets so the pattern is stable but varied.
     const embers: [number, number, number, number, number][] = [
       // [xBias, period, phase, sizeScale, peakAlpha]
-      [-0.14,  2.6, 0.0,  0.55, 0.7],
-      [ 0.08,  3.1, 0.4,  0.4,  0.5],
-      [-0.04,  2.2, 1.1,  0.7,  0.85],
-      [ 0.16,  2.8, 0.7,  0.35, 0.45],
-      [ 0.0,   3.4, 1.8,  0.6,  0.65],
-      [-0.1,   2.4, 2.2,  0.45, 0.55],
-      [ 0.12,  2.0, 1.5,  0.5,  0.6],
+      [-0.14, 2.6, 0.0, 0.55, 0.7],
+      [0.08, 3.1, 0.4, 0.4, 0.5],
+      [-0.04, 2.2, 1.1, 0.7, 0.85],
+      [0.16, 2.8, 0.7, 0.35, 0.45],
+      [0.0, 3.4, 1.8, 0.6, 0.65],
+      [-0.1, 2.4, 2.2, 0.45, 0.55],
+      [0.12, 2.0, 1.5, 0.5, 0.6],
     ];
 
     ctx.save();
