@@ -102,6 +102,10 @@ class FakeContext2D {
     this.operations.push("rotate");
   }
 
+  scale(): void {
+    this.operations.push("scale");
+  }
+
   save(): void {
     this.operations.push("save");
   }
